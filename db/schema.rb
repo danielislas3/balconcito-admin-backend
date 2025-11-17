@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_17_100001) do
   create_table "accounts", force: :cascade do |t|
     t.string "account_type", null: false
     t.datetime "created_at", null: false
@@ -28,7 +28,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.datetime "created_at", null: false
     t.text "description", null: false
     t.date "expense_date", null: false
-    t.string "payment_source", null: false
+    t.integer "payment_method_id"
     t.string "provider"
     t.string "receipt_photo_url", limit: 500
     t.boolean "reimbursed", default: false, null: false
@@ -37,7 +37,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.integer "user_id", null: false
     t.index ["category"], name: "index_expenses_on_category"
     t.index ["expense_date"], name: "index_expenses_on_expense_date"
-    t.index ["payment_source"], name: "index_expenses_on_payment_source"
+    t.index ["payment_method_id"], name: "index_expenses_on_payment_method_id"
     t.index ["requires_reimbursement", "reimbursed"], name: "index_expenses_on_requires_reimbursement_and_reimbursed"
     t.index ["user_id"], name: "index_expenses_on_user_id"
   end
@@ -48,6 +48,21 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.string "jti", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
+  end
+
+  create_table "payment_methods", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.string "payment_type", null: false
+    t.boolean "requires_reimbursement", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["is_active"], name: "index_payment_methods_on_is_active"
+    t.index ["payment_type"], name: "index_payment_methods_on_payment_type"
+    t.index ["user_id", "name"], name: "index_payment_methods_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_payment_methods_on_user_id"
   end
 
   create_table "reimbursement_expenses", force: :cascade do |t|
@@ -107,7 +122,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "expenses", "payment_methods"
   add_foreign_key "expenses", "users"
+  add_foreign_key "payment_methods", "users"
   add_foreign_key "reimbursement_expenses", "expenses", on_delete: :cascade
   add_foreign_key "reimbursement_expenses", "reimbursements", on_delete: :cascade
   add_foreign_key "reimbursements", "accounts", column: "from_account_id"

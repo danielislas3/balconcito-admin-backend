@@ -9,6 +9,9 @@ class TurnClosure < ApplicationRecord
             :theoretical_cash, :payments_withdrawals,
             numericality: { greater_than_or_equal_to: 0 }
 
+  # Scopes
+  scope :by_date_range, ->(start_date, end_date) { where(report_date: start_date..end_date) }
+
   # Callbacks
   after_create :update_account_balances
   after_update :update_account_balances

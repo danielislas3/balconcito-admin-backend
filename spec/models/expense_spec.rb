@@ -28,6 +28,11 @@ RSpec.describe Expense, type: :model do
       association = described_class.reflect_on_association(:user)
       expect(association.macro).to eq :belongs_to
     end
+
+    it 'belongs to payment_method' do
+      association = described_class.reflect_on_association(:payment_method)
+      expect(association.macro).to eq :belongs_to
+    end
   end
 
   describe '#cost_type' do
@@ -58,9 +63,13 @@ RSpec.describe Expense, type: :model do
   end
 
   describe 'scopes' do
-    let!(:expense1) { create(:expense, payment_source: "daniel_card") }
-    let!(:expense2) { create(:expense, payment_source: "cash_petty") }
-    let!(:expense3) { create(:expense, payment_source: "daniel_card") }
+    let(:user) { create(:user) }
+    let(:personal_pm) { create(:payment_method, :personal_card, user: user) }
+    let(:business_pm) { create(:payment_method, :business_cash, user: user) }
+
+    let!(:expense1) { create(:expense, user: user, payment_method: personal_pm) }
+    let!(:expense2) { create(:expense, user: user, payment_method: business_pm) }
+    let!(:expense3) { create(:expense, user: user, payment_method: personal_pm) }
 
     before do
       expense3.update!(reimbursed: true)
@@ -85,14 +94,54 @@ RSpec.describe Expense, type: :model do
   end
 
   describe 'reimbursement detection' do
+    let(:user) { create(:user) }
+
     it 'sets requires_reimbursement to true for personal card payments' do
-      expense = create(:expense, payment_source: "daniel_card")
+      personal_pm = create(:payment_method, :personal_card, user: user)
+      expense = create(:expense, user: user, payment_method: personal_pm)
       expect(expense.requires_reimbursement).to be true
     end
 
     it 'sets requires_reimbursement to false for business payments' do
-      expense = create(:expense, payment_source: "cash_petty")
+      business_pm = create(:payment_method, :business_cash, user: user)
+      expense = create(:expense, user: user, payment_method: business_pm)
       expect(expense.requires_reimbursement).to be false
+    end
+
+    it 'sets requires_reimbursement to false when no payment_method' do
+      expense = create(:expense, user: user, payment_method: nil)
+      expect(expense.requires_reimbursement).to be false
+    end
+  end
+
+  describe 'instance methods' do
+    let(:user) { create(:user) }
+
+    describe '#payment_source_name' do
+      it 'returns payment method name when present' do
+        pm = create(:payment_method, :business_cash, user: user, name: 'Caja Chica')
+        expense = create(:expense, user: user, payment_method: pm)
+        expect(expense.payment_source_name).to eq('Caja Chica')
+      end
+
+      it 'returns "No especificado" when payment_method is nil' do
+        expense = create(:expense, user: user, payment_method: nil)
+        expect(expense.payment_source_name).to eq('No especificado')
+      end
+    end
+
+    describe '#paid_by_user' do
+      it 'returns payment method user when present' do
+        pm_user = create(:user, name: 'Daniel', email: 'daniel@test.com')
+        pm = create(:payment_method, :personal_card, user: pm_user)
+        expense = create(:expense, user: user, payment_method: pm)
+        expect(expense.paid_by_user).to eq(pm_user)
+      end
+
+      it 'returns expense user when payment_method is nil' do
+        expense = create(:expense, user: user, payment_method: nil)
+        expect(expense.paid_by_user).to eq(user)
+      end
     end
   end
 end

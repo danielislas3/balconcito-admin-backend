@@ -28,7 +28,43 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :payment_methods
+
       resources :reimbursements, only: [:index, :create, :show]
+
+      # Credit Cards & Debt
+      resources :credit_cards do
+        collection do
+          get :summary
+        end
+      end
+
+      resources :credit_purchases do
+        member do
+          post :record_payment
+          post :mark_as_paid
+        end
+        collection do
+          get :summary
+        end
+      end
+
+      # Loans
+      resources :lenders do
+        collection do
+          get :summary
+        end
+      end
+
+      resources :loans do
+        member do
+          post :record_payment
+          post :mark_as_paid
+        end
+        collection do
+          get :summary
+        end
+      end
 
       # Dashboard
       namespace :dashboard do

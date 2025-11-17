@@ -48,8 +48,10 @@ class AddLoyverseShiftSupport < ActiveRecord::Migration[8.1]
       t.index :store_id
     end
 
-    # Agregar shift_id a loyverse_receipts
-    add_reference :loyverse_receipts, :loyverse_shift, foreign_key: true
-    add_index :loyverse_receipts, :loyverse_shift_id
+    # Agregar shift_id a loyverse_receipts (solo si la tabla existe)
+    if table_exists?(:loyverse_receipts)
+      add_reference :loyverse_receipts, :loyverse_shift, foreign_key: true
+      add_index :loyverse_receipts, :loyverse_shift_id
+    end
   end
 end

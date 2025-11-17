@@ -25,6 +25,40 @@ Rails.application.routes.draw do
 
       resources :reimbursements, only: [:index, :create, :show]
 
+      # Credit Cards & Debt
+      resources :credit_cards do
+        collection do
+          get :summary
+        end
+      end
+
+      resources :credit_purchases do
+        member do
+          post :record_payment
+          post :mark_as_paid
+        end
+        collection do
+          get :summary
+        end
+      end
+
+      # Loans
+      resources :lenders do
+        collection do
+          get :summary
+        end
+      end
+
+      resources :loans do
+        member do
+          post :record_payment
+          post :mark_as_paid
+        end
+        collection do
+          get :summary
+        end
+      end
+
       # Dashboard
       namespace :dashboard do
         get :summary
@@ -32,6 +66,8 @@ Rails.application.routes.draw do
         get :break_even
         get :cash_flow
         get :expense_breakdown
+        get 'debt', to: 'debt#index'
+        get 'debt/partners_capital', to: 'debt#partners_capital'
       end
     end
   end

@@ -76,3 +76,11 @@ RSpec.configure do |config|
   # Devise helpers for request specs
   config.include Devise::Test::IntegrationHelpers, type: :request
 end
+
+# Shoulda Matchers configuration
+Shoulda::Matchers.configure do |config|
+  config.integrate do |with|
+    with.test_framework :rspec
+    with.library :rails
+  end
+end

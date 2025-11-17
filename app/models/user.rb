@@ -8,6 +8,7 @@ class User < ApplicationRecord
   # Associations
   has_many :turn_closures, dependent: :restrict_with_error
   has_many :expenses, dependent: :restrict_with_error
+  has_many :payment_methods, dependent: :destroy
   has_many :reimbursements_received, class_name: 'Reimbursement', foreign_key: 'to_user_id', dependent: :restrict_with_error
   has_many :reimbursements_created, class_name: 'Reimbursement', foreign_key: 'user_id', dependent: :restrict_with_error
 

@@ -21,6 +21,8 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :payment_methods
+
       resources :reimbursements, only: [:index, :create, :show]
 
       # Dashboard

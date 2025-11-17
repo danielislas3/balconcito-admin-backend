@@ -5,20 +5,21 @@ module Api
 
       # GET /api/v1/expenses
       def index
-        expenses = Expense.all.order(expense_date: :desc)
+        expenses = Expense.includes(:payment_method).all.order(expense_date: :desc)
 
         # Filtros opcionales
         expenses = expenses.where('expense_date >= ?', params[:date_from]) if params[:date_from]
         expenses = expenses.where('expense_date <= ?', params[:date_to]) if params[:date_to]
         expenses = expenses.where(category: params[:category]) if params[:category]
-        expenses = expenses.where(payment_source: params[:payment_source]) if params[:payment_source]
+        expenses = expenses.where(payment_method_id: params[:payment_method_id]) if params[:payment_method_id]
         expenses = expenses.where(requires_reimbursement: params[:requires_reimbursement]) if params[:requires_reimbursement]
 
         render json: {
           expenses: expenses.as_json(
-            only: [:id, :expense_date, :amount, :description, :category, :payment_source,
+            only: [:id, :expense_date, :amount, :description, :category, :payment_method_id,
                    :provider, :receipt_photo_url, :requires_reimbursement, :reimbursed, :created_at],
-            methods: [:cost_type]
+            include: { payment_method: { only: [:id, :name, :payment_type] } },
+            methods: [:cost_type, :payment_source_name]
           ),
           summary: {
             total_expenses: expenses.sum(:amount),
@@ -29,18 +30,20 @@ module Api
 
       # GET /api/v1/expenses/pending_reimbursement
       def pending_reimbursement
-        expenses = Expense.pending_reimbursement.order(expense_date: :desc)
+        expenses = Expense.includes(:payment_method, :user).pending_reimbursement.order(expense_date: :desc)
 
-        # Agrupar por usuario (quien pagó con su tarjeta)
-        grouped = expenses.group_by { |e| e.payment_source }
+        # Agrupar por usuario (quien pagó con su método de pago)
+        grouped = expenses.group_by { |e| e.paid_by_user }
 
         result = {}
-        grouped.each do |payment_source, exps|
-          user_name = payment_source.include?('daniel') ? 'Daniel' : 'Raúl'
-          result[user_name.downcase] = {
+        grouped.each do |user, exps|
+          result[user.id] = {
+            user: { id: user.id, name: user.name, email: user.email },
             expenses: exps.as_json(
-              only: [:id, :expense_date, :amount, :description, :category, :payment_source,
-                     :provider, :receipt_photo_url, :created_at]
+              only: [:id, :expense_date, :amount, :description, :category, :payment_method_id,
+                     :provider, :receipt_photo_url, :created_at],
+              include: { payment_method: { only: [:id, :name, :payment_type] } },
+              methods: [:payment_source_name]
             ),
             total: exps.sum(&:amount)
           }
@@ -53,9 +56,10 @@ module Api
       def show
         render json: {
           expense: @expense.as_json(
-            only: [:id, :expense_date, :amount, :description, :category, :payment_source,
+            only: [:id, :expense_date, :amount, :description, :category, :payment_method_id,
                    :provider, :receipt_photo_url, :requires_reimbursement, :reimbursed, :created_at],
-            methods: [:cost_type]
+            include: { payment_method: { only: [:id, :name, :payment_type] } },
+            methods: [:cost_type, :payment_source_name]
           )
         }
       end
@@ -67,9 +71,10 @@ module Api
         if expense.save
           render json: {
             expense: expense.as_json(
-              only: [:id, :expense_date, :amount, :description, :category, :payment_source,
+              only: [:id, :expense_date, :amount, :description, :category, :payment_method_id,
                      :provider, :receipt_photo_url, :requires_reimbursement, :reimbursed, :created_at],
-              methods: [:cost_type]
+              include: { payment_method: { only: [:id, :name, :payment_type] } },
+              methods: [:cost_type, :payment_source_name]
             ),
             message: 'Gasto registrado exitosamente'
           }, status: :created
@@ -83,9 +88,10 @@ module Api
         if @expense.update(expense_params)
           render json: {
             expense: @expense.as_json(
-              only: [:id, :expense_date, :amount, :description, :category, :payment_source,
+              only: [:id, :expense_date, :amount, :description, :category, :payment_method_id,
                      :provider, :receipt_photo_url, :requires_reimbursement, :reimbursed, :created_at],
-              methods: [:cost_type]
+              include: { payment_method: { only: [:id, :name, :payment_type] } },
+              methods: [:cost_type, :payment_source_name]
             ),
             message: 'Gasto actualizado exitosamente'
           }
@@ -111,7 +117,7 @@ module Api
 
       def expense_params
         params.require(:expense).permit(
-          :expense_date, :amount, :description, :category, :payment_source,
+          :expense_date, :amount, :description, :category, :payment_method_id,
           :provider, :receipt_photo_url
         )
       end

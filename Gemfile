@@ -2,10 +2,10 @@ source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.1"
-# Use sqlite3 as the database for Active Record (development/test)
-gem "sqlite3", ">= 2.1"
-# Use postgresql as the database for Active Record (production)
-gem "pg", "~> 1.1", group: :production
+
+# Database adapters
+gem "pg", "~> 1.1" # PostgreSQL for development and production
+gem "sqlite3", ">= 2.1", group: :test # SQLite only for fast testing
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]

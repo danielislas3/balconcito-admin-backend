@@ -69,6 +69,26 @@ Rails.application.routes.draw do
         get 'debt', to: 'debt#index'
         get 'debt/partners_capital', to: 'debt#partners_capital'
       end
+
+      # Loyverse Integration
+      namespace :loyverse do
+        resources :webhooks, only: [:create, :index] do
+          member do
+            post :retry
+          end
+        end
+
+        resources :receipts, only: [:index, :show] do
+          collection do
+            post :sync
+          end
+        end
+
+        get 'config', to: 'config#show'
+        patch 'config', to: 'config#update'
+        post 'payment_mappings/sync', to: 'payment_mappings#sync'
+        resources :payment_mappings, only: [:index, :update]
+      end
     end
   end
 end

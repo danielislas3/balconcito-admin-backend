@@ -13,7 +13,14 @@ Rails.application.routes.draw do
       # Resources
       resources :accounts, only: [:index, :show, :update]
 
-      resources :turn_closures
+      resources :turn_closures do
+        member do
+          post :validate_with_loyverse
+        end
+        collection do
+          post :preview_validation
+        end
+      end
 
       resources :expenses do
         collection do

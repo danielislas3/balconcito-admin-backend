@@ -68,4 +68,5 @@ group :development, :test do
 
   # API Documentation specs
   gem "rswag-specs"
+  gem "shoulda-matchers"
 end

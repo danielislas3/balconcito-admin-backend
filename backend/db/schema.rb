@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
   create_table "accounts", force: :cascade do |t|
     t.string "account_type", null: false
     t.datetime "created_at", null: false
@@ -22,13 +22,63 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.index ["name"], name: "index_accounts_on_name", unique: true
   end
 
+  create_table "credit_cards", force: :cascade do |t|
+    t.string "bank_name", null: false
+    t.datetime "created_at", null: false
+    t.decimal "credit_limit", precision: 15, scale: 2, default: "0.0"
+    t.integer "cut_day", null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.text "notes"
+    t.integer "statement_day"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["is_active"], name: "index_credit_cards_on_is_active"
+    t.index ["user_id", "name"], name: "index_credit_cards_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_credit_cards_on_user_id"
+  end
+
+  create_table "credit_purchases", force: :cascade do |t|
+    t.string "concept", null: false
+    t.datetime "created_at", null: false
+    t.integer "credit_card_id", null: false
+    t.boolean "fully_paid", default: false, null: false
+    t.decimal "monthly_payment", precision: 15, scale: 2, null: false
+    t.text "notes"
+    t.integer "paid_months", default: 0, null: false
+    t.date "purchase_date", null: false
+    t.decimal "remaining_balance", precision: 15, scale: 2, null: false
+    t.decimal "total_amount", precision: 15, scale: 2, null: false
+    t.integer "total_months", default: 1, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["credit_card_id"], name: "index_credit_purchases_on_credit_card_id"
+    t.index ["fully_paid"], name: "index_credit_purchases_on_fully_paid"
+    t.index ["purchase_date"], name: "index_credit_purchases_on_purchase_date"
+    t.index ["user_id", "purchase_date"], name: "index_credit_purchases_on_user_id_and_purchase_date"
+    t.index ["user_id"], name: "index_credit_purchases_on_user_id"
+  end
+
+  create_table "debt_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.integer "credit_purchase_id", null: false
+    t.text "notes"
+    t.date "payment_date", null: false
+    t.integer "payment_number", null: false
+    t.datetime "updated_at", null: false
+    t.index ["credit_purchase_id", "payment_number"], name: "index_debt_payments_unique", unique: true
+    t.index ["credit_purchase_id"], name: "index_debt_payments_on_credit_purchase_id"
+    t.index ["payment_date"], name: "index_debt_payments_on_payment_date"
+  end
+
   create_table "expenses", force: :cascade do |t|
     t.decimal "amount", precision: 15, scale: 2, null: false
     t.string "category", null: false
     t.datetime "created_at", null: false
     t.text "description", null: false
     t.date "expense_date", null: false
-    t.string "payment_source", null: false
+    t.integer "payment_method_id"
     t.string "provider"
     t.string "receipt_photo_url", limit: 500
     t.boolean "reimbursed", default: false, null: false
@@ -37,7 +87,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.integer "user_id", null: false
     t.index ["category"], name: "index_expenses_on_category"
     t.index ["expense_date"], name: "index_expenses_on_expense_date"
-    t.index ["payment_source"], name: "index_expenses_on_payment_source"
+    t.index ["payment_method_id"], name: "index_expenses_on_payment_method_id"
     t.index ["requires_reimbursement", "reimbursed"], name: "index_expenses_on_requires_reimbursement_and_reimbursed"
     t.index ["user_id"], name: "index_expenses_on_user_id"
   end
@@ -48,6 +98,65 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.string "jti", null: false
     t.datetime "updated_at", null: false
     t.index ["jti"], name: "index_jwt_denylists_on_jti", unique: true
+  end
+
+  create_table "lenders", force: :cascade do |t|
+    t.string "contact_email"
+    t.string "contact_phone"
+    t.datetime "created_at", null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.text "notes"
+    t.string "relationship", null: false
+    t.datetime "updated_at", null: false
+    t.index ["is_active"], name: "index_lenders_on_is_active"
+    t.index ["name"], name: "index_lenders_on_name"
+  end
+
+  create_table "loan_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.integer "loan_id", null: false
+    t.text "notes"
+    t.date "payment_date", null: false
+    t.integer "payment_number", null: false
+    t.datetime "updated_at", null: false
+    t.index ["loan_id", "payment_number"], name: "index_loan_payments_unique", unique: true
+    t.index ["loan_id"], name: "index_loan_payments_on_loan_id"
+    t.index ["payment_date"], name: "index_loan_payments_on_payment_date"
+  end
+
+  create_table "loans", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "due_date"
+    t.decimal "interest_rate", precision: 5, scale: 2, default: "0.0", null: false
+    t.boolean "is_paid", default: false, null: false
+    t.integer "lender_id", null: false
+    t.date "loan_date", null: false
+    t.text "notes"
+    t.decimal "principal_amount", precision: 15, scale: 2, null: false
+    t.decimal "remaining_balance", precision: 15, scale: 2, null: false
+    t.integer "term_months", null: false
+    t.datetime "updated_at", null: false
+    t.index ["due_date"], name: "index_loans_on_due_date"
+    t.index ["is_paid"], name: "index_loans_on_is_paid"
+    t.index ["lender_id"], name: "index_loans_on_lender_id"
+    t.index ["loan_date"], name: "index_loans_on_loan_date"
+  end
+
+  create_table "payment_methods", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.string "payment_type", null: false
+    t.boolean "requires_reimbursement", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["is_active"], name: "index_payment_methods_on_is_active"
+    t.index ["payment_type"], name: "index_payment_methods_on_payment_type"
+    t.index ["user_id", "name"], name: "index_payment_methods_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_payment_methods_on_user_id"
   end
 
   create_table "reimbursement_expenses", force: :cascade do |t|
@@ -107,7 +216,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_043346) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "credit_cards", "users"
+  add_foreign_key "credit_purchases", "credit_cards"
+  add_foreign_key "credit_purchases", "users"
+  add_foreign_key "debt_payments", "credit_purchases"
+  add_foreign_key "expenses", "payment_methods"
   add_foreign_key "expenses", "users"
+  add_foreign_key "loan_payments", "loans"
+  add_foreign_key "loans", "lenders"
+  add_foreign_key "payment_methods", "users"
   add_foreign_key "reimbursement_expenses", "expenses", on_delete: :cascade
   add_foreign_key "reimbursement_expenses", "reimbursements", on_delete: :cascade
   add_foreign_key "reimbursements", "accounts", column: "from_account_id"

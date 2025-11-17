@@ -1,37 +1,35 @@
-# SQLite for local development (without Docker)
+# PostgreSQL configuration for development with Docker
 default: &default
-  adapter: sqlite3
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
-
-# Development: Use PostgreSQL if DATABASE_HOST is set (Docker), otherwise SQLite
-development:
-  <% if ENV["DATABASE_HOST"].present? %>
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  database: <%= ENV.fetch("DATABASE_NAME") { "balconcito_api_development" } %>
-  username: <%= ENV.fetch("DATABASE_USERNAME") { "balconcito" } %>
-  password: <%= ENV.fetch("DATABASE_PASSWORD") { "balconcito_dev_password" } %>
-  host: <%= ENV["DATABASE_HOST"] %>
-  port: <%= ENV.fetch("DATABASE_PORT") { 5432 } %>
-  <% else %>
-  <<: *default
-  database: storage/development.sqlite3
-  <% end %>
+  host: <%= ENV.fetch("DB_HOST") { "localhost" } %>
+  port: <%= ENV.fetch("DB_PORT") { 5432 } %>
+  username: <%= ENV.fetch("DB_USERNAME") { "postgres" } %>
+  password: <%= ENV.fetch("DB_PASSWORD") { "postgres" } %>
 
-# Test: Always use SQLite for faster tests
+development:
+  <<: *default
+  database: balconcito_api_development
 test:
   <<: *default
-  database: storage/test.sqlite3
+  database: balconcito_api_test
 
-# PostgreSQL for production
+# Production database configuration
+# Configure these environment variables in your production environment
 production:
-  adapter: postgresql
-  encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  database: <%= ENV.fetch("DATABASE_NAME") { "balconcito_api_production" } %>
-  username: <%= ENV["DATABASE_USERNAME"] %>
-  password: <%= ENV["DATABASE_PASSWORD"] %>
-  host: <%= ENV["DATABASE_HOST"] %>
-  port: <%= ENV.fetch("DATABASE_PORT") { 5432 } %>
+  primary:
+    <<: *default
+    database: balconcito_api_production
+  cache:
+    <<: *default
+    database: balconcito_api_production
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: balconcito_api_production
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: balconcito_api_production
+    migrations_paths: db/cable_migrate

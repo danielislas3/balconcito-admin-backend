@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_17_100001) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_17_100004) do
   create_table "accounts", force: :cascade do |t|
     t.string "account_type", null: false
     t.datetime "created_at", null: false
@@ -20,6 +20,56 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100001) do
     t.datetime "updated_at", null: false
     t.index ["account_type"], name: "index_accounts_on_account_type"
     t.index ["name"], name: "index_accounts_on_name", unique: true
+  end
+
+  create_table "credit_cards", force: :cascade do |t|
+    t.string "bank_name", null: false
+    t.datetime "created_at", null: false
+    t.decimal "credit_limit", precision: 15, scale: 2, default: "0.0"
+    t.integer "cut_day", null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "name", null: false
+    t.text "notes"
+    t.integer "statement_day"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["is_active"], name: "index_credit_cards_on_is_active"
+    t.index ["user_id", "name"], name: "index_credit_cards_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_credit_cards_on_user_id"
+  end
+
+  create_table "credit_purchases", force: :cascade do |t|
+    t.string "concept", null: false
+    t.datetime "created_at", null: false
+    t.integer "credit_card_id", null: false
+    t.boolean "fully_paid", default: false, null: false
+    t.decimal "monthly_payment", precision: 15, scale: 2, null: false
+    t.text "notes"
+    t.integer "paid_months", default: 0, null: false
+    t.date "purchase_date", null: false
+    t.decimal "remaining_balance", precision: 15, scale: 2, null: false
+    t.decimal "total_amount", precision: 15, scale: 2, null: false
+    t.integer "total_months", default: 1, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["credit_card_id"], name: "index_credit_purchases_on_credit_card_id"
+    t.index ["fully_paid"], name: "index_credit_purchases_on_fully_paid"
+    t.index ["purchase_date"], name: "index_credit_purchases_on_purchase_date"
+    t.index ["user_id", "purchase_date"], name: "index_credit_purchases_on_user_id_and_purchase_date"
+    t.index ["user_id"], name: "index_credit_purchases_on_user_id"
+  end
+
+  create_table "debt_payments", force: :cascade do |t|
+    t.decimal "amount", precision: 15, scale: 2, null: false
+    t.datetime "created_at", null: false
+    t.integer "credit_purchase_id", null: false
+    t.text "notes"
+    t.date "payment_date", null: false
+    t.integer "payment_number", null: false
+    t.datetime "updated_at", null: false
+    t.index ["credit_purchase_id", "payment_number"], name: "index_debt_payments_unique", unique: true
+    t.index ["credit_purchase_id"], name: "index_debt_payments_on_credit_purchase_id"
+    t.index ["payment_date"], name: "index_debt_payments_on_payment_date"
   end
 
   create_table "expenses", force: :cascade do |t|
@@ -122,6 +172,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100001) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "credit_cards", "users"
+  add_foreign_key "credit_purchases", "credit_cards"
+  add_foreign_key "credit_purchases", "users"
+  add_foreign_key "debt_payments", "credit_purchases"
   add_foreign_key "expenses", "payment_methods"
   add_foreign_key "expenses", "users"
   add_foreign_key "payment_methods", "users"

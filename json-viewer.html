@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Datos JSON - Workflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            background: linear-gradient(135deg, #2c3e50, #3498db, #9b59b6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            font-size: 3em;
+            margin-bottom: 15px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: #555;
+            font-size: 1.2em;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .file-input {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .file-input input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input label {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .file-input label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f5e8;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            display: none;
+        }
+
+        .json-viewer {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .json-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 50%, #9b59b6 100%);
+            background-size: 200% 200%;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3), 0 3px 10px rgba(0, 0, 0, 0.1);
+            background-position: 100% 100%;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+        }
+
+        .json-content {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .json-stats {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .node-list {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .node-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-item:last-child {
+            border-bottom: none;
+        }
+
+        .node-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .node-type {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .highlight {
+            background-color: yellow;
+            color: black;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 8px 25px rgba(0, 0, 0, 0.15);
+            background-position: 100% 100%;
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-card h3 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-card p {
+            font-size: 1.2em;
+            opacity: 0.95;
+            font-weight: 500;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        #resumenEjecutivoFinance {
+            background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 50%, #fd79a8 100%);
+            background-size: 200% 200%;
+            color: white;
+            padding: 35px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: gradientPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes gradientPulse {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        #resumenEjecutivoFinance::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), transparent, rgba(255, 255, 255, 0.05));
+            pointer-events: none;
+        }
+
+        .category-analysis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .category-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85));
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid transparent;
+            border-image: linear-gradient(135deg, #3498db, #9b59b6, #e74c3c) 1;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1), 0 3px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .category-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.05), rgba(155, 89, 182, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15), 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-card:hover::before {
+            opacity: 1;
+        }
+
+        .category-card h4 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .category-amount {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .category-percentage {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .temporal-analysis {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .month-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .month-item:last-child {
+            border-bottom: none;
+        }
+
+        .payment-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-contado { background: #2ecc71; color: white; }
+        .status-meses { background: #f39c12; color: white; }
+        .status-pendiente { background: #e74c3c; color: white; }
+
+        /* Estilos para Dashboard Mejorado */
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stat-icon {
+            font-size: 2.5em;
+            opacity: 0.8;
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-change {
+            font-size: 0.9em;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .stat-primary { border-left: 5px solid #3498db; }
+        .stat-secondary { border-left: 5px solid #2ecc71; }
+        .stat-warning { border-left: 5px solid #f39c12; }
+        .stat-info { border-left: 5px solid #9b59b6; }
+
+        /* Panel de Análisis Financiero */
+        .financial-analysis-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 30px 0;
+        }
+
+        .analysis-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .cash-flow-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .cash-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .cash-item label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .amount {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: #27ae60;
+        }
+
+        .amount.warning {
+            color: #e74c3c;
+        }
+
+        .ratio {
+            font-weight: 600;
+            color: #8e44ad;
+        }
+
+        /* Métricas de Rendimiento */
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        /* Tarjetas de Crédito */
+        .credit-analysis-section {
+            margin: 30px 0;
+        }
+
+        .credit-card-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 20px 0;
+        }
+
+        .credit-card {
+            background: linear-gradient(135deg, #ffffff, #f8f9fa);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .banamex-card {
+            border-left: 5px solid #e74c3c;
+        }
+
+        .bancomer-card {
+            border-left: 5px solid #3498db;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-header h4 {
+            margin: 0;
+            font-size: 1.3em;
+            color: #2c3e50;
+        }
+
+        .card-type {
+            font-size: 0.9em;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .card-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .card-metrics .metric {
+            text-align: center;
+        }
+
+        .card-metrics .metric-value {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2c3e50;
+            display: block;
+        }
+
+        .card-metrics .metric-label {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Controles de Tabla */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .table-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-select, .search-input {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .search-input {
+            min-width: 200px;
+        }
+
+        .summary-text {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        /* Tabla Mejorada */
+        .enhanced-table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .enhanced-table th {
+            background: #2c3e50;
+            color: white;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .enhanced-table th:hover {
+            background: #34495e;
+        }
+
+        .sort-indicator {
+            position: absolute;
+            right: 8px;
+            opacity: 0.5;
+        }
+
+        .sort-indicator.active {
+            opacity: 1;
+            color: #3498db;
+        }
+
+        .table-footer {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .table-footer td {
+            border-top: 2px solid #dee2e6;
+        }
+
+        /* Barra de Progreso */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f39c12, #e67e22);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .financial-analysis-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .credit-card-summary {
+                grid-template-columns: 1fr;
+            }
+            
+            .performance-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .table-filters {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📄 Visualizador de Datos JSON</h1>
+            <p>Visualiza y analiza archivos JSON de workflows de n8n</p>
+        </div>
+
+        <div class="upload-section">
+            <h2>Cargar Archivo JSON</h2>
+            
+            <div class="file-input">
+                <input type="file" id="jsonFile" accept=".json" />
+                <label for="jsonFile">📁 Seleccionar archivo JSON</label>
+            </div>
+
+            <div id="fileInfo" class="file-info">
+                <strong>Archivo cargado:</strong> <span id="fileName"></span><br>
+                <strong>Tamaño:</strong> <span id="fileSize"></span><br>
+                <strong>Última modificación:</strong> <span id="fileDate"></span>
+            </div>
+        </div>
+
+        <div id="jsonViewer" class="json-viewer">
+            <h2>Análisis del JSON</h2>
+            
+            <div id="jsonStats" class="json-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="nodeCount">0</div>
+                    <div>Nodos</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="connectionCount">0</div>
+                    <div>Conexiones</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="credentialCount">0</div>
+                    <div>Credenciales</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="jsonSize">0</div>
+                    <div>Tamaño (KB)</div>
+                </div>
+            </div>
+
+            <!-- Dashboard Financiero Completo -->
+            <div id="financeDashboard" style="display: none;">
+                <!-- Métricas Principales Mejoradas -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-primary">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <h3 id="totalGastosFinance">$0</h3>
+                            <p>Total Invertido</p>
+                            <small id="totalGastosChange" class="stat-change">+0% vs promedio</small>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-secondary">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-content">
+                            <h3 id="gastosMesFinance">$0</h3>
+                            <p>Gastos Este Mes</p>
+                            <small id="gastosMesChange" class="stat-change">+0% vs mes anterior</small>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-warning">
+                        <div class="stat-icon">💳</div>
+                        <div class="stat-content">
+                            <h3 id="pagosPendientesFinance">$0</h3>
+                            <p>Pagos Mensuales MSI</p>
+                            <small id="utilizacionCredito" class="stat-change">0% utilización</small>
+                        </div>
+                    </div>
+                    <div class="stat-card stat-info">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <h3 id="promedioMensual">$0</h3>
+                            <p>Promedio Mensual</p>
+                            <small id="proyeccionAnual" class="stat-change">Proyección: $0/año</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Análisis Financiero -->
+                <div class="financial-analysis-panel">
+                    <div class="analysis-section">
+                        <h3>📈 Análisis de Flujo de Efectivo</h3>
+                        <div class="cash-flow-grid">
+                            <div class="cash-item">
+                                <label>Efectivo Gastado:</label>
+                                <span id="efectivoTotal" class="amount">$0</span>
+                            </div>
+                            <div class="cash-item">
+                                <label>Crédito Utilizado:</label>
+                                <span id="creditoTotal" class="amount">$0</span>
+                            </div>
+                            <div class="cash-item">
+                                <label>Ratio Efectivo/Crédito:</label>
+                                <span id="ratioEfectivoCredito" class="ratio">0:0</span>
+                            </div>
+                            <div class="cash-item">
+                                <label>Comprometido Mensual:</label>
+                                <span id="comprometidoMensual" class="amount warning">$0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>🎯 Métricas de Rendimiento</h3>
+                        <div class="performance-grid">
+                            <div class="metric-item">
+                                <div class="metric-value" id="gastoPromedioDia">$0</div>
+                                <div class="metric-label">Gasto Promedio/Día</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value" id="frecuenciaCompras">0</div>
+                                <div class="metric-label">Compras/Mes</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value" id="ticketPromedio">$0</div>
+                                <div class="metric-label">Ticket Promedio</div>
+                            </div>
+                            <div class="metric-item">
+                                <div class="metric-value" id="concentracionGastos">0%</div>
+                                <div class="metric-label">Concentración Top 3</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="resumenEjecutivoFinance">
+                    <h3>📋 Resumen Ejecutivo</h3>
+                    <div id="resumenContenidoFinance"></div>
+                </div>
+
+                <!-- Análisis de Tarjetas de Crédito Mejorado -->
+                <div class="credit-analysis-section">
+                    <h3>💳 Control de Tarjetas de Crédito</h3>
+                    
+                    <div class="credit-overview">
+                        <div class="credit-card-summary">
+                            <div class="credit-card banamex-card">
+                                <div class="card-header">
+                                    <h4>Banamex</h4>
+                                    <span class="card-type">Corte: día 12</span>
+                                </div>
+                                <div class="card-metrics">
+                                    <div class="metric">
+                                        <span class="metric-value" id="pagosBanamexFinance">$0</span>
+                                        <span class="metric-label">Pago Mensual</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value" id="saldoBanamex">$0</span>
+                                        <span class="metric-label">Saldo Total</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value" id="mesesRestantesBanamex">0</span>
+                                        <span class="metric-label">Meses Prom.</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="credit-card bancomer-card">
+                                <div class="card-header">
+                                    <h4>Bancomer</h4>
+                                    <span class="card-type">Corte: día 21</span>
+                                </div>
+                                <div class="card-metrics">
+                                    <div class="metric">
+                                        <span class="metric-value" id="pagosBancomerFinance">$0</span>
+                                        <span class="metric-label">Pago Mensual</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value" id="saldoBancomer">$0</span>
+                                        <span class="metric-label">Saldo Total</span>
+                                    </div>
+                                    <div class="metric">
+                                        <span class="metric-value" id="mesesRestantesBancomer">0</span>
+                                        <span class="metric-label">Meses Prom.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Pagos Mejorada con Filtros -->
+                    <div class="table-controls">
+                        <div class="table-filters">
+                            <select id="filterTarjeta" class="filter-select">
+                                <option value="">Todas las tarjetas</option>
+                                <option value="Banamex">Banamex</option>
+                                <option value="Bancomer">Bancomer</option>
+                            </select>
+                            <select id="filterMeses" class="filter-select">
+                                <option value="">Todos los plazos</option>
+                                <option value="3">3 meses</option>
+                                <option value="6">6 meses</option>
+                                <option value="9">9 meses</option>
+                                <option value="12">12 meses</option>
+                            </select>
+                            <input type="text" id="searchConcept" class="search-input" placeholder="Buscar concepto...">
+                        </div>
+                        <div class="table-summary">
+                            <span id="tablaSummary" class="summary-text">Mostrando 0 registros</span>
+                        </div>
+                    </div>
+
+                    <div id="tablaPagosContainer" class="enhanced-table-container">
+                        <table class="table enhanced-table" id="tablaPagosFinance">
+                            <thead>
+                                <tr>
+                                    <th data-sort="tarjeta">Tarjeta <span class="sort-indicator">↕</span></th>
+                                    <th data-sort="concepto">Concepto <span class="sort-indicator">↕</span></th>
+                                    <th data-sort="monto">Monto Total <span class="sort-indicator">↕</span></th>
+                                    <th data-sort="pago">Pago Mensual <span class="sort-indicator">↕</span></th>
+                                    <th data-sort="meses">Meses <span class="sort-indicator">↕</span></th>
+                                    <th data-sort="estado">Estado <span class="sort-indicator">↕</span></th>
+                                    <th>Progreso</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                            <tfoot>
+                                <tr class="table-footer">
+                                    <td><strong>Total:</strong></td>
+                                    <td id="totalConceptos">0 conceptos</td>
+                                    <td id="totalMonto"><strong>$0</strong></td>
+                                    <td id="totalPagoMensual"><strong>$0</strong></td>
+                                    <td id="promedioMeses">0 meses</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <h3>📊 Gastos por Categoría</h3>
+                <div id="categoriaResumenFinance"></div>
+
+                <h3>📈 Análisis Temporal</h3>
+                <div id="analisisTemporalFinance"></div>
+            </div>
+
+            <div id="nodeList" class="node-list"></div>
+
+            <div class="json-controls">
+                <button class="btn" onclick="expandAll()">🔍 Expandir Todo</button>
+                <button class="btn" onclick="collapseAll()">📦 Colapsar Todo</button>
+                <button class="btn btn-secondary" onclick="downloadFormatted()">💾 Descargar Formateado</button>
+                <button class="btn btn-secondary" onclick="copyToClipboard()">📋 Copiar</button>
+                <button class="btn" id="toggleDashboard" onclick="toggleFinanceDashboard()" style="display: none;">📊 Ver Dashboard Completo</button>
+            </div>
+
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Buscar en el JSON...">
+
+            <div id="jsonContent" class="json-content"></div>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentJsonData = null;
+        let currentJsonString = '';
+
+        document.getElementById('jsonFile').addEventListener('change', handleFileSelect);
+        document.getElementById('searchBox').addEventListener('input', handleSearch);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Mostrar información del archivo
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileDate').textContent = new Date(file.lastModified).toLocaleString();
+            document.getElementById('fileInfo').style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    currentJsonData = jsonData;
+                    currentJsonString = e.target.result;
+                    
+                    displayJson(jsonData);
+                    analyzeJson(jsonData);
+                    
+                    document.getElementById('jsonViewer').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
+                    
+                } catch (error) {
+                    showError('Error al parsear el archivo JSON: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function generateFullFinanceDashboard(data) {
+            if (data.gastos && Array.isArray(data.gastos)) {
+                generateDashboardFromGastos(data.gastos);
+            } else if (data.resumen) {
+                generateDashboardFromResumen(data);
+            }
+        }
+
+        function generateDashboardFromGastos(gastos) {
+            const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
+            
+            // Detectar el mes más reciente con datos en lugar del mes actual
+            const fechasGastos = gastos.map(g => new Date(g.fecha)).sort((a, b) => b - a);
+            const fechaMasReciente = fechasGastos[0];
+            const mesReciente = fechaMasReciente ? fechaMasReciente.getMonth() : new Date().getMonth();
+            const añoReciente = fechaMasReciente ? fechaMasReciente.getFullYear() : new Date().getFullYear();
+            
+            const gastosMesReciente = gastos
+                .filter(g => {
+                    const fechaGasto = new Date(g.fecha);
+                    return fechaGasto.getMonth() === mesReciente && fechaGasto.getFullYear() === añoReciente;
+                })
+                .reduce((sum, g) => sum + g.monto, 0);
+
+            const gastosMeses = gastos
+                .filter(g => (g.metodoPago === 'tarjeta1' || g.metodoPago === 'tarjeta2') && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + g.monto, 0);
+
+            const pagosPendientes = gastos
+                .filter(g => (g.metodoPago === 'tarjeta1' || g.metodoPago === 'tarjeta2') && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + (g.monto / g.numeroMeses), 0);
+
+            // Calcular métricas avanzadas
+            const metricas = calculateAdvancedMetrics(gastos);
+
+            // Obtener nombre del mes más reciente
+            const nombreMesReciente = fechaMasReciente ? 
+                fechaMasReciente.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }) : 
+                'Este Mes';
+
+            // Actualizar métricas principales con indicadores
+            document.getElementById('totalGastosFinance').textContent = `$${totalGastos.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('gastosMesFinance').textContent = `$${gastosMesReciente.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('pagosPendientesFinance').textContent = `$${pagosPendientes.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('promedioMensual').textContent = `$${metricas.promedioMensual.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+            // Actualizar indicadores de cambio
+            document.getElementById('totalGastosChange').textContent = `${metricas.cambioVsPromedio}% vs promedio`;
+            document.getElementById('gastosMesChange').textContent = `vs ${nombreMesReciente}`;
+            document.getElementById('utilizacionCredito').textContent = `${metricas.utilizacionCredito}% utilización`;
+            document.getElementById('proyeccionAnual').textContent = `Proyección: $${metricas.proyeccionAnual.toLocaleString('es-MX')}/año`;
+
+            // Actualizar análisis financiero
+            updateFinancialAnalysis(metricas);
+
+            // Actualizar métricas de rendimiento
+            updatePerformanceMetrics(metricas);
+
+            // Generar resumen ejecutivo
+            generateResumenEjecutivo(gastos, totalGastos);
+            
+            // Generar análisis por categorías
+            generateCategoriaAnalysis(gastos, totalGastos);
+            
+            // Generar análisis de pagos de tarjetas
+            generatePagosTarjetas(gastos);
+            
+            // Generar análisis temporal
+            generateAnalisisTemporal(gastos);
+        }
+
+        function calculateAdvancedMetrics(gastos) {
+            const totalGastos = gastos.reduce((sum, g) => sum + g.monto, 0);
+            const mesesUnicos = [...new Set(gastos.map(g => {
+                const fecha = new Date(g.fecha);
+                return `${fecha.getFullYear()}-${fecha.getMonth()}`;
+            }))].length;
+
+            const promedioMensual = mesesUnicos > 0 ? totalGastos / mesesUnicos : 0;
+            const proyeccionAnual = promedioMensual * 12;
+
+            // Análisis de efectivo vs crédito
+            const efectivoTotal = gastos.filter(g => g.metodoPago === 'efectivo' || g.metodoPago === 'transferencia')
+                .reduce((sum, g) => sum + g.monto, 0);
+            const creditoTotal = gastos.filter(g => g.metodoPago.includes('tarjeta'))
+                .reduce((sum, g) => sum + g.monto, 0);
+
+            // Comprometido mensual (pagos MSI)
+            const comprometidoMensual = gastos
+                .filter(g => (g.metodoPago === 'tarjeta1' || g.metodoPago === 'tarjeta2') && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + (g.monto / g.numeroMeses), 0);
+
+            // Métricas de rendimiento
+            const totalDias = Math.ceil((new Date() - new Date(Math.min(...gastos.map(g => new Date(g.fecha))))) / (1000 * 60 * 60 * 24));
+            const gastoPromedioDia = totalDias > 0 ? totalGastos / totalDias : 0;
+            const frecuenciaCompras = mesesUnicos > 0 ? gastos.length / mesesUnicos : 0;
+            const ticketPromedio = gastos.length > 0 ? totalGastos / gastos.length : 0;
+
+            // Concentración de gastos (top 3 categorías)
+            const categorias = {};
+            gastos.forEach(g => {
+                categorias[g.categoria] = (categorias[g.categoria] || 0) + g.monto;
+            });
+            const top3 = Object.values(categorias).sort((a, b) => b - a).slice(0, 3);
+            const concentracionGastos = top3.length > 0 ? (top3.reduce((sum, val) => sum + val, 0) / totalGastos * 100) : 0;
+
+            // Utilización de crédito (estimado en base a pagos)
+            const limiteCreditoEstimado = creditoTotal * 1.5; // Estimación conservadora
+            const utilizacionCredito = limiteCreditoEstimado > 0 ? (comprometidoMensual * 12 / limiteCreditoEstimado * 100) : 0;
+
+            return {
+                promedioMensual,
+                proyeccionAnual,
+                efectivoTotal,
+                creditoTotal,
+                comprometidoMensual,
+                gastoPromedioDia,
+                frecuenciaCompras,
+                ticketPromedio,
+                concentracionGastos,
+                utilizacionCredito,
+                cambioVsPromedio: 0, // Se calcularía con datos históricos
+                ratioEfectivoCredito: creditoTotal > 0 ? (efectivoTotal / creditoTotal).toFixed(2) : '∞'
+            };
+        }
+
+        function updateFinancialAnalysis(metricas) {
+            document.getElementById('efectivoTotal').textContent = `$${metricas.efectivoTotal.toLocaleString('es-MX')}`;
+            document.getElementById('creditoTotal').textContent = `$${metricas.creditoTotal.toLocaleString('es-MX')}`;
+            document.getElementById('ratioEfectivoCredito').textContent = `${metricas.ratioEfectivoCredito}:1`;
+            document.getElementById('comprometidoMensual').textContent = `$${metricas.comprometidoMensual.toLocaleString('es-MX')}`;
+        }
+
+        function updatePerformanceMetrics(metricas) {
+            document.getElementById('gastoPromedioDia').textContent = `$${metricas.gastoPromedioDia.toLocaleString('es-MX', {maximumFractionDigits: 0})}`;
+            document.getElementById('frecuenciaCompras').textContent = metricas.frecuenciaCompras.toFixed(1);
+            document.getElementById('ticketPromedio').textContent = `$${metricas.ticketPromedio.toLocaleString('es-MX', {maximumFractionDigits: 0})}`;
+            document.getElementById('concentracionGastos').textContent = `${metricas.concentracionGastos.toFixed(1)}%`;
+        }
+
+        function generateDashboardFromResumen(data) {
+            const resumen = data.resumen;
+            
+            // Actualizar métricas principales desde resumen
+            document.getElementById('totalGastosFinance').textContent = `$${resumen.totalInvertido.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('gastosMesFinance').textContent = 'N/A';
+            
+            const totalPagosMensuales = (resumen.pagosAMeses?.banamex?.pagoMensual || 0) + 
+                                      (resumen.pagosAMeses?.bancomer?.pagoMensual || 0);
+            document.getElementById('pagosPendientesFinance').textContent = `$${totalPagosMensuales.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            
+            const totalMSI = (resumen.distribucionPago?.banamex || 0) + (resumen.distribucionPago?.bancomer || 0);
+            document.getElementById('totalMesesFinance').textContent = `$${totalMSI.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+            // Generar resumen ejecutivo desde resumen
+            generateResumenFromData(resumen);
+            
+            // Generar análisis de pagos desde resumen
+            generatePagosFromResumen(resumen);
+        }
+
+        function generateResumenEjecutivo(gastos, totalGastos) {
+            const gastosYo = gastos.filter(g => g.quienPago === 'yo').reduce((sum, g) => sum + g.monto, 0);
+            const gastosHermano = gastos.filter(g => g.quienPago === 'hermano').reduce((sum, g) => sum + g.monto, 0);
+            const gastosTarjeta = gastos.filter(g => g.metodoPago.includes('tarjeta')).reduce((sum, g) => sum + g.monto, 0);
+
+            document.getElementById('resumenContenidoFinance').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <h4>💰 Total Invertido</h4>
+                        <p>$${totalGastos.toLocaleString('es-MX', {minimumFractionDigits: 2})}</p>
+                    </div>
+                    <div>
+                        <h4>👤 Daniel</h4>
+                        <p>$${gastosYo.toLocaleString('es-MX', {minimumFractionDigits: 2})} (${((gastosYo/totalGastos)*100).toFixed(1)}%)</p>
+                    </div>
+                    <div>
+                        <h4>👥 Raul</h4>
+                        <p>$${gastosHermano.toLocaleString('es-MX', {minimumFractionDigits: 2})} (${((gastosHermano/totalGastos)*100).toFixed(1)}%)</p>
+                    </div>
+                    <div>
+                        <h4>💳 Gastos con Tarjeta</h4>
+                        <p>$${gastosTarjeta.toLocaleString('es-MX', {minimumFractionDigits: 2})} (${((gastosTarjeta/totalGastos)*100).toFixed(1)}%)</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateResumenFromData(resumen) {
+            document.getElementById('resumenContenidoFinance').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <h4>💰 Total Invertido</h4>
+                        <p>$${resumen.totalInvertido.toLocaleString('es-MX', {minimumFractionDigits: 2})}</p>
+                    </div>
+                    <div>
+                        <h4>👤 Daniel</h4>
+                        <p>$${resumen.distribucionPersonas.Daniel.monto.toLocaleString('es-MX')} (${resumen.distribucionPersonas.Daniel.porcentaje}%)</p>
+                    </div>
+                    <div>
+                        <h4>👥 Raul</h4>
+                        <p>$${resumen.distribucionPersonas.Raul.monto.toLocaleString('es-MX')} (${resumen.distribucionPersonas.Raul.porcentaje}%)</p>
+                    </div>
+                    <div>
+                        <h4>💳 Total Tarjetas</h4>
+                        <p>$${((resumen.distribucionPago.banamex || 0) + (resumen.distribucionPago.bancomer || 0)).toLocaleString('es-MX')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateCategoriaAnalysis(gastos, totalGastos) {
+            const categorias = {};
+            
+            gastos.forEach(gasto => {
+                if (!categorias[gasto.categoria]) {
+                    categorias[gasto.categoria] = 0;
+                }
+                categorias[gasto.categoria] += gasto.monto;
+            });
+
+            let html = '<div class="category-analysis">';
+            
+            Object.entries(categorias)
+                .sort(([,a], [,b]) => b - a)
+                .forEach(([categoria, monto]) => {
+                    const porcentaje = ((monto / totalGastos) * 100).toFixed(1);
+                    html += `
+                        <div class="category-card">
+                            <h4>${categoria.charAt(0).toUpperCase() + categoria.slice(1)}</h4>
+                            <div class="category-amount">$${monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</div>
+                            <div class="category-percentage">${porcentaje}% del total</div>
+                        </div>
+                    `;
+                });
+            
+            html += '</div>';
+            document.getElementById('categoriaResumenFinance').innerHTML = html;
+        }
+
+        function generatePagosTarjetas(gastos) {
+            const gastosBanamex = gastos
+                .filter(g => g.metodoPago === 'tarjeta1' && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + (g.monto / g.numeroMeses), 0);
+
+            const gastosBancomer = gastos
+                .filter(g => g.metodoPago === 'tarjeta2' && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + (g.monto / g.numeroMeses), 0);
+
+            // Actualizar métricas de tarjetas
+            document.getElementById('pagosBanamexFinance').textContent = `$${gastosBanamex.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('pagosBancomerFinance').textContent = `$${gastosBancomer.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+            // Calcular métricas adicionales para tarjetas
+            const gastosMeses = gastos.filter(g => 
+                (g.metodoPago === 'tarjeta1' || g.metodoPago === 'tarjeta2') && 
+                g.tipoPago === 'meses'
+            );
+
+            const saldoBanamex = gastos.filter(g => g.metodoPago === 'tarjeta1' && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + g.monto, 0);
+            const saldoBancomer = gastos.filter(g => g.metodoPago === 'tarjeta2' && g.tipoPago === 'meses')
+                .reduce((sum, g) => sum + g.monto, 0);
+
+            const mesesBanamex = gastos.filter(g => g.metodoPago === 'tarjeta1' && g.tipoPago === 'meses');
+            const mesesBancomer = gastos.filter(g => g.metodoPago === 'tarjeta2' && g.tipoPago === 'meses');
+
+            const promedioMesesBanamex = mesesBanamex.length > 0 ? 
+                mesesBanamex.reduce((sum, g) => sum + g.numeroMeses, 0) / mesesBanamex.length : 0;
+            const promedioMesesBancomer = mesesBancomer.length > 0 ? 
+                mesesBancomer.reduce((sum, g) => sum + g.numeroMeses, 0) / mesesBancomer.length : 0;
+
+            document.getElementById('saldoBanamex').textContent = `$${saldoBanamex.toLocaleString('es-MX')}`;
+            document.getElementById('saldoBancomer').textContent = `$${saldoBancomer.toLocaleString('es-MX')}`;
+            document.getElementById('mesesRestantesBanamex').textContent = promedioMesesBanamex.toFixed(1);
+            document.getElementById('mesesRestantesBancomer').textContent = promedioMesesBancomer.toFixed(1);
+
+            // Generar tabla mejorada
+            generateEnhancedPaymentsTable(gastosMeses);
+            
+            // Inicializar funcionalidades de tabla
+            initializeTableFeatures();
+        }
+
+        function generateEnhancedPaymentsTable(gastosMeses) {
+            const tbody = document.querySelector('#tablaPagosFinance tbody');
+            tbody.innerHTML = '';
+
+            // Almacenar datos originales para filtrado
+            window.originalPaymentsData = gastosMeses;
+
+            if (gastosMeses.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td colspan="7" style="text-align: center; color: #666; font-style: italic;">
+                        No hay pagos a meses sin intereses activos
+                    </td>
+                `;
+                tbody.appendChild(row);
+                return;
+            }
+
+            gastosMeses.forEach((gasto, index) => {
+                const pagoMensual = gasto.monto / gasto.numeroMeses;
+                const tarjetaNombre = gasto.metodoPago === 'tarjeta1' ? 'Banamex' : 'Bancomer';
+                const progreso = Math.random() * 60 + 20; // Simulación de progreso
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td data-sort-value="${tarjetaNombre}">${tarjetaNombre}</td>
+                    <td data-sort-value="${gasto.concepto}">${gasto.concepto}</td>
+                    <td data-sort-value="${gasto.monto}">$${gasto.monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td data-sort-value="${pagoMensual}">$${pagoMensual.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                    <td data-sort-value="${gasto.numeroMeses}">${gasto.numeroMeses}</td>
+                    <td data-sort-value="activo"><span class="payment-status status-meses">Activo</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progreso}%"></div>
+                        </div>
+                        <small>${progreso.toFixed(0)}% pagado</small>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Actualizar resumen de tabla
+            updateTableSummary(gastosMeses);
+        }
+
+        function updateTableSummary(data) {
+            const totalConceptos = data.length;
+            const totalMonto = data.reduce((sum, g) => sum + g.monto, 0);
+            const totalPagoMensual = data.reduce((sum, g) => sum + (g.monto / g.numeroMeses), 0);
+            const promedioMeses = data.length > 0 ? data.reduce((sum, g) => sum + g.numeroMeses, 0) / data.length : 0;
+
+            document.getElementById('tablaSummary').textContent = `Mostrando ${totalConceptos} registros`;
+            document.getElementById('totalConceptos').textContent = `${totalConceptos} conceptos`;
+            document.getElementById('totalMonto').textContent = `$${totalMonto.toLocaleString('es-MX')}`;
+            document.getElementById('totalPagoMensual').textContent = `$${totalPagoMensual.toLocaleString('es-MX')}`;
+            document.getElementById('promedioMeses').textContent = `${promedioMeses.toFixed(1)} meses`;
+        }
+
+        function initializeTableFeatures() {
+            // Filtros
+            document.getElementById('filterTarjeta').addEventListener('change', filterTable);
+            document.getElementById('filterMeses').addEventListener('change', filterTable);
+            document.getElementById('searchConcept').addEventListener('input', filterTable);
+
+            // Ordenamiento
+            document.querySelectorAll('#tablaPagosFinance th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => sortTable(th.dataset.sort));
+            });
+        }
+
+        function filterTable() {
+            if (!window.originalPaymentsData) return;
+
+            const filterTarjeta = document.getElementById('filterTarjeta').value;
+            const filterMeses = document.getElementById('filterMeses').value;
+            const searchConcept = document.getElementById('searchConcept').value.toLowerCase();
+
+            let filteredData = window.originalPaymentsData.filter(gasto => {
+                const tarjetaNombre = gasto.metodoPago === 'tarjeta1' ? 'Banamex' : 'Bancomer';
+                
+                // Filtro por tarjeta
+                if (filterTarjeta && tarjetaNombre !== filterTarjeta) return false;
+                
+                // Filtro por meses
+                if (filterMeses && gasto.numeroMeses != filterMeses) return false;
+                
+                // Búsqueda por concepto
+                if (searchConcept && !gasto.concepto.toLowerCase().includes(searchConcept)) return false;
+                
+                return true;
+            });
+
+            generateEnhancedPaymentsTable(filteredData);
+        }
+
+        let currentSort = { column: '', direction: 'asc' };
+
+        function sortTable(column) {
+            if (!window.originalPaymentsData) return;
+
+            // Cambiar dirección si es la misma columna
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            // Actualizar indicadores visuales
+            document.querySelectorAll('.sort-indicator').forEach(el => {
+                el.classList.remove('active');
+                el.textContent = '↕';
+            });
+
+            const activeIndicator = document.querySelector(`th[data-sort="${column}"] .sort-indicator`);
+            activeIndicator.classList.add('active');
+            activeIndicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+
+            // Obtener datos filtrados actuales
+            const tbody = document.querySelector('#tablaPagosFinance tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => !row.querySelector('td[colspan]'));
+            
+            if (rows.length === 0) return;
+
+            // Ordenar filas
+            rows.sort((a, b) => {
+                const aValue = a.querySelector(`td[data-sort-value]`).dataset.sortValue || 
+                              a.children[getColumnIndex(column)].textContent;
+                const bValue = b.querySelector(`td[data-sort-value]`).dataset.sortValue || 
+                              b.children[getColumnIndex(column)].textContent;
+
+                let comparison = 0;
+                if (column === 'monto' || column === 'pago' || column === 'meses') {
+                    comparison = parseFloat(aValue) - parseFloat(bValue);
+                } else {
+                    comparison = aValue.localeCompare(bValue);
+                }
+
+                return currentSort.direction === 'asc' ? comparison : -comparison;
+            });
+
+            // Reordenar en el DOM
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function getColumnIndex(column) {
+            const columnMap = {
+                'tarjeta': 0,
+                'concepto': 1,
+                'monto': 2,
+                'pago': 3,
+                'meses': 4,
+                'estado': 5
+            };
+            return columnMap[column] || 0;
+        }
+
+        function generatePagosFromResumen(resumen) {
+            document.getElementById('pagosBanamexFinance').textContent = `$${(resumen.pagosAMeses?.banamex?.pagoMensual || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+            document.getElementById('pagosBancomerFinance').textContent = `$${(resumen.pagosAMeses?.bancomer?.pagoMensual || 0).toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
+
+            // Llenar tabla de pagos desde resumen
+            const tbody = document.querySelector('#tablaPagosFinance tbody');
+            tbody.innerHTML = '';
+
+            if (resumen.pagosAMeses?.banamex?.compras) {
+                resumen.pagosAMeses.banamex.compras.forEach(compra => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>Banamex</td>
+                        <td>${compra.concepto}</td>
+                        <td>$${compra.monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                        <td>$${compra.pagoMensual.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                        <td>${compra.meses} meses</td>
+                        <td><span class="payment-status status-meses">Activo</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            if (resumen.pagosAMeses?.bancomer?.compras) {
+                resumen.pagosAMeses.bancomer.compras.forEach(compra => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>Bancomer</td>
+                        <td>${compra.concepto}</td>
+                        <td>$${compra.monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                        <td>$${compra.pagoMensual.toLocaleString('es-MX', {minimumFractionDigits: 2})}</td>
+                        <td>${compra.meses} meses</td>
+                        <td><span class="payment-status status-meses">Activo</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        function generateAnalisisTemporal(gastos) {
+            const gastosPorMes = {};
+            
+            gastos.forEach(gasto => {
+                const fecha = new Date(gasto.fecha);
+                const mesAño = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!gastosPorMes[mesAño]) {
+                    gastosPorMes[mesAño] = 0;
+                }
+                gastosPorMes[mesAño] += gasto.monto;
+            });
+
+            let html = '<div class="temporal-analysis">';
+            
+            Object.entries(gastosPorMes)
+                .sort(([a], [b]) => b.localeCompare(a))
+                .slice(0, 12) // Últimos 12 meses
+                .forEach(([mesAño, monto]) => {
+                    const fecha = new Date(mesAño + '-01');
+                    const mesNombre = fecha.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+                    
+                    html += `
+                        <div class="month-item">
+                            <div>${mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1)}</div>
+                            <div style="font-weight: bold;">$${monto.toLocaleString('es-MX', {minimumFractionDigits: 2})}</div>
+                        </div>
+                    `;
+                });
+            
+            html += '</div>';
+            document.getElementById('analisisTemporalFinance').innerHTML = html;
+        }
+
+        function toggleFinanceDashboard() {
+            const dashboard = document.getElementById('financeDashboard');
+            const button = document.getElementById('toggleDashboard');
+            
+            if (dashboard.style.display === 'none') {
+                dashboard.style.display = 'block';
+                button.textContent = '📄 Ver JSON Original';
+            } else {
+                dashboard.style.display = 'none';
+                button.textContent = '📊 Ver Dashboard Completo';
+            }
+        }
+
+        function displayJson(data) {
+            const jsonContent = document.getElementById('jsonContent');
+            const formattedJson = JSON.stringify(data, null, 2);
+            
+            // Resaltar sintaxis básica
+            const highlighted = formattedJson
+                .replace(/("[\w_]+":)/g, '<span style="color: #e74c3c;">$1</span>')
+                .replace(/(:\s*"[^"]*")/g, '<span style="color: #27ae60;">$1</span>')
+                .replace(/(:\s*\d+)/g, '<span style="color: #f39c12;">$1</span>')
+                .replace(/(:\s*true|:\s*false)/g, '<span style="color: #9b59b6;">$1</span>');
+            
+            jsonContent.innerHTML = '<pre>' + highlighted + '</pre>';
+        }
+
+        function analyzeJson(data) {
+            // Detectar tipo de archivo y analizar según corresponda
+            if (data.nodes && Array.isArray(data.nodes)) {
+                // Es un workflow de n8n
+                analyzeWorkflow(data);
+            } else if (data.gastos || data.resumen || data.configTarjetas) {
+                // Es un archivo de finanzas
+                analyzeFinances(data);
+            } else {
+                // Archivo JSON genérico
+                analyzeGeneric(data);
+            }
+
+            document.getElementById('jsonSize').textContent = Math.round(currentJsonString.length / 1024);
+        }
+
+        function analyzeWorkflow(data) {
+            let nodeCount = data.nodes ? data.nodes.length : 0;
+            let connectionCount = data.connections ? data.connections.length : 0;
+            
+            // Contar credenciales únicas
+            const credentials = new Set();
+            if (data.nodes) {
+                data.nodes.forEach(node => {
+                    if (node.credentials) {
+                        Object.keys(node.credentials).forEach(cred => {
+                            credentials.add(cred);
+                        });
+                    }
+                });
+            }
+            
+            updateStats('Nodos', nodeCount, 'Conexiones', connectionCount, 'Credenciales', credentials.size);
+            displayNodeList(data.nodes);
+        }
+
+        function analyzeFinances(data) {
+            let totalGastos = 0;
+            let totalRegistros = 0;
+            let metodosCount = 0;
+            let categoriaCount = 0;
+
+            // Contar gastos
+            if (data.gastos && Array.isArray(data.gastos)) {
+                totalRegistros = data.gastos.length;
+                totalGastos = data.gastos.reduce((sum, gasto) => sum + (gasto.monto || 0), 0);
+                
+                const categorias = new Set();
+                const metodos = new Set();
+                data.gastos.forEach(gasto => {
+                    if (gasto.categoria) categorias.add(gasto.categoria);
+                    if (gasto.metodoPago) metodos.add(gasto.metodoPago);
+                });
+                categoriaCount = categorias.size;
+                metodosCount = metodos.size;
+                
+                displayFinanceData(data);
+            } else if (data.resumen) {
+                // Usar datos del resumen
+                totalRegistros = data.resumen.totalRegistros || 0;
+                totalGastos = data.resumen.totalInvertido || 0;
+                displayFinanceSummary(data);
+            }
+
+            updateStats('Gastos', totalRegistros, 'Total ($)', Math.round(totalGastos), 'Categorías', categoriaCount || 'N/A', 'Métodos', metodosCount || 'N/A');
+            
+            // Mostrar botón para dashboard completo y activar análisis financiero
+            document.getElementById('toggleDashboard').style.display = 'inline-block';
+            generateFullFinanceDashboard(data);
+        }
+
+        function analyzeGeneric(data) {
+            const keys = Object.keys(data);
+            const arrayCount = keys.filter(key => Array.isArray(data[key])).length;
+            const objectCount = keys.filter(key => typeof data[key] === 'object' && !Array.isArray(data[key])).length;
+            
+            updateStats('Propiedades', keys.length, 'Arrays', arrayCount, 'Objetos', objectCount);
+        }
+
+        function updateStats(label1, value1, label2, value2, label3, value3, label4 = null, value4 = null) {
+            document.getElementById('nodeCount').textContent = value1;
+            document.getElementById('nodeCount').parentElement.querySelector('div:last-child').textContent = label1;
+            
+            document.getElementById('connectionCount').textContent = value2;
+            document.getElementById('connectionCount').parentElement.querySelector('div:last-child').textContent = label2;
+            
+            document.getElementById('credentialCount').textContent = value3;
+            document.getElementById('credentialCount').parentElement.querySelector('div:last-child').textContent = label3;
+            
+            if (label4 && value4 !== null) {
+                // Si hay una cuarta estadística, mostrarla
+                const statsContainer = document.getElementById('jsonStats');
+                if (statsContainer.children.length < 5) {
+                    const newStat = document.createElement('div');
+                    newStat.className = 'stat-item';
+                    newStat.innerHTML = `
+                        <div class="stat-number">${value4}</div>
+                        <div>${label4}</div>
+                    `;
+                    statsContainer.appendChild(newStat);
+                }
+            }
+        }
+
+        function displayNodeList(nodes) {
+            if (!nodes || !Array.isArray(nodes)) return;
+            
+            const nodeList = document.getElementById('nodeList');
+            nodeList.innerHTML = '<h3 style="padding: 15px; margin: 0; background: #34495e; color: white;">📋 Lista de Nodos</h3>';
+
+            nodes.forEach((node, index) => {
+                const nodeItem = document.createElement('div');
+                nodeItem.className = 'node-item';
+                
+                const nodeType = node.type ? node.type.split('.').pop() : 'unknown';
+                
+                nodeItem.innerHTML = `
+                    <div>
+                        <div class="node-name">${node.name || 'Nodo sin nombre'}</div>
+                        <div style="color: #666; font-size: 12px;">ID: ${node.id || 'Sin ID'}</div>
+                    </div>
+                    <div class="node-type">${nodeType}</div>
+                `;
+                
+                nodeList.appendChild(nodeItem);
+            });
+        }
+
+        function displayFinanceData(data) {
+            const nodeList = document.getElementById('nodeList');
+            nodeList.innerHTML = '<h3 style="padding: 15px; margin: 0; background: #34495e; color: white;">💰 Resumen de Gastos</h3>';
+
+            if (data.gastos && Array.isArray(data.gastos)) {
+                // Mostrar últimos gastos
+                const recentGastos = data.gastos.slice(-10).reverse();
+                
+                recentGastos.forEach(gasto => {
+                    const item = document.createElement('div');
+                    item.className = 'node-item';
+                    
+                    item.innerHTML = `
+                        <div>
+                            <div class="node-name">${gasto.concepto || 'Sin concepto'}</div>
+                            <div style="color: #666; font-size: 12px;">
+                                ${gasto.fecha || 'Sin fecha'} | ${gasto.quienPago === 'yo' ? 'Daniel' : 'Raul'}
+                            </div>
+                        </div>
+                        <div class="node-type">$${(gasto.monto || 0).toLocaleString()}</div>
+                    `;
+                    
+                    nodeList.appendChild(item);
+                });
+            }
+        }
+
+        function displayFinanceSummary(data) {
+            const nodeList = document.getElementById('nodeList');
+            nodeList.innerHTML = '<h3 style="padding: 15px; margin: 0; background: #34495e; color: white;">📊 Resumen Financiero</h3>';
+
+            if (data.resumen) {
+                const resumen = data.resumen;
+                
+                // Distribución por personas
+                if (resumen.distribucionPersonas) {
+                    Object.entries(resumen.distribucionPersonas).forEach(([persona, datos]) => {
+                        const item = document.createElement('div');
+                        item.className = 'node-item';
+                        
+                        item.innerHTML = `
+                            <div>
+                                <div class="node-name">${persona}</div>
+                                <div style="color: #666; font-size: 12px;">${datos.porcentaje}% del total</div>
+                            </div>
+                            <div class="node-type">$${datos.monto.toLocaleString()}</div>
+                        `;
+                        
+                        nodeList.appendChild(item);
+                    });
+                }
+
+                // Separador
+                const separator = document.createElement('div');
+                separator.innerHTML = '<h4 style="padding: 10px 15px; margin: 0; background: #2c3e50; color: white;">Métodos de Pago</h4>';
+                nodeList.appendChild(separator);
+
+                // Distribución por método de pago
+                if (resumen.distribucionPago) {
+                    Object.entries(resumen.distribucionPago).forEach(([metodo, monto]) => {
+                        if (monto > 0) {
+                            const item = document.createElement('div');
+                            item.className = 'node-item';
+                            
+                            item.innerHTML = `
+                                <div>
+                                    <div class="node-name">${metodo.charAt(0).toUpperCase() + metodo.slice(1)}</div>
+                                </div>
+                                <div class="node-type">$${monto.toLocaleString()}</div>
+                            `;
+                            
+                            nodeList.appendChild(item);
+                        }
+                    });
+                }
+            }
+        }
+
+        function expandAll() {
+            const jsonContent = document.getElementById('jsonContent');
+            const formattedJson = JSON.stringify(currentJsonData, null, 4);
+            displayJson(currentJsonData);
+        }
+
+        function collapseAll() {
+            const jsonContent = document.getElementById('jsonContent');
+            const compactJson = JSON.stringify(currentJsonData);
+            jsonContent.innerHTML = '<pre>' + compactJson + '</pre>';
+        }
+
+        function downloadFormatted() {
+            if (!currentJsonData) {
+                alert('No hay datos JSON cargados');
+                return;
+            }
+
+            const formattedJson = JSON.stringify(currentJsonData, null, 2);
+            const blob = new Blob([formattedJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'formatted_workflow.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function copyToClipboard() {
+            if (!currentJsonString) {
+                alert('No hay datos JSON para copiar');
+                return;
+            }
+
+            navigator.clipboard.writeText(currentJsonString).then(() => {
+                alert('JSON copiado al portapapeles');
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+                alert('Error al copiar al portapapeles');
+            });
+        }
+
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const jsonContent = document.getElementById('jsonContent');
+            
+            if (!searchTerm) {
+                displayJson(currentJsonData);
+                return;
+            }
+
+            let content = jsonContent.innerHTML;
+            
+            // Remover highlights anteriores
+            content = content.replace(/<span class="highlight">/g, '').replace(/<\/span>/g, '');
+            
+            // Agregar nuevos highlights
+            const regex = new RegExp(`(${searchTerm})`, 'gi');
+            content = content.replace(regex, '<span class="highlight">$1</span>');
+            
+            jsonContent.innerHTML = content;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('jsonViewer').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

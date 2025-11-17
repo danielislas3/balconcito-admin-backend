@@ -44,6 +44,9 @@ gem "rack-cors"
 # HTTP client for API calls
 gem "http", "~> 5.0"
 
+# Pagination
+gem "kaminari"
+
 # API Documentation with Swagger/OpenAPI
 gem "rswag-api"
 gem "rswag-ui"

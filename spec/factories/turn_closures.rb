@@ -1,14 +1,14 @@
 FactoryBot.define do
   factory :turn_closure do
-    closure_number { 1 }
-    report_date { "2025-11-17" }
-    cash_collected { "9.99" }
-    transfer_income { "9.99" }
-    card_income { "9.99" }
-    closed_by { "MyString" }
-    theoretical_cash { "9.99" }
-    payments_withdrawals { "9.99" }
-    notes { "MyText" }
-    user { nil }
+    sequence(:closure_number) { |n| n }
+    report_date { Date.today }
+    cash_collected { 1500.00 }
+    transfer_income { 800.00 }
+    card_income { 600.00 }
+    closed_by { "Daniel" }
+    theoretical_cash { 1500.00 }
+    payments_withdrawals { 200.00 }
+    notes { "Cierre de turno normal" }
+    association :user
   end
 end

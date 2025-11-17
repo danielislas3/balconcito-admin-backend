@@ -1,8 +1,10 @@
 FactoryBot.define do
   factory :reimbursement do
-    reimbursement_date { "2025-11-17" }
-    amount { "9.99" }
-    notes { "MyText" }
-    user { nil }
+    reimbursement_date { Date.today }
+    amount { 500.00 }
+    notes { "Reembolso de gastos de tarjeta personal" }
+    association :created_by, factory: :user
+    association :to_user, factory: :user
+    association :from_account, factory: :account
   end
 end

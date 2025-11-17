@@ -10,7 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "accounts", force: :cascade do |t|
     t.string "account_type", null: false
     t.datetime "created_at", null: false
@@ -144,6 +147,36 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
     t.index ["loan_date"], name: "index_loans_on_loan_date"
   end
 
+  create_table "loyverse_shifts", force: :cascade do |t|
+    t.decimal "actual_cash", precision: 15, scale: 2, default: "0.0"
+    t.decimal "cash_payments", precision: 15, scale: 2, default: "0.0"
+    t.decimal "cash_refunds", precision: 15, scale: 2, default: "0.0"
+    t.datetime "closed_at"
+    t.string "closed_by_employee"
+    t.datetime "created_at", null: false
+    t.decimal "discounts", precision: 15, scale: 2, default: "0.0"
+    t.decimal "expected_cash", precision: 15, scale: 2, default: "0.0"
+    t.decimal "gross_sales", precision: 15, scale: 2, default: "0.0"
+    t.string "loyverse_id", null: false
+    t.datetime "opened_at"
+    t.string "opened_by_employee"
+    t.decimal "paid_in", precision: 15, scale: 2, default: "0.0"
+    t.decimal "paid_out", precision: 15, scale: 2, default: "0.0"
+    t.string "pos_device_id"
+    t.decimal "refunds", precision: 15, scale: 2, default: "0.0"
+    t.jsonb "shift_data", default: {}, null: false
+    t.decimal "starting_cash", precision: 15, scale: 2, default: "0.0"
+    t.string "store_id"
+    t.decimal "surcharge", precision: 15, scale: 2, default: "0.0"
+    t.decimal "tip", precision: 15, scale: 2, default: "0.0"
+    t.bigint "turn_closure_id"
+    t.datetime "updated_at", null: false
+    t.index ["closed_at"], name: "index_loyverse_shifts_on_closed_at"
+    t.index ["loyverse_id"], name: "index_loyverse_shifts_on_loyverse_id", unique: true
+    t.index ["store_id"], name: "index_loyverse_shifts_on_store_id"
+    t.index ["turn_closure_id"], name: "index_loyverse_shifts_on_turn_closure_id"
+  end
+
   create_table "payment_methods", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
@@ -190,6 +223,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
     t.string "closed_by", null: false
     t.integer "closure_number", null: false
     t.datetime "created_at", null: false
+    t.boolean "has_errors", default: false, null: false
+    t.boolean "has_warnings", default: false, null: false
     t.text "notes"
     t.decimal "payments_withdrawals", precision: 15, scale: 2, default: "0.0", null: false
     t.date "report_date", null: false
@@ -197,9 +232,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
     t.decimal "transfer_income", precision: 15, scale: 2, default: "0.0", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
+    t.datetime "validated_at"
+    t.jsonb "validation_data", default: {}, null: false
     t.index ["closure_number"], name: "index_turn_closures_on_closure_number", unique: true
+    t.index ["has_errors"], name: "index_turn_closures_on_has_errors"
+    t.index ["has_warnings"], name: "index_turn_closures_on_has_warnings"
     t.index ["report_date"], name: "index_turn_closures_on_report_date"
     t.index ["user_id"], name: "index_turn_closures_on_user_id"
+    t.index ["validated_at"], name: "index_turn_closures_on_validated_at"
+    t.index ["validation_data"], name: "index_turn_closures_on_validation_data", using: :gin
   end
 
   create_table "users", force: :cascade do |t|
@@ -224,6 +265,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_100007) do
   add_foreign_key "expenses", "users"
   add_foreign_key "loan_payments", "loans"
   add_foreign_key "loans", "lenders"
+  add_foreign_key "loyverse_shifts", "turn_closures"
   add_foreign_key "payment_methods", "users"
   add_foreign_key "reimbursement_expenses", "expenses", on_delete: :cascade
   add_foreign_key "reimbursement_expenses", "reimbursements", on_delete: :cascade

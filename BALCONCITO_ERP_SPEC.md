@@ -309,14 +309,14 @@ Significa: si no entra ni un peso más, podrías operar 20 días.
 ## 🛠️ Stack Tecnológico
 
 ### Backend
-- **Framework:** Ruby on Rails 7+ (modo API)
+- **Framework:** Ruby on Rails 8+ (modo API)
 - **Base de datos:** PostgreSQL
 - **Autenticación:** Devise + JWT
 - **Tests:** RSpec
 - **Deploy:** Railway / Render (sugerido)
 
 ### Frontend  
-- **Framework:** Nuxt.js 3
+- **Framework:** Nuxt.js 4
 - **UI Library:** Nuxt UI
 - **Deploy:** Vercel (sugerido)
 

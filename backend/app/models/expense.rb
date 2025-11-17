@@ -1,5 +1,6 @@
 class Expense < ApplicationRecord
   belongs_to :user
+  belongs_to :payment_method, optional: true
   has_many :reimbursement_expenses, dependent: :restrict_with_error
   has_many :reimbursements, through: :reimbursement_expenses
 
@@ -25,20 +26,20 @@ class Expense < ApplicationRecord
     # Costos Variables
     maintenance: 'mantenimiento',
     staff_expenses: 'gastos_staff',
-    miscellaneous: 'gastos_varios'
-  }, validate: true
+    miscellaneous: 'gastos_varios',
 
-  enum :payment_source, {
-    cash_petty: 'efectivo_caja_chica',
-    cash_vault: 'efectivo_boveda',
-    mercadopago_transfer: 'transferencia_negocio',
-    business_card: 'tarjeta_negocio',
-    daniel_card: 'tarjeta_daniel',
-    raul_card: 'tarjeta_raul'
+    # CAPEX (Capital Expenditures) - Inversión inicial
+    equipment: 'equipo',
+    construction_materials: 'materiales',
+    initial_inventory: 'insumos',
+    marketing: 'marketing',
+    office: 'oficina',
+    transportation: 'transporte',
+    others: 'otros'
   }, validate: true
 
   # Validations
-  validates :expense_date, :amount, :description, :category, :payment_source, presence: true
+  validates :expense_date, :amount, :description, :category, presence: true
   validates :amount, numericality: { greater_than: 0 }
 
   # Scopes
@@ -59,22 +60,42 @@ class Expense < ApplicationRecord
       'fixed' # Costos Fijos
     when :maintenance, :staff_expenses, :miscellaneous
       'variable' # Costos Variables
+    when :equipment, :construction_materials, :initial_inventory, :marketing,
+         :office, :transportation, :others
+      'capex' # Capital Expenditures (Inversión inicial)
     end
+  end
+
+  # Instance methods
+  def payment_source_name
+    payment_method&.name || 'No especificado'
+  end
+
+  def paid_by_user
+    payment_method&.user || user
   end
 
   private
 
   def check_if_requires_reimbursement
-    self.requires_reimbursement = daniel_card? || raul_card?
+    # Si tiene payment_method, usar su configuración requires_reimbursement
+    # Si no tiene payment_method, asumir que es del negocio (no requiere reembolso)
+    self.requires_reimbursement = payment_method&.requires_reimbursement || false
   end
 
   def update_account_balance
     return if requires_reimbursement # Las tarjetas personales no afectan cuentas del negocio
+    return unless payment_method&.business_owned? # Solo procesar si es método del negocio
 
-    account = case payment_source.to_sym
-              when :cash_petty then Account.find_by(account_type: 'petty_cash')
-              when :cash_vault then Account.find_by(account_type: 'physical_cash')
-              when :mercadopago_transfer then Account.find_by(name: 'Mercado Pago')
+    account = case payment_method.payment_type.to_sym
+              when :business_cash then
+                # Determinar si es caja chica o bóveda según el nombre del payment_method
+                if payment_method.name.downcase.include?('caja')
+                  Account.find_by(account_type: 'petty_cash')
+                else
+                  Account.find_by(account_type: 'physical_cash')
+                end
+              when :business_transfer then Account.find_by(name: 'Mercado Pago')
               when :business_card then nil # TODO: Implementar tarjeta de crédito del negocio
               end
 

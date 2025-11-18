@@ -27,7 +27,7 @@ class LoyversePaymentMapping < ApplicationRecord
 
   # Crear mapping desde API de Loyverse
   def self.create_from_loyverse_data(payment_type_data)
-    create_or_find_by!(loyverse_payment_type_id: payment_type_data['id']) do |mapping|
+    find_or_create_by!(loyverse_payment_type_id: payment_type_data['id']) do |mapping|
       mapping.loyverse_payment_name = payment_type_data['name']
       mapping.loyverse_payment_type = payment_type_data['type']
     end

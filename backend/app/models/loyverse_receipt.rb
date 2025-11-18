@@ -61,8 +61,8 @@ class LoyverseReceipt < ApplicationRecord
   # Total por tipo de pago
   def total_by_payment_type(type)
     payments
-      .select { |p| p.dig('payment_type', 'type') == type }
-      .sum { |p| p['money'].to_f }
+      .select { |p| p['type'] == type }
+      .sum { |p| p['money_amount'].to_f }
   end
 
   def cash_total

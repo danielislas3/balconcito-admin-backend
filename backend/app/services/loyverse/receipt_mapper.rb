@@ -52,21 +52,21 @@ module Loyverse
 
     def calculate_cash_income
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CASH' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| p['type'] == 'CASH' }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def calculate_card_income
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CARD' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| ['CARD', 'NONINTEGRATEDCARD'].include?(p['type']) }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def calculate_transfer_income
-      # CUSTOM generalmente son transferencias/QR en Loyverse
+      # OTHER generalmente son transferencias/QR en Loyverse
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CUSTOM' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| ['OTHER', 'CUSTOM'].include?(p['type']) }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def generate_closure_number

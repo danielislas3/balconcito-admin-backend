@@ -30,15 +30,16 @@ module Loyverse
     def map_to_turn_closure_params
       {
         closure_number: generate_closure_number,
-        report_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
+        closure_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
         closed_by: 'Loyverse',
 
         # Ingresos por tipo de pago
         cash_collected: calculate_cash_income,
-        transfer_income: calculate_transfer_income,
-        card_income: calculate_card_income,
+        transfer_income_gross: calculate_transfer_income,
+        card_income_gross: calculate_card_income,
 
         # Totales
+        total_income: loyverse_receipt.total_money,
         theoretical_cash: calculate_cash_income,
         payments_withdrawals: 0.0,
 

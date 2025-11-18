@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
+ActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -147,6 +147,49 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
     t.index ["loan_date"], name: "index_loans_on_loan_date"
   end
 
+  create_table "loyverse_configs", force: :cascade do |t|
+    t.text "api_token_encrypted"
+    t.datetime "created_at", null: false
+    t.datetime "last_sync_at"
+    t.jsonb "payment_type_mappings", default: {}, null: false
+    t.boolean "sync_enabled", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.text "webhook_secret_encrypted"
+  end
+
+  create_table "loyverse_payment_mappings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "is_active", default: true, null: false
+    t.string "loyverse_payment_name", null: false
+    t.string "loyverse_payment_type"
+    t.string "loyverse_payment_type_id", null: false
+    t.bigint "payment_method_id"
+    t.datetime "updated_at", null: false
+    t.index ["loyverse_payment_type_id"], name: "index_loyverse_payment_mappings_on_loyverse_payment_type_id", unique: true
+    t.index ["payment_method_id"], name: "index_loyverse_payment_mappings_on_payment_method_id"
+  end
+
+  create_table "loyverse_receipts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "loyverse_created_at"
+    t.string "loyverse_id", null: false
+    t.bigint "loyverse_shift_id"
+    t.jsonb "receipt_data", default: {}, null: false
+    t.string "receipt_number"
+    t.string "receipt_type"
+    t.datetime "synced_at"
+    t.decimal "total_money", precision: 15, scale: 2
+    t.decimal "total_tax", precision: 15, scale: 2
+    t.bigint "turn_closure_id"
+    t.datetime "updated_at", null: false
+    t.index ["loyverse_created_at"], name: "index_loyverse_receipts_on_loyverse_created_at"
+    t.index ["loyverse_id"], name: "index_loyverse_receipts_on_loyverse_id", unique: true
+    t.index ["loyverse_shift_id"], name: "index_loyverse_receipts_on_loyverse_shift_id"
+    t.index ["receipt_number"], name: "index_loyverse_receipts_on_receipt_number"
+    t.index ["synced_at"], name: "index_loyverse_receipts_on_synced_at"
+    t.index ["turn_closure_id"], name: "index_loyverse_receipts_on_turn_closure_id"
+  end
+
   create_table "loyverse_shifts", force: :cascade do |t|
     t.decimal "actual_cash", precision: 15, scale: 2, default: "0.0"
     t.decimal "cash_payments", precision: 15, scale: 2, default: "0.0"
@@ -175,6 +218,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
     t.index ["loyverse_id"], name: "index_loyverse_shifts_on_loyverse_id", unique: true
     t.index ["store_id"], name: "index_loyverse_shifts_on_store_id"
     t.index ["turn_closure_id"], name: "index_loyverse_shifts_on_turn_closure_id"
+  end
+
+  create_table "loyverse_webhook_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.string "event_id"
+    t.string "event_type", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.boolean "processed", default: false, null: false
+    t.datetime "processed_at"
+    t.string "signature"
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_loyverse_webhook_events_on_created_at"
+    t.index ["event_id"], name: "index_loyverse_webhook_events_on_event_id", unique: true, where: "(event_id IS NOT NULL)"
+    t.index ["event_type"], name: "index_loyverse_webhook_events_on_event_type"
+    t.index ["processed"], name: "index_loyverse_webhook_events_on_processed"
   end
 
   create_table "payment_methods", force: :cascade do |t|
@@ -218,26 +277,27 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
   end
 
   create_table "turn_closures", force: :cascade do |t|
-    t.decimal "card_income", precision: 15, scale: 2, default: "0.0", null: false
+    t.decimal "card_income_gross", precision: 15, scale: 2, default: "0.0", null: false
     t.decimal "cash_collected", precision: 15, scale: 2, default: "0.0", null: false
     t.string "closed_by", null: false
-    t.integer "closure_number", null: false
+    t.date "closure_date", null: false
+    t.string "closure_number", null: false
     t.datetime "created_at", null: false
     t.boolean "has_errors", default: false, null: false
     t.boolean "has_warnings", default: false, null: false
     t.text "notes"
     t.decimal "payments_withdrawals", precision: 15, scale: 2, default: "0.0", null: false
-    t.date "report_date", null: false
     t.decimal "theoretical_cash", precision: 15, scale: 2, default: "0.0", null: false
-    t.decimal "transfer_income", precision: 15, scale: 2, default: "0.0", null: false
+    t.decimal "total_income", precision: 15, scale: 2, default: "0.0", null: false
+    t.decimal "transfer_income_gross", precision: 15, scale: 2, default: "0.0", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.datetime "validated_at"
     t.jsonb "validation_data", default: {}, null: false
+    t.index ["closure_date"], name: "index_turn_closures_on_closure_date"
     t.index ["closure_number"], name: "index_turn_closures_on_closure_number", unique: true
     t.index ["has_errors"], name: "index_turn_closures_on_has_errors"
     t.index ["has_warnings"], name: "index_turn_closures_on_has_warnings"
-    t.index ["report_date"], name: "index_turn_closures_on_report_date"
     t.index ["user_id"], name: "index_turn_closures_on_user_id"
     t.index ["validated_at"], name: "index_turn_closures_on_validated_at"
     t.index ["validation_data"], name: "index_turn_closures_on_validation_data", using: :gin
@@ -265,6 +325,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_17_110001) do
   add_foreign_key "expenses", "users"
   add_foreign_key "loan_payments", "loans"
   add_foreign_key "loans", "lenders"
+  add_foreign_key "loyverse_payment_mappings", "payment_methods"
+  add_foreign_key "loyverse_receipts", "loyverse_shifts"
+  add_foreign_key "loyverse_receipts", "turn_closures"
   add_foreign_key "loyverse_shifts", "turn_closures"
   add_foreign_key "payment_methods", "users"
   add_foreign_key "reimbursement_expenses", "expenses", on_delete: :cascade

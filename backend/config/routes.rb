@@ -128,8 +128,9 @@ Rails.application.routes.draw do
     end
   end
 
-  # Swagger/OpenAPI Documentation UI
-  # Accesible en: http://localhost:3000/api-docs
-  mount Rswag::Ui::Engine => '/api-docs'
+  # Swagger/OpenAPI Documentation
+  # UI accesible en: http://localhost:3000/api-docs
+  # API spec en: http://localhost:3000/api-docs/v1/swagger.yaml
   mount Rswag::Api::Engine => '/api-docs'
+  mount Rswag::Ui::Engine => '/api-docs'
 end

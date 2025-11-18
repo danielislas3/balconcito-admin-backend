@@ -3,26 +3,20 @@ info:
   title: Balconcito Admin API
   version: v1
   description: |
-    API REST para gestión financiera del bar Balconcito.
+    API REST para gestion financiera del bar Balconcito.
 
-    **Características principales:**
-    - 🔐 Autenticación con JWT
-    - 💰 Gestión de cierres de caja con validación automática
-    - 📊 Dashboard con métricas financieras en tiempo real
-    - 🏪 Integración con Loyverse POS
-    - 💳 Gestión de deudas (MSI, préstamos, capital de socios)
-    - 📈 Reportes y analytics
+    Caracteristicas principales:
+    - Autenticacion con JWT
+    - Gestion de cierres de caja con validacion automatica
+    - Dashboard con metricas financieras en tiempo real
+    - Integracion con Loyverse POS
+    - Gestion de deudas (MSI, prestamos, capital de socios)
+    - Reportes y analytics
 
-    **Validación de datos:**
-    Todos los cierres de caja manuales se validan contra datos reales de Loyverse para detectar:
-    - Faltantes de efectivo
-    - Errores de captura
-    - Intentos de fraude
+    Validacion de datos:
+    Todos los cierres de caja manuales se validan contra datos reales de Loyverse para detectar faltantes de efectivo, errores de captura e intentos de fraude.
 
-    **Documentación completa:**
-    - [Integración Loyverse](https://github.com/tu-repo/blob/main/LOYVERSE_SETUP.md)
-    - [Validación de Cierres](https://github.com/tu-repo/blob/main/VALIDACION_TURN_CLOSURES.md)
-
+    Documentacion completa disponible en el repositorio.
   contact:
     name: Balconcito Team
     email: admin@balconcito.com

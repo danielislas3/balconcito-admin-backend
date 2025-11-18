@@ -71,8 +71,9 @@ module Api
           client = ::Loyverse::Client.new
           receipt_data = client.get_receipt(receipt_id)
 
-          # Create LoyverseReceipt
-          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['id']) do |r|
+          # Create/Update LoyverseReceipt (solo guardar, NO crear TurnClosure)
+          # Los TurnClosures se crean desde SHIFTS, no desde receipts individuales
+          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['receipt_number']) do |r|
             r.receipt_number = receipt_data['receipt_number']
             r.receipt_type = receipt_data['receipt_type']
             r.total_money = receipt_data['total_money']
@@ -82,12 +83,8 @@ module Api
             r.synced_at = Time.current
           end
 
-          # Create TurnClosure
-          unless loyverse_receipt.converted?
-            ::Loyverse::ReceiptMapper.new(loyverse_receipt).create_turn_closure
-          end
-
           Rails.logger.info("✅ Webhook RECEIPT_CREATED procesado: #{receipt_id}")
+          Rails.logger.info("   Receipt guardado, TurnClosure se creará cuando se cierre el shift")
         end
 
         def process_receipt_updated(event)

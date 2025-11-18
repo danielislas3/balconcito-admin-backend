@@ -1,6 +1,6 @@
 module Loyverse
   class Client
-    BASE_URL = 'https://api.loyverse.com/v1.0'
+    BASE_URL = ENV.fetch('LOYVERSE_API_URL', 'https://api.loyverse.com/v1.0')
     RATE_LIMIT = 60 # requests per minute
 
     attr_reader :api_token
@@ -75,29 +75,55 @@ module Loyverse
     end
 
     def request(method, endpoint, params_or_body = {})
-      url = "#{BASE_URL}#{endpoint}"
+      require 'net/http'
+      require 'uri'
+      require 'json'
 
-      response = case method
-                 when :get
-                   HTTP.auth("Bearer #{api_token}")
-                       .get(url, params: params_or_body)
-                 when :post
-                   HTTP.auth("Bearer #{api_token}")
-                       .headers('Content-Type' => 'application/json')
-                       .post(url, json: params_or_body)
-                 when :delete
-                   HTTP.auth("Bearer #{api_token}")
-                       .delete(url)
-                 end
+      # Construir URL
+      url = if method == :get && params_or_body.any?
+              query = URI.encode_www_form(params_or_body)
+              "#{BASE_URL}#{endpoint}?#{query}"
+            else
+              "#{BASE_URL}#{endpoint}"
+            end
+
+      uri = URI(url)
+
+      # Configurar HTTP
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      # En desarrollo, deshabilitar verificación SSL estricta
+      http.verify_mode = Rails.env.development? ? OpenSSL::SSL::VERIFY_NONE : OpenSSL::SSL::VERIFY_PEER
+      http.read_timeout = 30
+      http.open_timeout = 30
+
+      # Crear request
+      request = case method
+                when :get
+                  Net::HTTP::Get.new(uri)
+                when :post
+                  req = Net::HTTP::Post.new(uri)
+                  req.body = params_or_body.to_json
+                  req['Content-Type'] = 'application/json'
+                  req
+                when :delete
+                  Net::HTTP::Delete.new(uri)
+                end
+
+      # Agregar autenticación
+      request['Authorization'] = "Bearer #{api_token}"
+
+      # Ejecutar request
+      response = http.request(request)
 
       handle_response(response)
     rescue => e
-      Rails.logger.error("Loyverse API error: #{e.message}")
+      Rails.logger.error("Loyverse API error: #{e.class} - #{e.message}")
       raise
     end
 
     def handle_response(response)
-      case response.status
+      case response.code.to_i
       when 200, 201
         JSON.parse(response.body)
       when 401
@@ -107,7 +133,7 @@ module Loyverse
       when 404
         raise 'Resource not found'
       else
-        raise "API error: #{response.status} - #{response.body}"
+        raise "API error: #{response.code} - #{response.body}"
       end
     end
   end

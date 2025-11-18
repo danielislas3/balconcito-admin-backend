@@ -46,6 +46,9 @@ module Loyverse
         # Usuario por defecto
         user_id: default_user&.id || User.first&.id,
 
+        # Validación
+        validation_data: {},
+
         # Metadata
         notes: "Importado automáticamente desde Loyverse (Receipt ##{loyverse_receipt.receipt_number})"
       }

@@ -13,11 +13,13 @@ namespace :loyverse do
         puts JSON.pretty_generate(receipt)
 
         puts "\n🔑 Campos importantes:"
-        puts "  ID: #{receipt['id'] || receipt['receipt_id'] || 'NO ENCONTRADO'}"
-        puts "  Receipt Number: #{receipt['receipt_number']}"
+        puts "  Receipt Number (usado como ID): #{receipt['receipt_number']}"
         puts "  Type: #{receipt['receipt_type']}"
         puts "  Created At: #{receipt['created_at']}"
         puts "  Total Money: #{receipt['total_money']}"
+        puts ""
+        puts "  ℹ️  Nota: Loyverse no devuelve 'id' en GET /receipts"
+        puts "           Usamos 'receipt_number' como identificador único"
       else
         puts "❌ No se encontraron receipts"
       end

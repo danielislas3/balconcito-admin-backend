@@ -30,23 +30,23 @@ module Loyverse
     def map_to_turn_closure_params
       {
         closure_number: generate_closure_number,
-        closure_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
+        report_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
+        closed_by: 'Loyverse',
 
         # Ingresos por tipo de pago
         cash_collected: calculate_cash_income,
-        transfer_income_gross: calculate_transfer_income,
-        card_income_gross: calculate_card_income,
+        transfer_income: calculate_transfer_income,
+        card_income: calculate_card_income,
 
         # Totales
-        total_income: loyverse_receipt.total_money,
+        theoretical_cash: calculate_cash_income,
+        payments_withdrawals: 0.0,
+
+        # Usuario por defecto
+        user_id: default_user&.id || User.first&.id,
 
         # Metadata
-        notes: "Importado automáticamente desde Loyverse (Receipt ##{loyverse_receipt.receipt_number})",
-
-        # Cuentas por defecto (se pueden ajustar después)
-        cash_destination_id: default_cash_account&.id,
-        transfer_destination_id: default_mercadopago_account&.id,
-        card_destination_id: default_mercadopago_account&.id
+        notes: "Importado automáticamente desde Loyverse (Receipt ##{loyverse_receipt.receipt_number})"
       }
     end
 
@@ -76,12 +76,9 @@ module Loyverse
       "LOY-#{date_str}-#{sequence.to_s.rjust(3, '0')}"
     end
 
-    def default_cash_account
-      Account.find_by(account_type: 'vault') || Account.first
-    end
-
-    def default_mercadopago_account
-      Account.find_by(account_type: 'mercadopago') || Account.first
+    def default_user
+      # Buscar usuario de sistema o el primero disponible
+      User.find_by(email: 'sistema@balconcito.com') || User.first
     end
   end
 end

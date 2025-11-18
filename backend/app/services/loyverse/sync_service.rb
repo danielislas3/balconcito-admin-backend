@@ -103,7 +103,14 @@ module Loyverse
     end
 
     def create_or_update_receipt(receipt_data)
-      LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['id']) do |receipt|
+      # Validar que tenemos un ID válido
+      if receipt_data['receipt_id'].blank? && receipt_data['id'].blank?
+        raise "Receipt sin ID: #{receipt_data['receipt_number']}"
+      end
+
+      loyverse_id = receipt_data['receipt_id'] || receipt_data['id']
+
+      LoyverseReceipt.find_or_create_by!(loyverse_id: loyverse_id) do |receipt|
         receipt.receipt_number = receipt_data['receipt_number']
         receipt.receipt_type = receipt_data['receipt_type']
         receipt.total_money = receipt_data['total_money']

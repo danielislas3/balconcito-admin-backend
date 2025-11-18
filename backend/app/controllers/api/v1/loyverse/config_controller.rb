@@ -2,6 +2,9 @@ module Api
   module V1
     module Loyverse
       class ConfigController < ApplicationController
+        # Permitir acceso sin autenticación JWT para configurar token de Loyverse
+        skip_before_action :authenticate_user!
+
         # GET /api/v1/loyverse/config
         def show
           @config = LoyverseConfig.instance

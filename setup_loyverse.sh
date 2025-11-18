@@ -33,16 +33,27 @@ docker compose up -d
 
 # Esperar a que PostgreSQL esté listo
 echo "⏳ Esperando a que PostgreSQL esté listo..."
-for i in {1..30}; do
-  if pg_isready -h localhost -p 5432 > /dev/null 2>&1; then
+for i in {1..60}; do
+  if docker compose exec -T db pg_isready -U postgres > /dev/null 2>&1; then
     echo "✅ PostgreSQL está listo"
     break
   fi
 
-  if [ $i -eq 30 ]; then
-    echo "❌ PostgreSQL no respondió después de 30 segundos"
-    echo "   Verifica con: docker compose logs"
+  if [ $i -eq 60 ]; then
+    echo "❌ PostgreSQL no respondió después de 60 segundos"
+    echo ""
+    echo "📋 Logs de PostgreSQL:"
+    docker compose logs db --tail=20
+    echo ""
+    echo "💡 Intenta manualmente:"
+    echo "   docker compose logs db"
+    echo "   docker compose restart db"
     exit 1
+  fi
+
+  # Mostrar progreso cada 10 segundos
+  if [ $((i % 10)) -eq 0 ]; then
+    echo "   Esperando... ($i/60 segundos)"
   fi
 
   sleep 1

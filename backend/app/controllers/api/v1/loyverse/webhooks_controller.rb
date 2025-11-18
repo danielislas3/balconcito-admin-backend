@@ -2,15 +2,21 @@ module Api
   module V1
     module Loyverse
       class WebhooksController < ApplicationController
+        # Webhooks vienen de Loyverse, no tienen JWT
+        skip_before_action :authenticate_user!, only: [:create]
         skip_before_action :verify_authenticity_token, only: [:create]
 
         # POST /api/v1/loyverse/webhooks
         def create
+          # Leer payload una sola vez
+          payload_body = request.body.read
+          payload_json = JSON.parse(payload_body) rescue {}
+
           # Guardar evento
           event = LoyverseWebhookEvent.create!(
-            event_id: webhook_params[:event_id],
-            event_type: webhook_params[:event_type],
-            payload: request.body.read,
+            event_id: payload_json['event_id'],
+            event_type: payload_json['event_type'],
+            payload: payload_json,
             signature: request.headers['X-Loyverse-Webhook-Signature']
           )
 
@@ -20,6 +26,7 @@ module Api
           head :ok
         rescue => e
           Rails.logger.error("Error procesando webhook de Loyverse: #{e.message}")
+          Rails.logger.error(e.backtrace.join("\n"))
           head :unprocessable_entity
         end
 
@@ -39,12 +46,6 @@ module Api
         end
 
         private
-
-        def webhook_params
-          JSON.parse(request.body.read).with_indifferent_access
-        rescue JSON::ParserError
-          {}
-        end
 
         def process_webhook(event)
           return unless event.supported?

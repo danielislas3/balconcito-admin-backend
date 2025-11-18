@@ -32,7 +32,8 @@ class LoyverseConfig < ApplicationRecord
   end
 
   def api_token
-    api_token_encrypted # TODO: Desencriptar en producción
+    # Prioridad: ENV > Base de datos
+    ENV['LOYVERSE_API_TOKEN'].presence || api_token_encrypted
   end
 
   # Configurar webhook secret

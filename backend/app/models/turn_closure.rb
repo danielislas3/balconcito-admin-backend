@@ -11,7 +11,25 @@ class TurnClosure < ApplicationRecord
   #   warnings: [...],
   #   validated_at: timestamp
   # }
-  store :validation_data, accessors: [:validation_errors, :validation_warnings], coder: JSON
+  # JSONB field - no coder needed, Rails handles it natively
+  attribute :validation_data, :jsonb, default: -> { {} }
+
+  # Accessors for validation data
+  def validation_errors
+    validation_data['errors'] || []
+  end
+
+  def validation_errors=(value)
+    validation_data['errors'] = value
+  end
+
+  def validation_warnings
+    validation_data['warnings'] || []
+  end
+
+  def validation_warnings=(value)
+    validation_data['warnings'] = value
+  end
 
   # Validations
   validates :closure_number, presence: true, uniqueness: true

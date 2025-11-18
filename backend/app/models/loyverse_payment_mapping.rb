@@ -33,16 +33,28 @@ class LoyversePaymentMapping < ApplicationRecord
     end
   end
 
-  # Auto-mapear basado en tipo
+  # Auto-mapear basado en tipo y nombre
+  # Busca PaymentMethods que coincidan por nombre o tipo
   def auto_map!
     method = case loyverse_payment_type
              when 'CASH'
-               PaymentMethod.find_by(payment_type: 'cash')
-             when 'CARD'
-               PaymentMethod.find_by(payment_type: 'card')
-             when 'CUSTOM'
-               # Intentar encontrar por nombre (ej: "Transferencia", "QR", etc.)
-               PaymentMethod.find_by(payment_type: 'transfer')
+               # Buscar por nombre (Bóveda, Caja, Efectivo) o payment_type que contenga 'cash'
+               PaymentMethod.where("name ILIKE ? OR payment_type ILIKE ?", '%efectivo%', '%cash%')
+                           .or(PaymentMethod.where("name ILIKE ?", '%bóveda%'))
+                           .or(PaymentMethod.where("name ILIKE ?", '%caja%'))
+                           .first
+             when 'CARD', 'NONINTEGRATEDCARD'
+               # Buscar por nombre (Tarjeta) o payment_type que contenga 'card'
+               # Nota: Las tarjetas suelen ir a cuenta digital/Mercado Pago
+               PaymentMethod.where("name ILIKE ? OR payment_type ILIKE ?", '%tarjeta%', '%card%')
+                           .or(PaymentMethod.where("name ILIKE ?", '%transferencia%'))
+                           .first
+             when 'OTHER', 'CUSTOM'
+               # Transferencias/QR - buscar por nombre o payment_type
+               PaymentMethod.where("name ILIKE ? OR payment_type ILIKE ?", '%transferencia%', '%transfer%')
+                           .or(PaymentMethod.where("name ILIKE ?", '%mercado pago%'))
+                           .or(PaymentMethod.where("name ILIKE ?", '%qr%'))
+                           .first
              end
 
     update!(payment_method: method) if method

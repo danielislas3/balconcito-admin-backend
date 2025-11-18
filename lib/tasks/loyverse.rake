@@ -140,7 +140,52 @@ namespace :loyverse do
     end
   end
 
-  desc "Sincronización completa (payment types + receipts del último mes)"
+  desc "Sincronizar shifts (turnos de caja) de Loyverse"
+  task :sync_shifts, [:start_date, :end_date] => :environment do |t, args|
+    start_date = args[:start_date]&.to_date || 1.week.ago.to_date
+    end_date = args[:end_date]&.to_date || Date.today
+
+    puts "🔄 Iniciando sincronización de Shifts (turnos)..."
+    puts "   Período: #{start_date} a #{end_date}"
+
+    service = Loyverse::SyncService.new(start_date: start_date, end_date: end_date)
+    result = service.sync_shifts
+
+    puts "\n✅ Sincronización de shifts completada:"
+    puts "   - Shifts sincronizados: #{result[:shifts_synced]}"
+    puts "   - TurnClosures creados: #{result[:turn_closures_created]}"
+
+    if result[:errors].any?
+      puts "\n⚠️  Errores (#{result[:errors].count}):"
+      result[:errors].each do |error|
+        puts "   - Shift #{error[:shift]}: #{error[:error]}"
+      end
+    end
+  end
+
+  desc "Sincronizar solo receipts (sin crear TurnClosures)"
+  task :sync_receipts_only, [:start_date, :end_date] => :environment do |t, args|
+    start_date = args[:start_date]&.to_date || Date.today
+    end_date = args[:end_date]&.to_date || start_date
+
+    puts "🔄 Iniciando sincronización de Receipts (sin crear TurnClosures)..."
+    puts "   Período: #{start_date} a #{end_date}"
+
+    service = Loyverse::SyncService.new(start_date: start_date, end_date: end_date)
+    result = service.sync_receipts(create_turn_closures: false)
+
+    puts "\n✅ Sincronización de receipts completada:"
+    puts "   - Receipts sincronizados: #{result[:receipts_synced]}"
+
+    if result[:errors].any?
+      puts "\n⚠️  Errores (#{result[:errors].count}):"
+      result[:errors].each do |error|
+        puts "   - Receipt #{error[:receipt]}: #{error[:error]}"
+      end
+    end
+  end
+
+  desc "Sincronización completa (payment types + shifts de últimos 3 meses)"
   task full_sync: :environment do
     Rake::Task['loyverse:sync_payment_types'].invoke
     puts "\n" + ("=" * 60) + "\n\n"
@@ -148,6 +193,12 @@ namespace :loyverse do
     start_date = 3.months.ago.to_date
     end_date = Date.today
 
-    Rake::Task['loyverse:sync_receipts'].invoke(start_date, end_date)
+    # IMPORTANTE: Sincronizar SHIFTS, no receipts individuales
+    # Los shifts son los turnos de caja que deben crear TurnClosures
+    puts "ℹ️  NOTA: Sincronizando SHIFTS (turnos de caja), no receipts individuales"
+    puts "    Cada shift = 1 turno del mesero = 1 TurnClosure"
+    puts ""
+
+    Rake::Task['loyverse:sync_shifts'].invoke(start_date, end_date)
   end
 end

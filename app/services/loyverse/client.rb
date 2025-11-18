@@ -20,6 +20,11 @@ module Loyverse
       get("/receipts/#{receipt_id}")
     end
 
+    # GET /shifts
+    def get_shifts(params = {})
+      get('/shifts', params)
+    end
+
     # GET /shifts/:id
     def get_shift(shift_id)
       get("/shifts/#{shift_id}")

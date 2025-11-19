@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
 
-const color = computed(() => colorMode.value === 'dark' ? '#020618' : 'white')
+const color = computed(() => colorMode.value === 'dark' ? '#1b1718' : 'white')
 
 useHead({
   meta: [
@@ -17,8 +17,14 @@ useHead({
   }
 })
 
+const title = 'Balconcito ERP'
+const description = 'Sistema de administración centralizado para Balconcito - Control de cierres de turno, gastos, reembolsos y métricas financieras en tiempo real.'
+
 useSeoMeta({
-  titleTemplate: '%s - Balconcito ERP',
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
   ogImage: '/og-image.png',
   twitterCard: 'summary_large_image'
 })

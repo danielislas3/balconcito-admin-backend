@@ -1,97 +1,69 @@
 <script setup lang="ts">
-const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
+import { sub } from 'date-fns'
+import type { DropdownMenuItem } from '@nuxt/ui'
+import type { Period, Range } from '~/types'
 
-const title = page.value?.seo?.title || page.value?.title
-const description = page.value?.seo?.description || page.value?.description
+const { isNotificationsSlideoverOpen } = useDashboard()
 
-useSeoMeta({
-  titleTemplate: '',
-  title,
-  ogTitle: title,
-  description,
-  ogDescription: description
+const items = [[{
+  label: 'New mail',
+  icon: 'i-lucide-send',
+  to: '/inbox'
+}, {
+  label: 'New customer',
+  icon: 'i-lucide-user-plus',
+  to: '/customers'
+}]] satisfies DropdownMenuItem[][]
+
+const range = shallowRef<Range>({
+  start: sub(new Date(), { days: 14 }),
+  end: new Date()
 })
+const period = ref<Period>('daily')
 </script>
 
 <template>
-  <div v-if="page">
-    <UPageHero
-      :title="page.title"
-      :description="page.description"
-      :links="page.hero.links"
-    >
-      <template #top>
-        <HeroBackground />
-      </template>
+  <UDashboardPanel id="home">
+    <template #header>
+      <UDashboardNavbar title="Home" :ui="{ right: 'gap-3' }">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
 
-      <template #title>
-        <MDC
-          :value="page.title"
-          unwrap="p"
-        />
-      </template>
+        <template #right>
+          <UTooltip text="Notifications" :shortcuts="['N']">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              square
+              @click="isNotificationsSlideoverOpen = true"
+            >
+              <UChip color="error" inset>
+                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
+              </UChip>
+            </UButton>
+          </UTooltip>
 
-      <PromotionalVideo />
-    </UPageHero>
+          <UDropdownMenu :items="items">
+            <UButton icon="i-lucide-plus" size="md" class="rounded-full" />
+          </UDropdownMenu>
+        </template>
+      </UDashboardNavbar>
 
-    <UPageSection
-      v-for="(section, index) in page.sections"
-      :key="index"
-      :title="section.title"
-      :description="section.description"
-      :orientation="section.orientation"
-      :reverse="section.reverse"
-      :features="section.features"
-    >
-      <ImagePlaceholder />
-    </UPageSection>
+      <UDashboardToolbar>
+        <template #left>
+          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
+          <HomeDateRangePicker v-model="range" class="-ms-1" />
 
-    <UPageSection
-      :title="page.features.title"
-      :description="page.features.description"
-    >
-      <UPageGrid>
-        <UPageCard
-          v-for="(item, index) in page.features.items"
-          :key="index"
-          v-bind="item"
-          spotlight
-        />
-      </UPageGrid>
-    </UPageSection>
+          <HomePeriodSelect v-model="period" :range="range" />
+        </template>
+      </UDashboardToolbar>
+    </template>
 
-    <UPageSection
-      id="testimonials"
-      :headline="page.testimonials.headline"
-      :title="page.testimonials.title"
-      :description="page.testimonials.description"
-    >
-      <UPageColumns class="xl:columns-4">
-        <UPageCard
-          v-for="(testimonial, index) in page.testimonials.items"
-          :key="index"
-          variant="subtle"
-          :description="testimonial.quote"
-          :ui="{ description: 'before:content-[open-quote] after:content-[close-quote]' }"
-        >
-          <template #footer>
-            <UUser
-              v-bind="testimonial.user"
-              size="lg"
-            />
-          </template>
-        </UPageCard>
-      </UPageColumns>
-    </UPageSection>
-
-    <USeparator />
-
-    <UPageCTA
-      v-bind="page.cta"
-      variant="naked"
-      class="overflow-hidden"
-    >
-      <LazyStarsBg />
-    </UPageCTA>
-  </div>
+    <template #body>
+      <HomeStats :period="period" :range="range" />
+      <HomeChart :period="period" :range="range" />
+      <HomeSales :period="period" :range="range" />
+    </template>
+  </UDashboardPanel>
 </template>

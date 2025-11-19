@@ -1,31 +1,41 @@
 # 🍺 Balconcito ERP - Frontend
 
-Frontend del sistema de administración centralizado para Balconcito, basado en el template oficial de Nuxt UI SaaS con Nuxt 4.2.1 y Nuxt UI 4.2.0.
+Frontend del sistema de administración centralizado para Balconcito, construido con el template oficial **Nuxt UI Dashboard** usando **Nuxt 4.2.1** y **Nuxt UI 4.2.0**.
 
 ## 🚀 Stack Tecnológico
 
 - **[Nuxt 4.2.1](https://nuxt.com/)** - Framework Vue.js full-stack
 - **[Nuxt UI 4.2.0](https://ui.nuxt.com/)** - Biblioteca de componentes UI (última versión)
-- **[Pinia](https://pinia.vuejs.org/)** - State management
+- **[Pinia 3.0](https://pinia.vuejs.org/)** - State management
 - **[Vue 3](https://vuejs.org/)** - Framework JavaScript reactivo
-- **[Tailwind CSS](https://tailwindcss.com/)** - Framework de CSS utility-first
-- **[VueUse](https://vueuse.org/)** - Colección de utilidades de Vue Composition API
-- **[Nuxt Image](https://image.nuxt.com/)** - Optimización de imágenes
+- **[VueUse](https://vueuse.org/)** - Utilidades de Vue Composition API
+- **[Unovis](https://unovis.dev/)** - Librería de visualización de datos (gráficas)
+- **[date-fns](https://date-fns.org/)** - Manipulación de fechas
 - **[Zod](https://zod.dev/)** - Validación de esquemas con TypeScript
-- **[Day.js](https://day.js.org/)** - Manipulación de fechas
+- **[Day.js](https://day.js.org/)** - Manipulación de fechas ligera
 
 ## 📦 Template Base
 
-Este proyecto está basado en el template oficial de Nuxt UI para aplicaciones SaaS:
+Este proyecto está basado en el **template oficial de Nuxt UI Dashboard**:
 ```bash
-npm create nuxt@latest -- -t github:nuxt-ui-templates/saas
+npx nuxi@latest init frontend -t github:nuxt-ui-templates/dashboard --package-manager pnpm
 ```
+
+El template incluye:
+- ✅ Sidebar colapsible y responsivo con `UDashboardSidebar`
+- ✅ Layout completo listo para dashboard
+- ✅ Sistema de navegación con `UNavigationMenu`
+- ✅ Componentes de usuario (`UserMenu`, `TeamsMenu`)
+- ✅ Búsqueda global con `UDashboardSearch`
+- ✅ Notificaciones con slideover
+- ✅ TypeScript configurado
+- ✅ ESLint y Prettier
 
 ## 🛠️ Instalación
 
 ```bash
-# Instalar dependencias
-npm install
+# Instalar dependencias con pnpm
+pnpm install
 
 # Configurar variables de entorno
 cp .env.example .env
@@ -38,7 +48,7 @@ cp .env.example .env
 
 ```bash
 # Iniciar servidor de desarrollo
-npm run dev
+pnpm dev
 
 # El frontend estará disponible en http://localhost:3000
 ```
@@ -47,106 +57,134 @@ npm run dev
 
 ```bash
 # Generar build de producción
-npm run build
+pnpm build
 
 # Preview del build
-npm run preview
+pnpm preview
 
 # Typecheck
-npm run typecheck
+pnpm typecheck
 
 # Lint
-npm run lint
+pnpm lint
 ```
 
 ## 📁 Estructura del Proyecto
 
 ```
 frontend/
-├── app/                   # Carpeta principal de la aplicación
-│   ├── app.vue            # App principal
-│   ├── app.config.ts      # Configuración de la app (colores, etc)
-│   ├── error.vue          # Página de error
-│   ├── pages/             # Páginas de la aplicación
-│   │   ├── index.vue      # Landing/Home
-│   │   └── login.vue      # Login (adaptado con useAuth)
-│   ├── layouts/           # Layouts
-│   │   ├── default.vue    # Layout principal
-│   │   ├── auth.vue       # Layout para autenticación
-│   │   └── dashboard.vue  # Layout para dashboard (A CREAR)
-│   ├── components/        # Componentes reutilizables
-│   │   ├── AppHeader.vue  # Header principal
-│   │   ├── AppFooter.vue  # Footer
-│   │   └── AppLogo.vue    # Logo de Balconcito
-│   ├── composables/       # Composables de Vue
-│   │   ├── useApi.ts      # Cliente HTTP para API ✅
-│   │   └── useAuth.ts     # Autenticación ✅
-│   ├── stores/            # Pinia stores
-│   │   └── auth.ts        # Store de autenticación ✅
-│   ├── middleware/        # Middlewares
-│   │   └── auth.ts        # Protección de rutas ✅
-│   ├── plugins/           # Plugins
-│   │   └── auth.client.ts # Inicialización de auth ✅
-│   └── types/             # TypeScript types
-├── content/               # Nuxt Content (docs, blog)
-├── public/                # Archivos estáticos
-├── nuxt.config.ts         # Configuración de Nuxt ✅
-└── package.json           # Dependencias
+├── app/                        # Carpeta principal de la aplicación
+│   ├── app.vue                 # App principal ✅ Adaptado para Balconcito
+│   ├── app.config.ts           # Config de UI (colores verde) ✅
+│   ├── error.vue               # Página de error
+│   ├── pages/                  # Páginas de la aplicación
+│   │   ├── index.vue           # Dashboard principal
+│   │   ├── customers.vue       # Ejemplo (a reemplazar)
+│   │   ├── inbox.vue           # Ejemplo (a reemplazar)
+│   │   └── settings.vue        # Configuración
+│   ├── layouts/                # Layouts
+│   │   └── default.vue         # Layout principal con sidebar ✅ Adaptado
+│   ├── components/             # Componentes reutilizables
+│   │   ├── UserMenu.vue        # Menú de usuario (perfil, logout)
+│   │   ├── TeamsMenu.vue       # Selector de equipos
+│   │   └── NotificationsSlideover.vue # Panel de notificaciones
+│   ├── composables/            # Composables de Vue
+│   │   ├── useApi.ts           # Cliente HTTP para API ✅ Creado
+│   │   ├── useAuth.ts          # Autenticación ✅ Creado
+│   │   └── useDashboard.ts     # Utils del template
+│   ├── stores/                 # Pinia stores
+│   │   └── auth.ts             # Store de autenticación ✅ Creado
+│   ├── middleware/             # Middlewares
+│   │   └── auth.ts             # Protección de rutas ✅ Creado
+│   ├── plugins/                # Plugins
+│   │   └── auth.client.ts      # Inicialización de auth ✅ Creado
+│   ├── utils/                  # Utilidades
+│   └── types/                  # TypeScript types
+├── server/                     # API routes (Nitro)
+├── public/                     # Archivos estáticos
+├── nuxt.config.ts              # Configuración de Nuxt ✅ Configurado
+├── package.json                # Dependencias ✅
+└── README.md                   # Esta documentación
 ```
 
 ## ✅ Implementado
 
-- ✅ Template de Nuxt UI SaaS configurado
+### 1. **Configuración Base**
+- ✅ Template de Nuxt UI Dashboard instalado
 - ✅ Nuxt 4.2.1 y Nuxt UI 4.2.0
 - ✅ Pinia para state management
-- ✅ Composables `useApi` y `useAuth`
-- ✅ Store de autenticación
-- ✅ Middleware de protección de rutas
-- ✅ Plugin de inicialización de auth
-- ✅ Configuración de API base
+- ✅ Gestor de paquetes: **pnpm**
+- ✅ TypeScript configurado
+- ✅ ESLint para código limpio
+
+### 2. **Sistema de Autenticación Completo**
+- ✅ `composables/useApi.ts` - Cliente HTTP con manejo automático de tokens JWT
+- ✅ `composables/useAuth.ts` - Métodos de login, logout, checkAuth
+- ✅ `stores/auth.ts` - Store de Pinia para gestión de token y usuario
+- ✅ `middleware/auth.ts` - Protección de rutas privadas
+- ✅ `plugins/auth.client.ts` - Inicialización automática desde localStorage
+
+### 3. **Layout y Navegación**
+- ✅ Sidebar con navegación adaptada para Balconcito:
+  - Dashboard
+  - Cierres de Turno
+  - Gastos
+  - Reembolsos
+  - Cuentas
+  - Configuración
+- ✅ Sidebar colapsible y responsivo
+- ✅ Búsqueda global
+- ✅ Menú de usuario con logout
+
+### 4. **Configuración**
+- ✅ `nuxt.config.ts` con Pinia y runtimeConfig
+- ✅ `.env` para API base
+- ✅ `app.vue` adaptado para Balconcito (título, descripción, idioma español)
+- ✅ `app.config.ts` con color verde primary
 
 ## 📋 Por Implementar
 
-Las siguientes páginas y componentes necesitan ser creados basándose en el template:
+### Páginas a Crear
 
-### Páginas del Dashboard
-
-1. **Dashboard Principal** (`/dashboard`)
-   - Métricas en tiempo real
-   - Saldos de cuentas
+1. **Dashboard Principal** (`app/pages/index.vue`)
+   - Reemplazar el actual con:
+   - Métricas en tiempo real (cards)
+   - Saldos de cuentas (Mercado Pago, Bóveda, Caja Chica)
    - Gráficas de ingresos/gastos
    - Alertas de reembolsos pendientes
 
-2. **Cierres de Turno** (`/dashboard/turn-closures`)
-   - Lista de cierres con filtros
-   - Formulario para nuevo cierre
-   - Vista de detalle
+2. **Cierres de Turno** (`app/pages/turn-closures/`)
+   - `index.vue` - Lista de cierres con filtros y `UTable`
+   - `new.vue` - Formulario para nuevo cierre con `UForm` + Zod
+   - `[id].vue` - Vista de detalle del cierre
 
-3. **Gastos** (`/dashboard/expenses`)
-   - Lista de gastos con filtros
-   - Formulario para nuevo gasto
-   - Categorización automática
+3. **Gastos** (`app/pages/expenses/`)
+   - `index.vue` - Lista de gastos con filtros por categoría, fecha
+   - `new.vue` - Formulario con 17 categorías y 6 fuentes de pago
+   - `[id].vue` - Vista de detalle del gasto
 
-4. **Reembolsos** (`/dashboard/reimbursements`)
-   - Gastos pendientes por persona
-   - Creación de reembolsos
-   - Historial
+4. **Reembolsos** (`app/pages/reimbursements/`)
+   - `index.vue` - Vista de pendientes por persona (Daniel/Raúl) + historial
+   - Modal para crear reembolso
 
-5. **Cuentas** (`/dashboard/accounts`)
-   - Visualización de saldos
-   - Ajuste manual de balances
+5. **Cuentas** (`app/pages/accounts.vue`)
+   - Cards de saldos con badges
+   - Modal para ajuste manual de saldos
 
 ### Componentes a Crear
 
-- `DashboardHeader.vue` - Header del dashboard con navegación
-- `MetricCard.vue` - Card para mostrar métricas
-- `AccountCard.vue` - Card para cuentas
-- `ExpenseForm.vue` - Formulario de gastos
-- `TurnClosureForm.vue` - Formulario de cierres
+- `MetricCard.vue` - Card para métricas del dashboard
+- `AccountCard.vue` - Card para cuentas con badge de tipo
+- `ExpenseForm.vue` - Formulario reutilizable de gastos
+- `TurnClosureForm.vue` - Formulario de cierres de turno
+- `ReimbursementModal.vue` - Modal para crear reembolsos
+- `StatsChart.vue` - Gráfica usando Unovis
 
-## 🎨 Configuración de UI
+## 🎨 Personalización de UI
 
-El proyecto usa Nuxt UI con configuración personalizada. Para personalizar colores y tema:
+El proyecto usa Nuxt UI con el color **verde** como primario (Balconcito).
+
+### Configuración de colores
 
 ```ts
 // app/app.config.ts
@@ -154,30 +192,90 @@ export default defineAppConfig({
   ui: {
     colors: {
       primary: 'green',  // Color principal de Balconcito
-      neutral: 'slate'
+      neutral: 'slate'   // Color neutral para fondos
     }
   }
 })
 ```
 
-## 🔐 Autenticación
+### Componentes de Nuxt UI disponibles
 
-El sistema de autenticación está configurado con:
+El template incluye componentes profesionales de Nuxt UI 4.2.0:
 
-1. **Store de Pinia** (`stores/auth.ts`)
-   - Gestión de token JWT
-   - Información del usuario
-   - Persistencia en localStorage
+#### Dashboard
+- `UDashboardGroup` - Contenedor principal del dashboard
+- `UDashboardSidebar` - Sidebar con navegación
+- `UDashboardSearch` - Búsqueda global
+- `UDashboardToolbar` - Toolbar para páginas
 
-2. **Composable useAuth** (`composables/useAuth.ts`)
-   - Métodos: `login()`, `logout()`, `checkAuth()`
-   - Computed properties: `user`, `isAuthenticated`
+#### Formularios
+- `UForm` - Formularios con validación Zod
+- `UFormGroup` - Grupo de campos
+- `UInput`, `UTextarea`, `USelect`, `UCheckbox`, `URadio`
 
-3. **Middleware** (`middleware/auth.ts`)
-   - Protección de rutas privadas
-   - Redirección automática
+#### Datos
+- `UTable` - Tablas con sorting, paginación y selección
+- `UCard` - Cards con slots personalizables
+- `UBadge` - Badges de estado
+- `UChip` - Chips para tags
 
-### Uso en páginas
+#### Navegación
+- `UNavigationMenu` - Menú de navegación (usado en sidebar)
+- `UTabs` - Pestañas
+- `UBreadcrumb` - Migas de pan
+
+#### Feedback
+- `UToast` - Notificaciones toast (ya configurado)
+- `UAlert` - Alertas
+- `UModal` - Modales
+- `UDropdown` - Dropdowns
+- `USlideover` - Panel deslizable
+
+[Ver documentación completa de Nuxt UI](https://ui.nuxt.com/components)
+
+## 🔐 Sistema de Autenticación
+
+### Store de Pinia (`stores/auth.ts`)
+
+```ts
+const authStore = useAuthStore()
+
+// State
+authStore.token       // JWT token
+authStore.user        // Usuario actual
+
+// Getters
+authStore.isAuthenticated  // boolean
+
+// Actions
+authStore.setToken(token)
+authStore.setUser(user)
+authStore.logout()
+authStore.initializeAuth() // Carga token desde localStorage
+```
+
+### Composable useAuth (`composables/useAuth.ts`)
+
+```ts
+const { login, logout, checkAuth, user, isAuthenticated } = useAuth()
+
+// Login
+await login('daniel@balconcito.com', 'password123')
+
+// Logout
+logout() // Limpia token y redirige a /login
+
+// Check auth
+const isValid = await checkAuth() // Valida token con backend
+
+// Reactive data
+user.value           // Usuario actual
+isAuthenticated.value // boolean
+```
+
+### Middleware (`middleware/auth.ts`)
+
+Para proteger rutas:
 
 ```vue
 <script setup lang="ts">
@@ -185,27 +283,19 @@ definePageMeta({
   middleware: ['auth'],
   requiresAuth: true
 })
-
-const { user, logout } = useAuth()
 </script>
 ```
 
-## 🌐 Conexión con Backend
+### Composable useApi (`composables/useApi.ts`)
 
-Configurar la URL del backend en `.env`:
-
-```bash
-NUXT_PUBLIC_API_BASE=http://localhost:3000/api/v1
-```
-
-### Uso del composable useApi
+Para hacer llamadas a la API:
 
 ```vue
 <script setup lang="ts">
 const api = useApi()
 
 // GET
-const data = await api.get('/accounts')
+const accounts = await api.get('/accounts')
 
 // POST
 const result = await api.post('/expenses', {
@@ -221,44 +311,46 @@ await api.delete('/expenses/1')
 </script>
 ```
 
-## 📖 Componentes de Nuxt UI
+## 🌐 Conexión con Backend
 
-El proyecto incluye acceso completo a los componentes de Nuxt UI 4.2.0:
+Configurar la URL del backend en `.env`:
 
-### Formularios
-- `UForm` - Formularios con validación Zod
-- `UFormGroup` - Grupo de campos
-- `UInput`, `UTextarea`, `USelect`, `UCheckbox`, `URadio`
+```bash
+NUXT_PUBLIC_API_BASE=http://localhost:3000/api/v1
+```
 
-### Datos
-- `UTable` - Tablas con sorting y paginación
-- `UCard` - Cards con slots personalizables
-- `UBadge` - Badges de estado
+El composable `useApi` incluye automáticamente:
+- Header `Authorization: Bearer {token}`
+- Content-Type: application/json
+- Manejo de error 401 (logout automático)
 
-### Navegación
-- `UNavigationMenu` - Menú de navegación
-- `UHeader` - Header con responsive
-- `UTabs` - Pestañas
+## 📊 Visualización de Datos
 
-### Feedback
-- `UToast` - Notificaciones toast
-- `UAlert` - Alertas
-- `UModal` - Modales
-- `UDropdown` - Dropdowns
+El template incluye **Unovis** para gráficas:
 
-### Layout
-- `UMain` - Contenedor principal
-- `UPageCard` - Card para páginas
-- `USeparator` - Separadores
+```vue
+<script setup lang="ts">
+import { Line, Area, Axis, XYContainer } from '@unovis/vue'
 
-[Ver documentación completa de componentes](https://ui.nuxt.com/components)
+const data = ref([...])  // Tus datos
+</script>
+
+<template>
+  <XYContainer :data="data" :height="300">
+    <Area :x="(d) => d.date" :y="(d) => d.value" />
+    <Line :x="(d) => d.date" :y="(d) => d.value" />
+    <Axis type="x" :tick-format="formatDate" />
+    <Axis type="y" />
+  </XYContainer>
+</template>
+```
 
 ## 🚀 Deployment
 
 ### Vercel (Recomendado)
 
 1. Conectar repositorio en Vercel
-2. Configurar variables de entorno
+2. Configurar variable de entorno: `NUXT_PUBLIC_API_BASE`
 3. Deploy automático
 
 ### Otras opciones
@@ -267,33 +359,45 @@ El proyecto incluye acceso completo a los componentes de Nuxt UI 4.2.0:
 - **Railway**
 - **DigitalOcean App Platform**
 
+## 🧪 Testing
+
+```bash
+# Ejecutar tests (cuando se implementen)
+pnpm test
+
+# Coverage
+pnpm test:coverage
+```
+
 ## 📝 Próximos Pasos
 
 1. ✅ Configurar el template base con Nuxt UI 4.2.0
-2. ✅ Configurar autenticación
-3. ⏳ Crear layout de dashboard
-4. ⏳ Implementar página de dashboard principal
-5. ⏳ Crear páginas de cierres de turno
-6. ⏳ Crear páginas de gastos
-7. ⏳ Crear páginas de reembolsos
-8. ⏳ Crear páginas de cuentas
-9. ⏳ Agregar gráficas (Chart.js)
-10. ⏳ Testing con Vitest
-11. ⏳ Deploy a producción
+2. ✅ Configurar autenticación completa
+3. ✅ Adaptar layout con navegación de Balconcito
+4. ⏳ Crear página de login con `UAuthForm`
+5. ⏳ Implementar dashboard principal con métricas
+6. ⏳ Crear páginas de cierres de turno
+7. ⏳ Crear páginas de gastos
+8. ⏳ Crear páginas de reembolsos
+9. ⏳ Crear página de cuentas
+10. ⏳ Agregar gráficas con Unovis
+11. ⏳ Testing con Vitest
+12. ⏳ Deploy a producción
 
 ## 📚 Documentación de Referencia
 
 - [Nuxt 4 Docs](https://nuxt.com/docs)
 - [Nuxt UI 4 Docs](https://ui.nuxt.com/)
+- [Nuxt UI Dashboard Template](https://github.com/nuxt-ui-templates/dashboard)
 - [Vue 3 Docs](https://vuejs.org/)
 - [Pinia Docs](https://pinia.vuejs.org/)
-- [VueUse Docs](https://vueuse.org/)
+- [Unovis Docs](https://unovis.dev/)
 
 ## 🐛 Troubleshooting
 
 ### El frontend no se conecta al backend
 
-1. Verificar que el backend esté corriendo
+1. Verificar que el backend esté corriendo en `http://localhost:3000`
 2. Verificar la URL en `.env`
 3. Revisar configuración CORS en el backend
 
@@ -308,13 +412,18 @@ El proyecto incluye acceso completo a los componentes de Nuxt UI 4.2.0:
 ```bash
 # Limpiar y reinstalar
 rm -rf node_modules .nuxt
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
+
+### Peer dependency warnings
+
+Los warnings de peer dependencies de magicast son normales y no afectan el funcionamiento.
 
 ---
 
-**Versión:** 2.0  
+**Versión:** 3.0  
 **Fecha:** Noviembre 2024  
-**Template:** Nuxt UI SaaS  
-**Stack:** Nuxt 4.2.1 + Nuxt UI 4.2.0
+**Template:** Nuxt UI Dashboard  
+**Stack:** Nuxt 4.2.1 + Nuxt UI 4.2.0  
+**Gestor de paquetes:** pnpm

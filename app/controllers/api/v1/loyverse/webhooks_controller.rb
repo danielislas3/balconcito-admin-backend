@@ -2,15 +2,21 @@ module Api
   module V1
     module Loyverse
       class WebhooksController < ApplicationController
+        # Webhooks vienen de Loyverse, no tienen JWT
+        skip_before_action :authenticate_user!, only: [:create]
         skip_before_action :verify_authenticity_token, only: [:create]
 
         # POST /api/v1/loyverse/webhooks
         def create
+          # Leer payload una sola vez
+          payload_body = request.body.read
+          payload_json = JSON.parse(payload_body) rescue {}
+
           # Guardar evento
           event = LoyverseWebhookEvent.create!(
-            event_id: webhook_params[:event_id],
-            event_type: webhook_params[:event_type],
-            payload: request.body.read,
+            event_id: payload_json['event_id'],
+            event_type: payload_json['event_type'],
+            payload: payload_json,
             signature: request.headers['X-Loyverse-Webhook-Signature']
           )
 
@@ -20,6 +26,7 @@ module Api
           head :ok
         rescue => e
           Rails.logger.error("Error procesando webhook de Loyverse: #{e.message}")
+          Rails.logger.error(e.backtrace.join("\n"))
           head :unprocessable_entity
         end
 
@@ -39,12 +46,6 @@ module Api
         end
 
         private
-
-        def webhook_params
-          JSON.parse(request.body.read).with_indifferent_access
-        rescue JSON::ParserError
-          {}
-        end
 
         def process_webhook(event)
           return unless event.supported?
@@ -70,8 +71,9 @@ module Api
           client = ::Loyverse::Client.new
           receipt_data = client.get_receipt(receipt_id)
 
-          # Create LoyverseReceipt
-          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['id']) do |r|
+          # Create/Update LoyverseReceipt (solo guardar, NO crear TurnClosure)
+          # Los TurnClosures se crean desde SHIFTS, no desde receipts individuales
+          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['receipt_number']) do |r|
             r.receipt_number = receipt_data['receipt_number']
             r.receipt_type = receipt_data['receipt_type']
             r.total_money = receipt_data['total_money']
@@ -81,12 +83,8 @@ module Api
             r.synced_at = Time.current
           end
 
-          # Create TurnClosure
-          unless loyverse_receipt.converted?
-            ::Loyverse::ReceiptMapper.new(loyverse_receipt).create_turn_closure
-          end
-
           Rails.logger.info("✅ Webhook RECEIPT_CREATED procesado: #{receipt_id}")
+          Rails.logger.info("   Receipt guardado, TurnClosure se creará cuando se cierre el shift")
         end
 
         def process_receipt_updated(event)

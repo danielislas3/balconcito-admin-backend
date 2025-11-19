@@ -8,7 +8,6 @@ definePageMeta({
 
 const { login } = useAuth()
 const router = useRouter()
-const toast = useToast()
 
 const loading = ref(false)
 
@@ -29,18 +28,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
   try {
     await login(event.data.email, event.data.password)
-    toast.add({
-      title: '¡Bienvenido!',
-      description: 'Has iniciado sesión correctamente',
-      color: 'green'
-    })
+    // Las notificaciones ya se muestran en el composable useAuth
     router.push('/')
   } catch (error: any) {
-    toast.add({
-      title: 'Error de autenticación',
-      description: error.data?.message || 'Email o contraseña incorrectos',
-      color: 'red'
-    })
+    // El error y notificación ya se manejan en el composable useAuth
   } finally {
     loading.value = false
   }

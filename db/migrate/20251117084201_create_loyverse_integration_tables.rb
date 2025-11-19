@@ -37,8 +37,7 @@ class CreateLoyverseIntegrationTables < ActiveRecord::Migration[8.1]
     end
 
     # Tabla para configuración de Loyverse
-    create_table :loyverse_configs, id: false do |t|
-      t.primary_key :id, default: -> { "1" } # Solo un registro
+    create_table :loyverse_configs do |t|
       t.text :api_token_encrypted
       t.text :webhook_secret_encrypted
       t.jsonb :payment_type_mappings, default: {}, null: false

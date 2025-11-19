@@ -13,9 +13,6 @@
 #
 
 class LoyverseConfig < ApplicationRecord
-  # Solo debe haber un registro de configuración
-  validates :id, inclusion: { in: [1] }
-
   # Encriptación de tokens (requiere rails credentials o attr_encrypted gem)
   # Por ahora usamos campos de texto, en producción usar encriptación
   attribute :api_token, :string
@@ -23,7 +20,7 @@ class LoyverseConfig < ApplicationRecord
 
   # Obtener la instancia única de configuración
   def self.instance
-    first_or_create!(id: 1)
+    first_or_create!
   end
 
   # Configurar API token
@@ -32,7 +29,8 @@ class LoyverseConfig < ApplicationRecord
   end
 
   def api_token
-    api_token_encrypted # TODO: Desencriptar en producción
+    # Prioridad: ENV > Base de datos
+    ENV['LOYVERSE_API_TOKEN'].presence || api_token_encrypted
   end
 
   # Configurar webhook secret

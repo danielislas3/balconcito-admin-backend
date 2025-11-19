@@ -1,8 +1,46 @@
 # 🚀 Setup del Backend - Balconcito ERP
 
-## Error 401 en Login - Solución
+## Error 401 en Login - Solución Rápida
 
-Si estás recibiendo un error 401 al intentar hacer login, es porque la base de datos no tiene usuarios creados o las gems no están instaladas.
+Si estás recibiendo un error 401 al intentar hacer login, usa este script para crear/actualizar el usuario:
+
+```bash
+cd backend
+bundle exec rails runner create_test_user.rb
+```
+
+Este script:
+- ✅ Crea o actualiza el usuario Daniel
+- ✅ Establece la contraseña a `password123`
+- ✅ No borra otros datos
+
+**Alternativa si `bundle exec` no funciona:**
+
+```bash
+# Opción 1: Desde bin/rails
+./bin/rails runner create_test_user.rb
+
+# Opción 2: Ejecutar todos los seeds
+./bin/rails db:seed
+
+# Opción 3: Desde Rails console
+./bin/rails console
+# Luego ejecuta:
+user = User.find_or_initialize_by(email: 'daniel@balconcito.com')
+user.name = 'Daniel'
+user.role = 'admin'
+user.password = 'password123'
+user.password_confirmation = 'password123'
+user.save!
+exit
+```
+
+## Credenciales de Login (después de ejecutar el script)
+
+**Email:** `daniel@balconcito.com`
+**Password:** `password123`
+
+---
 
 ## Pasos para Configurar el Backend
 

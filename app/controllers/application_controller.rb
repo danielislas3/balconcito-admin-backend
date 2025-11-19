@@ -46,7 +46,8 @@ class ApplicationController < ActionController::API
   end
 
   def decode_jwt(token)
-    decoded = JWT.decode(token, Rails.application.credentials.secret_key_base, true, { algorithm: 'HS256' })
+    secret = ENV.fetch('JWT_SECRET_KEY') { Rails.application.secret_key_base }
+    decoded = JWT.decode(token, secret, true, { algorithm: 'HS256' })
     HashWithIndifferentAccess.new(decoded[0])
   end
 

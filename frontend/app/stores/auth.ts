@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', {
     setToken(token: string) {
       console.log('💾 [AuthStore] Setting token:', token ? `${token.substring(0, 30)}...` : 'null')
       this.token = token
-      if (process.client) {
+      if (typeof window !== 'undefined') {
         localStorage.setItem('auth_token', token)
         console.log('💾 [AuthStore] Token saved to localStorage')
       }
@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
     setUser(user: User) {
       console.log('👤 [AuthStore] Setting user:', user?.name || 'null')
       this.user = user
-      if (process.client) {
+      if (typeof window !== 'undefined') {
         localStorage.setItem('auth_user', JSON.stringify(user))
         console.log('👤 [AuthStore] User saved to localStorage')
       }
@@ -50,28 +50,39 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
+      console.log('🚪 [AuthStore] Logging out')
       this.token = null
       this.user = null
-      if (process.client) {
+      if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token')
         localStorage.removeItem('auth_user')
+        console.log('🚪 [AuthStore] Removed from localStorage')
       }
     },
 
     initializeAuth() {
-      if (process.client) {
+      if (typeof window !== 'undefined') {
+        console.log('🔄 [AuthStore] Initializing auth from localStorage')
         const token = localStorage.getItem('auth_token')
         const userStr = localStorage.getItem('auth_user')
+
+        console.log('🔄 [AuthStore] Found in localStorage:', {
+          token: token ? `${token.substring(0, 30)}...` : 'null',
+          user: userStr ? 'present' : 'null'
+        })
 
         if (token && userStr) {
           try {
             const user = JSON.parse(userStr)
             this.token = token
             this.user = user
+            console.log('🔄 [AuthStore] ✅ Auth initialized successfully:', user.name)
           } catch (error) {
-            console.error('Error parsing user from localStorage:', error)
+            console.error('🔄 [AuthStore] ❌ Error parsing user from localStorage:', error)
             this.logout()
           }
+        } else {
+          console.log('🔄 [AuthStore] No auth data found in localStorage')
         }
       }
     }

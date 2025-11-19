@@ -145,7 +145,7 @@ namespace :loyverse do
     Rake::Task['loyverse:sync_payment_types'].invoke
     puts "\n" + ("=" * 60) + "\n\n"
 
-    start_date = 1.month.ago.to_date
+    start_date = 3.months.ago.to_date
     end_date = Date.today
 
     Rake::Task['loyverse:sync_receipts'].invoke(start_date, end_date)

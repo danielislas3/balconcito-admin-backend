@@ -31,6 +31,7 @@ module Loyverse
       {
         closure_number: generate_closure_number,
         closure_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
+        closed_by: 'Loyverse',
 
         # Ingresos por tipo de pago
         cash_collected: calculate_cash_income,
@@ -39,34 +40,37 @@ module Loyverse
 
         # Totales
         total_income: loyverse_receipt.total_money,
+        theoretical_cash: calculate_cash_income,
+        payments_withdrawals: 0.0,
+
+        # Usuario por defecto
+        user_id: default_user&.id || User.first&.id,
+
+        # Validación
+        validation_data: {},
 
         # Metadata
-        notes: "Importado automáticamente desde Loyverse (Receipt ##{loyverse_receipt.receipt_number})",
-
-        # Cuentas por defecto (se pueden ajustar después)
-        cash_destination_id: default_cash_account&.id,
-        transfer_destination_id: default_mercadopago_account&.id,
-        card_destination_id: default_mercadopago_account&.id
+        notes: "Importado automáticamente desde Loyverse (Receipt ##{loyverse_receipt.receipt_number})"
       }
     end
 
     def calculate_cash_income
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CASH' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| p['type'] == 'CASH' }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def calculate_card_income
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CARD' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| ['CARD', 'NONINTEGRATEDCARD'].include?(p['type']) }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def calculate_transfer_income
-      # CUSTOM generalmente son transferencias/QR en Loyverse
+      # OTHER generalmente son transferencias/QR en Loyverse
       loyverse_receipt.payments
-        .select { |p| p.dig('payment_type', 'type') == 'CUSTOM' }
-        .sum { |p| p['money'].to_f }
+        .select { |p| ['OTHER', 'CUSTOM'].include?(p['type']) }
+        .sum { |p| p['money_amount'].to_f }
     end
 
     def generate_closure_number
@@ -76,12 +80,9 @@ module Loyverse
       "LOY-#{date_str}-#{sequence.to_s.rjust(3, '0')}"
     end
 
-    def default_cash_account
-      Account.find_by(account_type: 'vault') || Account.first
-    end
-
-    def default_mercadopago_account
-      Account.find_by(account_type: 'mercadopago') || Account.first
+    def default_user
+      # Buscar usuario de sistema o el primero disponible
+      User.find_by(email: 'sistema@balconcito.com') || User.first
     end
   end
 end

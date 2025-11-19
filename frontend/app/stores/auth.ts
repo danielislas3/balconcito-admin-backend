@@ -26,20 +26,25 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     setToken(token: string) {
+      console.log('💾 [AuthStore] Setting token:', token ? `${token.substring(0, 30)}...` : 'null')
       this.token = token
       if (process.client) {
         localStorage.setItem('auth_token', token)
+        console.log('💾 [AuthStore] Token saved to localStorage')
       }
     },
 
     setUser(user: User) {
+      console.log('👤 [AuthStore] Setting user:', user?.name || 'null')
       this.user = user
       if (process.client) {
         localStorage.setItem('auth_user', JSON.stringify(user))
+        console.log('👤 [AuthStore] User saved to localStorage')
       }
     },
 
     setAuth(token: string, user: User) {
+      console.log('🔐 [AuthStore] setAuth called with:', { token: token ? 'present' : 'missing', user: user?.name })
       this.setToken(token)
       this.setUser(user)
     },

@@ -1,69 +1,82 @@
 <script setup lang="ts">
-import { sub } from 'date-fns'
-import type { DropdownMenuItem } from '@nuxt/ui'
-import type { Period, Range } from '~/types'
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
+})
 
 const { isNotificationsSlideoverOpen } = useDashboard()
 
-const items = [[{
-  label: 'New mail',
-  icon: 'i-lucide-send',
-  to: '/inbox'
-}, {
-  label: 'New customer',
-  icon: 'i-lucide-user-plus',
-  to: '/customers'
-}]] satisfies DropdownMenuItem[][]
-
-const range = shallowRef<Range>({
-  start: sub(new Date(), { days: 14 }),
-  end: new Date()
-})
-const period = ref<Period>('daily')
+const period = ref('month')
+const periodOptions = [
+  { label: 'Hoy', value: 'day' },
+  { label: 'Esta Semana', value: 'week' },
+  { label: 'Este Mes', value: 'month' }
+]
 </script>
 
 <template>
-  <UDashboardPanel id="home">
+  <UDashboardPanel id="dashboard">
     <template #header>
-      <UDashboardNavbar title="Home" :ui="{ right: 'gap-3' }">
+      <UDashboardNavbar title="Dashboard" :ui="{ right: 'gap-3' }">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
 
         <template #right>
-          <UTooltip text="Notifications" :shortcuts="['N']">
+          <UTooltip text="Notificaciones" :shortcuts="['N']">
             <UButton
               color="neutral"
               variant="ghost"
               square
               @click="isNotificationsSlideoverOpen = true"
             >
-              <UChip color="error" inset>
-                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
-              </UChip>
+              <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
             </UButton>
           </UTooltip>
 
-          <UDropdownMenu :items="items">
-            <UButton icon="i-lucide-plus" size="md" class="rounded-full" />
-          </UDropdownMenu>
+          <UButton
+            label="Nuevo Cierre"
+            icon="i-lucide-plus"
+            size="md"
+            to="/turn-closures/new"
+            class="hidden lg:inline-flex"
+          />
         </template>
       </UDashboardNavbar>
 
       <UDashboardToolbar>
         <template #left>
-          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
-          <HomeDateRangePicker v-model="range" class="-ms-1" />
+          <USelect
+            v-model="period"
+            :options="periodOptions"
+            size="md"
+            variant="subtle"
+            class="w-40"
+          />
+        </template>
 
-          <HomePeriodSelect v-model="period" :range="range" />
+        <template #right>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Sistema de administración Balconcito
+          </p>
         </template>
       </UDashboardToolbar>
     </template>
 
     <template #body>
-      <HomeStats :period="period" :range="range" />
-      <HomeChart :period="period" :range="range" />
-      <HomeSales :period="period" :range="range" />
+      <div class="space-y-8">
+        <!-- Alertas de reembolsos pendientes -->
+        <DashboardReimbursementsAlert />
+
+        <!-- Saldos de cuentas -->
+        <DashboardAccountsCards />
+
+        <!-- Métricas del período -->
+        <DashboardMetricsCards :period="period" />
+
+        <!-- Gráfica de ingresos/gastos (pendiente) -->
+        <!-- <DashboardChart :period="period" /> -->
+      </div>
     </template>
   </UDashboardPanel>
 </template>

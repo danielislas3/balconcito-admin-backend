@@ -7,11 +7,27 @@ definePageMeta({
 const { isNotificationsSlideoverOpen } = useDashboard()
 
 const period = ref('month')
+const customDateRange = ref(false)
+const dateFrom = ref('')
+const dateTo = ref('')
+
 const periodOptions = [
   { label: 'Hoy', value: 'day' },
   { label: 'Esta Semana', value: 'week' },
-  { label: 'Este Mes', value: 'month' }
+  { label: 'Este Mes', value: 'month' },
+  { label: 'Personalizado', value: 'custom' }
 ]
+
+const currentPeriod = computed(() => {
+  if (period.value === 'custom') {
+    return customDateRange.value ? `${dateFrom.value} - ${dateTo.value}` : 'Selecciona rango'
+  }
+  return periodOptions.find(p => p.value === period.value)?.label || ''
+})
+
+watch(period, (newPeriod) => {
+  customDateRange.value = newPeriod === 'custom'
+})
 </script>
 
 <template>
@@ -51,14 +67,34 @@ const periodOptions = [
             :options="periodOptions"
             size="md"
             variant="subtle"
-            class="w-40"
+            class="w-48"
           />
+
+          <div v-if="customDateRange" class="flex items-center gap-2">
+            <UInput
+              v-model="dateFrom"
+              type="date"
+              size="md"
+              placeholder="Desde"
+              class="w-40"
+            />
+            <span class="text-gray-400">→</span>
+            <UInput
+              v-model="dateTo"
+              type="date"
+              size="md"
+              placeholder="Hasta"
+              class="w-40"
+            />
+          </div>
         </template>
 
         <template #right>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Sistema de administración Balconcito
-          </p>
+          <div class="flex items-center gap-3">
+            <UBadge color="green" variant="subtle" size="lg">
+              {{ currentPeriod }}
+            </UBadge>
+          </div>
         </template>
       </UDashboardToolbar>
     </template>
@@ -74,8 +110,8 @@ const periodOptions = [
         <!-- Métricas del período -->
         <DashboardMetricsCards :period="period" />
 
-        <!-- Gráfica de ingresos/gastos (pendiente) -->
-        <!-- <DashboardChart :period="period" /> -->
+        <!-- Desglose de gastos -->
+        <DashboardExpenseBreakdown :period="period" />
       </div>
     </template>
   </UDashboardPanel>

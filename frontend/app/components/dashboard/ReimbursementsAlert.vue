@@ -41,19 +41,43 @@ onMounted(() => {
       :title="`Reembolsos Pendientes: $${formatCurrency(totalPending)}`"
       :actions="[{
         label: 'Ver Reembolsos',
-        to: '/reimbursements'
+        to: '/reimbursements',
+        icon: 'i-lucide-arrow-right'
       }]"
     >
       <template #description>
-        <div class="mt-2 space-y-1">
-          <div v-if="pendingReimbursements.daniel?.total_amount > 0" class="flex justify-between text-sm">
-            <span>Daniel:</span>
-            <span class="font-semibold">${{ formatCurrency(pendingReimbursements.daniel.total_amount) }}</span>
+        <div class="mt-2 space-y-2">
+          <div v-if="pendingReimbursements.daniel?.total_amount > 0" class="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+            <div class="flex justify-between items-center text-sm">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-user" class="size-4" />
+                <span class="font-medium">Daniel:</span>
+              </div>
+              <div class="text-right">
+                <span class="font-bold">${{ formatCurrency(pendingReimbursements.daniel.total_amount) }}</span>
+                <span class="text-xs text-gray-500 ml-2">
+                  ({{ pendingReimbursements.daniel.expenses?.length || 0 }} {{ pendingReimbursements.daniel.expenses?.length === 1 ? 'gasto' : 'gastos' }})
+                </span>
+              </div>
+            </div>
           </div>
-          <div v-if="pendingReimbursements.raul?.total_amount > 0" class="flex justify-between text-sm">
-            <span>Raúl:</span>
-            <span class="font-semibold">${{ formatCurrency(pendingReimbursements.raul.total_amount) }}</span>
+          <div v-if="pendingReimbursements.raul?.total_amount > 0" class="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+            <div class="flex justify-between items-center text-sm">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-user" class="size-4" />
+                <span class="font-medium">Raúl:</span>
+              </div>
+              <div class="text-right">
+                <span class="font-bold">${{ formatCurrency(pendingReimbursements.raul.total_amount) }}</span>
+                <span class="text-xs text-gray-500 ml-2">
+                  ({{ pendingReimbursements.raul.expenses?.length || 0 }} {{ pendingReimbursements.raul.expenses?.length === 1 ? 'gasto' : 'gastos' }})
+                </span>
+              </div>
+            </div>
           </div>
+          <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+            Gastos realizados con tarjetas personales que requieren reembolso
+          </p>
         </div>
       </template>
     </UAlert>

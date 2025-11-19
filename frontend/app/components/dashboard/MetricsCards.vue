@@ -83,7 +83,12 @@ onMounted(() => {
       <!-- Ingresos Totales -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Ingresos Totales</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Ingresos Totales</h3>
+            <UTooltip text="Todo el dinero que entró por ventas en el período seleccionado">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UIcon name="i-lucide-trending-up" class="size-5 text-green-500" />
         </div>
         <p class="text-3xl font-bold text-green-600">${{ formatCurrency(summary?.income?.total || 0) }}</p>
@@ -106,7 +111,12 @@ onMounted(() => {
       <!-- Gastos Totales -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Gastos Totales</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Gastos Totales</h3>
+            <UTooltip text="Todo lo que gastaste en el período (insumos, nómina, servicios, etc.)">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UIcon name="i-lucide-trending-down" class="size-5 text-red-500" />
         </div>
         <p class="text-3xl font-bold text-red-600">${{ formatCurrency(summary?.expenses?.total || 0) }}</p>
@@ -129,7 +139,12 @@ onMounted(() => {
       <!-- Utilidad Neta -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Utilidad Neta</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Utilidad Neta</h3>
+            <UTooltip text="Tu ganancia real después de pagar TODO (Ingresos - Gastos)">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UIcon
             :name="summary?.balance >= 0 ? 'i-lucide-circle-check' : 'i-lucide-circle-x'"
             :class="summary?.balance >= 0 ? 'text-green-500' : 'text-red-500'"
@@ -144,13 +159,21 @@ onMounted(() => {
             <span>Margen Neto:</span>
             <span class="font-medium">{{ formatPercentage(profitability?.metrics?.net_margin?.value || 0) }}%</span>
           </div>
+          <p class="mt-1 text-gray-400">
+            De cada peso, {{ formatPercentage(profitability?.metrics?.net_margin?.value || 0) }}¢ son ganancia
+          </p>
         </div>
       </UCard>
 
       <!-- COGS % -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">COGS %</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">COGS %</h3>
+            <UTooltip text="Cuánto te cuestan los productos que vendes (cerveza, comida, hielo, etc.) como % de tus ventas. Ideal: 25-35%">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UBadge
             :color="getCogsStatus(profitability?.metrics?.cogs_percentage?.value || 0).color"
             variant="subtle"
@@ -162,31 +185,56 @@ onMounted(() => {
           {{ formatPercentage(profitability?.metrics?.cogs_percentage?.value || 0) }}%
         </p>
         <div class="mt-3 text-xs text-gray-500">
-          <p>Porcentaje del costo de productos vendidos</p>
+          <div class="flex justify-between">
+            <span>Total COGS:</span>
+            <span class="font-medium">${{ formatCurrency(profitability?.metrics?.cogs_percentage?.amount || 0) }}</span>
+          </div>
+          <p class="mt-1 text-gray-400">
+            Por cada peso vendido, gastas {{ formatPercentage(profitability?.metrics?.cogs_percentage?.value || 0) }}¢ en insumos
+          </p>
         </div>
       </UCard>
 
       <!-- Punto de Equilibrio -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Punto de Equilibrio</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Punto de Equilibrio</h3>
+            <UTooltip text="Lo mínimo que necesitas vender para NO perder dinero (ni ganar ni perder)">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UIcon name="i-lucide-target" class="size-5 text-blue-500" />
         </div>
         <p class="text-3xl font-bold text-blue-600">
           ${{ formatCurrency(breakEven?.metrics?.break_even_point?.value || 0) }}
         </p>
         <div class="mt-3 text-xs text-gray-500">
-          <div class="flex justify-between">
+          <div class="flex justify-between mb-1">
             <span>Ventas actuales:</span>
             <span class="font-medium">${{ formatCurrency(breakEven?.metrics?.current_sales || 0) }}</span>
           </div>
+          <div v-if="breakEven?.metrics?.safety_margin" class="flex justify-between">
+            <span>Margen de seguridad:</span>
+            <span class="font-medium text-green-600">
+              +${{ formatCurrency(breakEven.metrics.safety_margin.value) }}
+            </span>
+          </div>
+          <p class="mt-1 text-gray-400">
+            Llegas al punto de equilibrio en {{ breakEven?.metrics?.days_to_break_even || 0 }} días
+          </p>
         </div>
       </UCard>
 
       <!-- Cash Runway -->
       <UCard>
         <div class="flex items-center justify-between mb-3">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Cash Runway</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Cash Runway</h3>
+            <UTooltip text="Días que podrías operar si tus ventas bajaran a cero mañana. Es tu colchón de seguridad">
+              <UIcon name="i-lucide-info" class="size-4 text-gray-400 cursor-help" />
+            </UTooltip>
+          </div>
           <UBadge
             :color="getCashRunwayStatus(cashFlow?.metrics?.cash_runway_days?.value || 0).color"
             variant="subtle"
@@ -198,10 +246,17 @@ onMounted(() => {
           {{ cashFlow?.metrics?.cash_runway_days?.value || 0 }} días
         </p>
         <div class="mt-3 text-xs text-gray-500">
-          <div class="flex justify-between">
-            <span>Gasto diario:</span>
+          <div class="flex justify-between mb-1">
+            <span>Gasto diario promedio:</span>
             <span class="font-medium">${{ formatCurrency(cashFlow?.metrics?.average_daily_expenses || 0) }}</span>
           </div>
+          <div class="flex justify-between">
+            <span>Efectivo disponible:</span>
+            <span class="font-medium">${{ formatCurrency(cashFlow?.cash_accounts?.total_cash || 0) }}</span>
+          </div>
+          <p class="mt-1 text-gray-400">
+            {{ cashFlow?.explanation || 'Con el efectivo actual y gastos promedio' }}
+          </p>
         </div>
       </UCard>
     </div>

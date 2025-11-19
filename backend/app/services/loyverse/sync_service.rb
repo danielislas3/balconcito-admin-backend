@@ -8,12 +8,57 @@ module Loyverse
       @end_date = end_date&.to_date || Date.today
     end
 
+    # Sincronizar shifts (turnos de caja) en un rango de fechas
+    # RECOMENDADO: Usa esto para crear TurnClosures correctamente
+    def sync_shifts
+      Rails.logger.info("🔄 Iniciando sincronización de Loyverse shifts: #{start_date} a #{end_date}")
+
+      shifts_synced = 0
+      turn_closures_created = 0
+      errors = []
+
+      all_shifts = fetch_all_shifts
+
+      all_shifts.each do |shift_data|
+        begin
+          shift_id = shift_data['id']
+
+          # Usar ShiftProcessor para procesar cada shift
+          result = Loyverse::ShiftProcessor.new(shift_id).process
+
+          if result[:success]
+            shifts_synced += 1
+            turn_closures_created += 1 if result[:turn_closure]
+            Rails.logger.info("✅ Shift procesado: #{shift_id}")
+          else
+            errors << { shift: shift_id, error: result[:error] }
+          end
+        rescue => e
+          errors << { shift: shift_data['id'], error: e.message }
+          Rails.logger.error("❌ Error procesando shift #{shift_data['id']}: #{e.message}")
+        end
+      end
+
+      # Actualizar última sincronización
+      LoyverseConfig.instance.update_last_sync!
+
+      {
+        success: true,
+        shifts_synced: shifts_synced,
+        turn_closures_created: turn_closures_created,
+        errors: errors,
+        period: "#{start_date} a #{end_date}"
+      }
+    end
+
     # Sincronizar receipts en un rango de fechas
-    def sync_receipts
+    # NOTA: Solo guarda receipts, NO crea TurnClosures
+    # Para crear TurnClosures usa sync_shifts en su lugar
+    def sync_receipts(create_turn_closures: false)
       Rails.logger.info("🔄 Iniciando sincronización de Loyverse receipts: #{start_date} a #{end_date}")
 
       receipts_synced = 0
-      receipts_created = 0
+      turn_closures_created = 0
       errors = []
 
       all_receipts = fetch_all_receipts
@@ -23,10 +68,11 @@ module Loyverse
           loyverse_receipt = create_or_update_receipt(receipt_data)
           receipts_synced += 1
 
-          # Crear TurnClosure si no existe
-          unless loyverse_receipt.converted?
+          # Solo crear TurnClosure si se solicita explícitamente
+          # NO RECOMENDADO: Usa sync_shifts en su lugar
+          if create_turn_closures && !loyverse_receipt.converted?
             turn_closure = Loyverse::ReceiptMapper.new(loyverse_receipt).create_turn_closure
-            receipts_created += 1
+            turn_closures_created += 1
             Rails.logger.info("✅ TurnClosure creado: #{turn_closure.closure_number}")
           end
         rescue => e
@@ -41,7 +87,7 @@ module Loyverse
       {
         success: true,
         receipts_synced: receipts_synced,
-        turn_closures_created: receipts_created,
+        turn_closures_created: turn_closures_created,
         errors: errors,
         period: "#{start_date} a #{end_date}"
       }
@@ -68,6 +114,46 @@ module Loyverse
     end
 
     private
+
+    def fetch_all_shifts
+      all_shifts = []
+      cursor = nil
+
+      Rails.logger.info("📥 Fetching shifts from Loyverse API...")
+
+      loop do
+        params = build_shifts_params(cursor)
+        response = client.get_shifts(params)
+
+        shifts = response['shifts'] || []
+        all_shifts.concat(shifts)
+
+        cursor = response['cursor']
+        break if cursor.blank? || shifts.empty?
+
+        # Rate limiting: esperar 1 segundo cada 50 requests
+        sleep(1) if all_shifts.count % 50 == 0
+      end
+
+      Rails.logger.info("📥 Fetched #{all_shifts.count} shifts from Loyverse")
+      all_shifts
+    rescue => e
+      Rails.logger.error("❌ Error fetching shifts: #{e.message}")
+      Rails.logger.warn("⚠️  Si la API de Loyverse no soporta GET /shifts con filtros,")
+      Rails.logger.warn("    usa webhooks para recibir shifts en tiempo real")
+      []
+    end
+
+    def build_shifts_params(cursor = nil)
+      params = {
+        closed_at_min: start_date.beginning_of_day.iso8601,
+        closed_at_max: end_date.end_of_day.iso8601,
+        limit: 100 # Ajustar según límite de Loyverse
+      }
+
+      params[:cursor] = cursor if cursor.present?
+      params
+    end
 
     def fetch_all_receipts
       all_receipts = []

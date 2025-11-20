@@ -210,7 +210,7 @@ El template incluye componentes profesionales de Nuxt UI 4.2.0:
 
 #### Formularios
 - `UForm` - Formularios con validación Zod
-- `UFormGroup` - Grupo de campos
+- `UFormField` - Grupo de campos
 - `UInput`, `UTextarea`, `USelect`, `UCheckbox`, `URadio`
 
 #### Datos

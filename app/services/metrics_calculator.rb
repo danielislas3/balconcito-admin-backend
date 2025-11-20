@@ -61,40 +61,38 @@ class MetricsCalculator
     expenses = Expense.by_date_range(@start_date, @end_date)
     total = total_expenses
 
-    categories_data = expenses.group(:category, :cost_type)
-                             .select('category, cost_type, SUM(amount) as total_amount, COUNT(*) as expense_count')
-                             .order('total_amount DESC')
+    # Agrupar por categoría en Ruby (cost_type es un método, no columna)
+    grouped = expenses.group_by(&:category)
 
-    categories_data.map do |data|
-      amount = data.total_amount.to_f
+    grouped.map do |category, category_expenses|
+      amount = category_expenses.sum(&:amount)
       {
-        category: data.category || 'sin_categoria',
-        cost_type: data.cost_type || 'sin_tipo',
+        category: category || 'sin_categoria',
+        cost_type: category_expenses.first&.cost_type || 'sin_tipo',
         amount: amount.round(2),
         percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
-        count: data.expense_count
+        count: category_expenses.count
       }
-    end
+    end.sort_by { |item| -item[:amount] } # Ordenar por monto descendente
   end
 
   # Gastos agrupados por fuente de pago (formato array para frontend)
   def expenses_by_payment_source
-    expenses = Expense.by_date_range(@start_date, @end_date)
+    expenses = Expense.by_date_range(@start_date, @end_date).includes(:payment_method)
     total = total_expenses
 
-    sources_data = expenses.group(:payment_source)
-                          .select('payment_source, SUM(amount) as total_amount, COUNT(*) as expense_count')
-                          .order('total_amount DESC')
+    # Agrupar por payment_method en Ruby
+    grouped = expenses.group_by { |e| e.payment_method&.name || 'Sin método de pago' }
 
-    sources_data.map do |data|
-      amount = data.total_amount.to_f
+    grouped.map do |payment_method_name, method_expenses|
+      amount = method_expenses.sum(&:amount)
       {
-        payment_source: data.payment_source || 'sin_fuente',
+        payment_source: payment_method_name,
         amount: amount.round(2),
         percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
-        count: data.expense_count
+        count: method_expenses.count
       }
-    end
+    end.sort_by { |item| -item[:amount] } # Ordenar por monto descendente
   end
 
   # Top N gastos más altos del período

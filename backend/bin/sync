@@ -1,0 +1,85 @@
+#!/usr/bin/env ruby
+# Script de sincronización con Loyverse para Balconcito ERP
+
+require 'date'
+
+def print_header
+  puts "=" * 60
+  puts "  🍺 BALCONCITO ERP - Sincronización con Loyverse"
+  puts "=" * 60
+  puts
+end
+
+def print_menu
+  puts "Opciones disponibles:"
+  puts
+  puts "  1. Sincronizar payment types"
+  puts "  2. Sincronizar receipts (rango de fechas)"
+  puts "  3. Sincronización completa (mes actual)"
+  puts "  4. Verificar configuración de API"
+  puts "  5. Ver estadísticas"
+  puts "  6. Salir"
+  puts
+  print "Selecciona una opción (1-6): "
+end
+
+def sync_payment_types
+  puts "\n🔄 Ejecutando: bin/rails loyverse:sync_payment_types"
+  system("bin/rails loyverse:sync_payment_types")
+end
+
+def sync_receipts
+  print "\nFecha de inicio (YYYY-MM-DD) [#{Date.today.beginning_of_month}]: "
+  start_date = gets.chomp
+  start_date = Date.today.beginning_of_month.to_s if start_date.empty?
+
+  print "Fecha de fin (YYYY-MM-DD) [#{Date.today}]: "
+  end_date = gets.chomp
+  end_date = Date.today.to_s if end_date.empty?
+
+  puts "\n🔄 Ejecutando: bin/rails loyverse:sync_receipts[#{start_date},#{end_date}]"
+  system("bin/rails loyverse:sync_receipts[#{start_date},#{end_date}]")
+end
+
+def full_sync
+  puts "\n🔄 Ejecutando: bin/rails loyverse:full_sync"
+  system("bin/rails loyverse:full_sync")
+end
+
+def check_config
+  puts "\n🔍 Ejecutando: bin/rails loyverse:check_config"
+  system("bin/rails loyverse:check_config")
+end
+
+def show_stats
+  puts "\n📊 Ejecutando: bin/rails loyverse:stats"
+  system("bin/rails loyverse:stats")
+end
+
+# Main menu loop
+print_header
+
+loop do
+  print_menu
+  choice = gets.chomp
+
+  case choice
+  when '1'
+    sync_payment_types
+  when '2'
+    sync_receipts
+  when '3'
+    full_sync
+  when '4'
+    check_config
+  when '5'
+    show_stats
+  when '6'
+    puts "\n👋 ¡Hasta luego!"
+    exit
+  else
+    puts "\n❌ Opción inválida. Intenta de nuevo."
+  end
+
+  puts "\n" + "-" * 60 + "\n"
+end

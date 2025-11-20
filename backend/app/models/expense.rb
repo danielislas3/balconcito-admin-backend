@@ -26,7 +26,16 @@ class Expense < ApplicationRecord
     # Costos Variables
     maintenance: 'mantenimiento',
     staff_expenses: 'gastos_staff',
-    miscellaneous: 'gastos_varios'
+    miscellaneous: 'gastos_varios',
+
+    # CAPEX (Capital Expenditures) - Inversión inicial
+    equipment: 'equipo',
+    construction_materials: 'materiales',
+    initial_inventory: 'insumos',
+    marketing: 'marketing',
+    office: 'oficina',
+    transportation: 'transporte',
+    others: 'otros'
   }, validate: true
 
   # Validations
@@ -51,6 +60,9 @@ class Expense < ApplicationRecord
       'fixed' # Costos Fijos
     when :maintenance, :staff_expenses, :miscellaneous
       'variable' # Costos Variables
+    when :equipment, :construction_materials, :initial_inventory, :marketing,
+         :office, :transportation, :others
+      'capex' # Capital Expenditures (Inversión inicial)
     end
   end
 

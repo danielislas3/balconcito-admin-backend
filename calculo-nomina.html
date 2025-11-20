@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Nómina - Vue 3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        .primary {
+            color: #3498db;
+        }
+
+        .bg-primary {
+            background-color: #3498db;
+        }
+
+        .border-primary {
+            border-color: #3498db;
+        }
+
+        .hover\:bg-primary:hover {
+            background-color: #3498db;
+        }
+
+        .focus\:border-primary:focus {
+            border-color: #3498db;
+        }
+
+        .text-primary {
+            color: #3498db;
+        }
+
+        .gradient-header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+        }
+
+        .zebra-row:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background-color: #27ae60;
+            color: white;
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.3s ease;
+        }
+
+        .save-indicator.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        input:focus,
+        select:focus {
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-button.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            background-color: #f8fafc;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        .slide-enter-active,
+        .slide-leave-active {
+            transition: all 0.3s ease;
+        }
+
+        .slide-enter-from {
+            transform: translateX(20px);
+            opacity: 0;
+        }
+
+        .slide-leave-to {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <div id="app">
+        <!-- Indicador de guardado -->
+        <div ref="saveIndicator" class="save-indicator">
+            {{ saveMessage }}
+        </div>
+
+        <!-- Header -->
+        <header class="gradient-header text-white py-6 shadow-lg">
+            <div class="container mx-auto px-4">
+                <h1 class="text-3xl font-bold text-center">📊 Calculadora de Nómina Vue 3</h1>
+                <p class="text-center mt-2 text-blue-100">Sistema avanzado para múltiples empleados y semanas</p>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8">
+            <!-- Sistema de Navegación por Pestañas -->
+            <div class="bg-white rounded-xl shadow-md mb-8">
+                <div class="flex border-b border-gray-200">
+                    <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                        :class="['tab-button', 'flex-1', 'px-6', 'py-4', 'text-center', 'font-medium', 'transition-colors', 'border-b-2', 'border-transparent', 'hover:text-blue-600', 'hover:border-blue-300', { 'active': activeTab === tab.id }]">
+                        {{ tab.icon }} {{ tab.name }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- PESTAÑA DE HORARIOS -->
+            <div v-show="activeTab === 'schedules'" class="space-y-8">
+                <!-- Gestión de Empleados y Semanas -->
+                <div class="card bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                        👥 Gestión de Empleados y Semanas
+                    </h2>
+
+                    <div class="grid md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Empleado Activo</label>
+                            <div class="flex gap-2">
+                                <select v-model="currentEmployeeId" @change="onEmployeeChange"
+                                    class="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors">
+                                    <option value="">Seleccionar empleado...</option>
+                                    <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+                                        {{ employee.name }}
+                                    </option>
+                                </select>
+                                <button @click="showAddEmployeeModal = true"
+                                    class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm">
+                                    ➕
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Semana Activa</label>
+                            <div class="flex gap-2">
+                                <select v-model="currentWeekId" @change="onWeekChange" :disabled="!currentEmployee"
+                                    class="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors disabled:bg-gray-100">
+                                    <option value="">Seleccionar semana...</option>
+                                    <option v-for="week in currentEmployeeWeeks" :key="week.id" :value="week.id">
+                                        Semana del {{ formatWeekDisplay(week.startDate) }}
+                                    </option>
+                                </select>
+                                <button @click="createNewWeek" :disabled="!currentEmployee"
+                                    class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm disabled:bg-gray-400">
+                                    📅
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Costo por Turno</label>
+                            <input v-if="currentEmployee" v-model.number="currentEmployee.settings.costPerTurn" @input="onSettingsChange"
+                                type="number" step="0.01"
+                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors">
+                            <input v-else disabled type="number" step="0.01"
+                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors disabled:bg-gray-100">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Moneda</label>
+                            <select v-if="currentEmployee" v-model="currentEmployee.settings.currency" @change="onSettingsChange"
+                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors">
+                                <option value="MXN">💰 Pesos Mexicanos (MXN)</option>
+                                <option value="USD">💵 Dólares (USD)</option>
+                                <option value="EUR">💶 Euros (EUR)</option>
+                            </select>
+                            <select v-else disabled
+                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors disabled:bg-gray-100">
+                                <option value="MXN">💰 Pesos Mexicanos (MXN)</option>
+                                <option value="USD">💵 Dólares (USD)</option>
+                                <option value="EUR">💶 Euros (EUR)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button @click="deleteCurrentEmployee" :disabled="!currentEmployee || employees.length <= 1"
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm disabled:bg-gray-400">
+                            🗑️ Eliminar Empleado
+                        </button>
+                        <button @click="saveCurrentWeek" :disabled="!currentWeek"
+                            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm disabled:bg-gray-400">
+                            💾 Guardar Semana
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de Horarios -->
+                <div class="card bg-white rounded-xl shadow-md" v-if="currentEmployee && currentWeek">
+                    <div class="p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                            📅 Horarios - {{ currentEmployee.name }}
+                        </h2>
+                        <div class="text-sm text-gray-600 mb-4">
+                            Semana del {{ formatWeekDisplay(currentWeek.startDate) }}
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="px-4 py-3 text-left font-bold text-gray-700 border-b">Día</th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Hora Entrada
+                                        </th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Hora Salida
+                                        </th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Horas</th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Turnos</th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Extra</th>
+                                        <th class="px-4 py-3 text-center font-bold text-gray-700 border-b">Pago</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(day, index) in days" :key="day.key"
+                                        :class="['zebra-row', 'border-b', 'hover:bg-blue-50']">
+                                        <td class="px-4 py-3 font-bold text-gray-700 bg-gray-100">
+                                            {{ day.emoji }} {{ day.name }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div class="flex gap-1 justify-center items-center">
+                                                <select v-model="currentWeek.schedule[day.key].entryHour"
+                                                    @change="calculateDay(day.key)"
+                                                    class="px-2 py-2 border-2 border-gray-300 rounded-lg text-center font-medium bg-white focus:border-primary focus:outline-none hover:border-blue-300 transition-colors text-sm">
+                                                    <option value="">--</option>
+                                                    <option v-for="hour in hours" :key="hour" :value="hour">{{ hour }}
+                                                    </option>
+                                                </select>
+                                                <span class="font-bold text-gray-500">:</span>
+                                                <select v-model="currentWeek.schedule[day.key].entryMinute"
+                                                    @change="calculateDay(day.key)"
+                                                    class="px-2 py-2 border-2 border-gray-300 rounded-lg text-center font-medium bg-white focus:border-primary focus:outline-none hover:border-blue-300 transition-colors text-sm">
+                                                    <option value="">--</option>
+                                                    <option value="00">00</option>
+                                                    <option value="15">15</option>
+                                                    <option value="30">30</option>
+                                                    <option value="45">45</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div class="flex gap-1 justify-center items-center">
+                                                <select v-model="currentWeek.schedule[day.key].exitHour"
+                                                    @change="calculateDay(day.key)"
+                                                    class="px-2 py-2 border-2 border-gray-300 rounded-lg text-center font-medium bg-white focus:border-primary focus:outline-none hover:border-blue-300 transition-colors text-sm">
+                                                    <option value="">--</option>
+                                                    <option v-for="hour in hours" :key="hour" :value="hour">{{ hour }}
+                                                    </option>
+                                                </select>
+                                                <span class="font-bold text-gray-500">:</span>
+                                                <select v-model="currentWeek.schedule[day.key].exitMinute"
+                                                    @change="calculateDay(day.key)"
+                                                    class="px-2 py-2 border-2 border-gray-300 rounded-lg text-center font-medium bg-white focus:border-primary focus:outline-none hover:border-blue-300 transition-colors text-sm">
+                                                    <option value="">--</option>
+                                                    <option value="00">00</option>
+                                                    <option value="15">15</option>
+                                                    <option value="30">30</option>
+                                                    <option value="45">45</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-medium">
+                                            {{ currentWeek.schedule[day.key].hoursWorked.toFixed(1) }} hrs
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-medium text-green-600">
+                                            {{ currentWeek.schedule[day.key].completeShifts }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-medium text-orange-500">
+                                            {{ currentWeek.schedule[day.key].extraHours.toFixed(1) }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-bold text-blue-600">
+                                            {{ formatCurrency(currentWeek.schedule[day.key].dailyPay) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen Semanal -->
+                <div class="grid md:grid-cols-4 gap-6" v-if="currentWeek">
+                    <div class="card bg-white rounded-xl shadow-md p-6 text-center">
+                        <div class="text-3xl font-bold text-primary mb-2">{{ weekTotals.totalHours.toFixed(1) }}</div>
+                        <div class="text-sm text-gray-600">Total Horas</div>
+                    </div>
+                    <div class="card bg-white rounded-xl shadow-md p-6 text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-2">{{ weekTotals.totalShifts }}</div>
+                        <div class="text-sm text-gray-600">Turnos Completos</div>
+                    </div>
+                    <div class="card bg-white rounded-xl shadow-md p-6 text-center">
+                        <div class="text-3xl font-bold text-orange-500 mb-2">{{ weekTotals.totalExtraHours.toFixed(1) }}
+                        </div>
+                        <div class="text-sm text-gray-600">Horas Extra</div>
+                    </div>
+                    <div class="card bg-white rounded-xl shadow-md p-6 text-center">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">{{ formatCurrency(weekTotals.totalPay) }}
+                        </div>
+                        <div class="text-sm text-gray-600">Pago Total</div>
+                    </div>
+                </div>
+
+                <!-- Campo de Propinas Semanales -->
+                <div v-if="currentWeek" class="card bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        💰 Propinas de la Semana
+                    </h3>
+                    <div class="grid md:grid-cols-3 gap-4 items-end">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Total de Propinas</label>
+                            <input 
+                                v-model.number="currentWeek.weeklyTips" 
+                                @input="saveSystemData"
+                                type="number" 
+                                step="0.01"
+                                min="0"
+                                placeholder="0.00"
+                                class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors">
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 mb-1">Pago Base</div>
+                            <div class="text-lg font-bold text-gray-800">{{ formatCurrency(weekTotals.totalBasePay) }}</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 mb-1">Total Final</div>
+                            <div class="text-2xl font-bold text-green-600">{{ formatCurrency(weekTotals.totalBasePay + (currentWeek.weeklyTips || 0)) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado vacío -->
+                <div v-if="!currentEmployee" class="text-center py-12">
+                    <div class="text-6xl mb-4">👥</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">No hay empleado seleccionado</h3>
+                    <p class="text-gray-600 mb-4">Selecciona un empleado existente o crea uno nuevo para comenzar.</p>
+                    <button @click="showAddEmployeeModal = true"
+                        class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                        ➕ Agregar Primer Empleado
+                    </button>
+                </div>
+
+                <div v-else-if="!currentWeek" class="text-center py-12">
+                    <div class="text-6xl mb-4">📅</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">No hay semana seleccionada</h3>
+                    <p class="text-gray-600 mb-4">Selecciona una semana existente o crea una nueva para {{
+                        currentEmployee.name }}.</p>
+                    <button @click="createNewWeek"
+                        class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                        📅 Crear Nueva Semana
+                    </button>
+                </div>
+            </div>
+
+            <!-- PESTAÑA DE REPORTES -->
+            <div v-show="activeTab === 'reports'" class="space-y-8">
+                <div class="card bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        📊 Reportes por Empleado
+                    </h2>
+
+                    <div v-if="employees.length === 0" class="text-center py-8">
+                        <div class="text-6xl mb-4">📊</div>
+                        <p class="text-gray-500">No hay empleados registrados para mostrar reportes.</p>
+                    </div>
+
+                    <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div v-for="employee in employees" :key="employee.id"
+                            class="card bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">👤 {{ employee.name }}</h3>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Semanas registradas:</span>
+                                    <span class="font-medium">{{ employee.weeks.length }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Total horas:</span>
+                                    <span class="font-medium">{{ calculateEmployeeStats(employee).totalHours.toFixed(1)
+                                        }} hrs</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Total turnos:</span>
+                                    <span class="font-medium">{{ calculateEmployeeStats(employee).totalShifts }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Promedio semanal:</span>
+                                    <span class="font-medium">{{
+                                        calculateEmployeeStats(employee).avgHoursPerWeek.toFixed(1) }} hrs</span>
+                                </div>
+                                <div class="flex justify-between border-t pt-2 mt-3">
+                                    <span class="text-gray-800 font-bold">Pago total:</span>
+                                    <span class="font-bold text-blue-600">{{
+                                        formatCurrency(calculateEmployeeStats(employee).totalPay,
+                                        employee.settings.currency) }}</span>
+                                </div>
+                            </div>
+                            <button @click="exportEmployeeData(employee)"
+                                class="w-full mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                                📥 Exportar Datos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4" v-if="employees.length > 0">
+                    <button @click="exportAllEmployees"
+                        class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                        📊 Exportar Reporte General
+                    </button>
+                </div>
+            </div>
+
+            <!-- PESTAÑA DE CONFIGURACIÓN -->
+            <div v-show="activeTab === 'settings'" class="space-y-8">
+                <div class="card bg-white rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        ⚙️ Configuración del Sistema
+                    </h2>
+
+                    <div class="space-y-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-blue-800 mb-2">💾 Gestión de Datos</h3>
+                            <div class="flex flex-wrap gap-3">
+                                <button @click="exportSystemData"
+                                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                                    📤 Exportar Sistema Completo
+                                </button>
+                                <button @click="clearAllSystemData"
+                                    class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm">
+                                    🗑️ Limpiar Todo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-green-800 mb-2">⚡ Estado del Sistema</h3>
+                            <div class="text-sm text-green-700 space-y-1">
+                                <p><strong>Auto-guardado:</strong> Activo (cada 30 segundos)</p>
+                                <p><strong>Versión:</strong> Vue 3 Multi-Empleado</p>
+                                <p><strong>Almacenamiento:</strong> localStorage del navegador</p>
+                                <p><strong>Empleados registrados:</strong> {{ employees.length }}</p>
+                                <p><strong>Total de semanas:</strong> {{ totalWeeks }}</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-yellow-800 mb-2">⚠️ Información Importante</h3>
+                            <div class="text-sm text-yellow-700 space-y-2">
+                                <p>• Los datos se guardan automáticamente en el navegador</p>
+                                <p>• Exporta regularmente para crear respaldos</p>
+                                <p>• Al limpiar el navegador se perderán todos los datos</p>
+                                <p>• La importación reemplazará todos los datos actuales</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- MODAL AGREGAR EMPLEADO -->
+        <div v-if="showAddEmployeeModal" class="modal show">
+            <div class="modal-content">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">👤 Agregar Nuevo Empleado</h3>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Empleado</label>
+                    <input v-model="newEmployeeName" @keyup.enter="addNewEmployee" placeholder="Ej. María García"
+                        class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none hover:border-blue-300 transition-colors">
+                    <div v-if="employeeNameError" class="text-red-500 text-sm mt-1">{{ employeeNameError }}</div>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button @click="closeAddEmployeeModal"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button @click="addNewEmployee"
+                        class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                        Agregar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue
+
+        createApp({
+            setup() {
+                // === CONSTANTES ===
+                const HOURS_PER_SHIFT = 9;
+                const currencySymbols = { MXN: '$', USD: '$', EUR: '€' };
+
+                const days = [
+                    { key: 'lunes', name: 'Lunes', emoji: '📅' },
+                    { key: 'martes', name: 'Martes', emoji: '📊' },
+                    { key: 'miercoles', name: 'Miércoles', emoji: '📈' },
+                    { key: 'jueves', name: 'Jueves', emoji: '📋' },
+                    { key: 'viernes', name: 'Viernes', emoji: '📌' },
+                    { key: 'sabado', name: 'Sábado', emoji: '🎯' },
+                    { key: 'domingo', name: 'Domingo', emoji: '✨' }
+                ];
+
+                const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+
+                const tabs = [
+                    { id: 'schedules', name: 'Horarios', icon: '📅' },
+                    { id: 'reports', name: 'Reportes', icon: '📊' },
+                    { id: 'settings', name: 'Configuración', icon: '⚙️' }
+                ];
+
+                // === ESTADO REACTIVO ===
+                const activeTab = ref('schedules');
+                const employees = ref([]);
+                const currentEmployeeId = ref('');
+                const currentWeekId = ref('');
+
+                // Modales
+                const showAddEmployeeModal = ref(false);
+                const newEmployeeName = ref('');
+                const employeeNameError = ref('');
+
+                // Guardado
+                const saveMessage = ref('✓ Guardado automáticamente');
+                const saveIndicator = ref(null);
+
+                let autoSaveTimer = null;
+
+                // === COMPUTED PROPERTIES ===
+                const currentEmployee = computed(() => {
+                    return employees.value.find(emp => emp.id === currentEmployeeId.value) || null;
+                });
+
+                const currentEmployeeWeeks = computed(() => {
+                    return currentEmployee.value?.weeks || [];
+                });
+
+                const currentWeek = computed(() => {
+                    if (!currentEmployee.value || !currentWeekId.value) return null;
+                    return currentEmployee.value.weeks.find(week => week.id === currentWeekId.value) || null;
+                });
+
+                const weekTotals = computed(() => {
+                    if (!currentWeek.value) return { totalHours: 0, totalShifts: 0, totalExtraHours: 0, totalBasePay: 0, totalPay: 0 };
+
+                    const baseTotals = days.reduce((totals, day) => {
+                        const dayData = currentWeek.value.schedule[day.key];
+                        totals.totalHours += dayData.hoursWorked;
+                        totals.totalShifts += dayData.completeShifts;
+                        totals.totalExtraHours += dayData.extraHours;
+                        totals.totalBasePay += dayData.dailyPay;
+                        return totals;
+                    }, { totalHours: 0, totalShifts: 0, totalExtraHours: 0, totalBasePay: 0 });
+
+                    const weeklyTips = currentWeek.value.weeklyTips || 0;
+                    baseTotals.totalPay = baseTotals.totalBasePay + weeklyTips;
+
+                    return baseTotals;
+                });
+
+                const totalWeeks = computed(() => {
+                    return employees.value.reduce((total, emp) => total + emp.weeks.length, 0);
+                });
+
+                // === FUNCIONES AUXILIARES ===
+                const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+                const formatCurrency = (amount, currency = null) => {
+                    const curr = currency || currentEmployee.value?.settings?.currency || 'MXN';
+                    const symbol = currencySymbols[curr] || '$';
+                    return `${symbol}${amount.toFixed(2)}`;
+                };
+
+                const formatWeekDisplay = (dateStr) => {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                };
+
+                const getNextMonday = () => {
+                    const today = new Date();
+                    const day = today.getDay();
+                    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+                    return new Date(today.setDate(diff));
+                };
+
+                const createEmptySchedule = () => {
+                    const schedule = {};
+                    days.forEach(day => {
+                        schedule[day.key] = {
+                            entryHour: '',
+                            entryMinute: '',
+                            exitHour: '',
+                            exitMinute: '',
+                            hoursWorked: 0,
+                            completeShifts: 0,
+                            extraHours: 0,
+                            dailyPay: 0
+                        };
+                    });
+                    return schedule;
+                };
+
+                const showSaveIndicator = (message = '✓ Guardado automáticamente') => {
+                    saveMessage.value = message;
+                    if (saveIndicator.value) {
+                        saveIndicator.value.classList.add('show');
+                        setTimeout(() => {
+                            if (saveIndicator.value) {
+                                saveIndicator.value.classList.remove('show');
+                            }
+                        }, 3000);
+                    }
+                };
+
+                // === GESTIÓN DE EMPLEADOS ===
+                const addNewEmployee = () => {
+                    const name = newEmployeeName.value.trim();
+                    employeeNameError.value = '';
+
+                    if (!name) {
+                        employeeNameError.value = 'El nombre del empleado es requerido';
+                        return;
+                    }
+
+                    if (employees.value.some(emp => emp.name === name)) {
+                        employeeNameError.value = 'Este empleado ya existe';
+                        return;
+                    }
+
+                    const newEmployee = {
+                        id: generateId(),
+                        name,
+                        weeks: [],
+                        settings: {
+                            costPerTurn: 450,
+                            currency: 'MXN'
+                        }
+                    };
+
+                    employees.value.push(newEmployee);
+                    currentEmployeeId.value = newEmployee.id;
+                    currentWeekId.value = '';
+
+                    closeAddEmployeeModal();
+                    saveSystemData();
+                    showSaveIndicator('Empleado agregado exitosamente');
+                };
+
+                const deleteCurrentEmployee = () => {
+                    if (!currentEmployee.value || employees.value.length <= 1) {
+                        alert('No puedes eliminar el último empleado del sistema');
+                        return;
+                    }
+
+                    const name = currentEmployee.value.name;
+                    if (confirm(`¿Estás seguro de que quieres eliminar a ${name}?\n\nSe perderán todos sus horarios y no se puede deshacer.`)) {
+                        const index = employees.value.findIndex(emp => emp.id === currentEmployeeId.value);
+                        employees.value.splice(index, 1);
+
+                        currentEmployeeId.value = employees.value.length > 0 ? employees.value[0].id : '';
+                        currentWeekId.value = '';
+
+                        saveSystemData();
+                        showSaveIndicator('Empleado eliminado');
+                    }
+                };
+
+                const onEmployeeChange = () => {
+                    currentWeekId.value = '';
+                    saveSystemData();
+                };
+
+                const closeAddEmployeeModal = () => {
+                    showAddEmployeeModal.value = false;
+                    newEmployeeName.value = '';
+                    employeeNameError.value = '';
+                };
+
+                // === GESTIÓN DE SEMANAS ===
+                const createNewWeek = () => {
+                    if (!currentEmployee.value) {
+                        alert('Primero selecciona o crea un empleado');
+                        return;
+                    }
+
+                    const monday = getNextMonday();
+                    const weekKey = monday.toISOString().split('T')[0];
+
+                    if (currentEmployee.value.weeks.some(week => week.startDate === weekKey)) {
+                        alert('Esta semana ya existe para este empleado');
+                        return;
+                    }
+
+                    const newWeek = {
+                        id: generateId(),
+                        startDate: weekKey,
+                        schedule: createEmptySchedule(),
+                        weeklyTips: 0,
+                        saved: false
+                    };
+
+                    currentEmployee.value.weeks.push(newWeek);
+                    currentWeekId.value = newWeek.id;
+
+                    saveSystemData();
+                    showSaveIndicator('Nueva semana creada');
+                };
+
+                const saveCurrentWeek = () => {
+                    if (!currentWeek.value) return;
+
+                    currentWeek.value.saved = true;
+                    saveSystemData();
+                    showSaveIndicator('Semana guardada exitosamente');
+                };
+
+                const onWeekChange = () => {
+                    saveSystemData();
+                };
+
+                const onSettingsChange = () => {
+                    if (!currentEmployee.value || !currentWeek.value) return;
+
+                    // Recalcular todos los días con la nueva configuración
+                    days.forEach(day => calculateDay(day.key));
+                    saveSystemData();
+                };
+
+                // === CÁLCULOS DE HORARIOS ===
+                const calculateDay = (dayKey) => {
+                    if (!currentWeek.value) return;
+
+                    const dayData = currentWeek.value.schedule[dayKey];
+                    const { entryHour, entryMinute, exitHour, exitMinute } = dayData;
+
+                    if (!entryHour || !entryMinute || !exitHour || !exitMinute) {
+                        dayData.hoursWorked = 0;
+                        dayData.completeShifts = 0;
+                        dayData.extraHours = 0;
+                        dayData.dailyPay = 0;
+                        return;
+                    }
+
+                    const entryTime = parseInt(entryHour) + parseInt(entryMinute) / 60;
+                    let exitTime = parseInt(exitHour) + parseInt(exitMinute) / 60;
+
+                    // Manejar turnos nocturnos
+                    if (exitTime <= entryTime) {
+                        exitTime += 24;
+                    }
+
+                    const hoursWorked = exitTime - entryTime;
+                    const completeShifts = Math.floor(hoursWorked / HOURS_PER_SHIFT);
+                    const extraHours = hoursWorked % HOURS_PER_SHIFT;
+                    const costPerShift = currentEmployee.value?.settings?.costPerTurn || 450;
+                    const dailyPay = (completeShifts * costPerShift) + (extraHours / HOURS_PER_SHIFT * costPerShift);
+
+                    dayData.hoursWorked = hoursWorked;
+                    dayData.completeShifts = completeShifts;
+                    dayData.extraHours = extraHours;
+                    dayData.dailyPay = dailyPay;
+
+                    saveSystemData();
+                };
+
+                // === REPORTES ===
+                const calculateEmployeeStats = (employee) => {
+                    let totalWeeks = employee.weeks.length;
+                    let totalHours = 0;
+                    let totalShifts = 0;
+                    let totalPay = 0;
+
+                    employee.weeks.forEach(week => {
+                        days.forEach(day => {
+                            const dayData = week.schedule[day.key];
+                            totalHours += dayData.hoursWorked || 0;
+                            totalShifts += dayData.completeShifts || 0;
+                            totalPay += dayData.dailyPay || 0;
+                        });
+                    });
+
+                    return {
+                        totalWeeks,
+                        totalHours,
+                        totalShifts,
+                        totalPay,
+                        avgHoursPerWeek: totalWeeks > 0 ? (totalHours / totalWeeks) : 0
+                    };
+                };
+
+                // === EXPORTACIÓN E IMPORTACIÓN ===
+                const exportSystemData = () => {
+                    const systemData = {
+                        employees: employees.value,
+                        version: 'Vue 3.0',
+                        exportDate: new Date().toISOString()
+                    };
+
+                    const dataStr = JSON.stringify(systemData, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `sistema_nomina_vue_${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showSaveIndicator('Sistema exportado exitosamente');
+                };
+
+                const exportAllEmployees = () => {
+                    let exportText = `=== REPORTE GENERAL DE NÓMINAS ===\n`;
+                    exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n`;
+                    exportText += `Total de empleados: ${employees.value.length}\n\n`;
+
+                    employees.value.forEach(employee => {
+                        const stats = calculateEmployeeStats(employee);
+                        const currency = currencySymbols[employee.settings.currency] || '$';
+
+                        exportText += `=== ${employee.name.toUpperCase()} ===\n`;
+                        exportText += `Semanas registradas: ${stats.totalWeeks}\n`;
+                        exportText += `Total de horas: ${stats.totalHours.toFixed(1)}\n`;
+                        exportText += `Total de turnos: ${stats.totalShifts}\n`;
+                        exportText += `Promedio horas/semana: ${stats.avgHoursPerWeek.toFixed(1)}\n`;
+                        exportText += `PAGO TOTAL: ${currency}${stats.totalPay.toFixed(2)}\n\n`;
+                    });
+
+                    const blob = new Blob([exportText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `reporte_general_nominas_${new Date().toISOString().split('T')[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showSaveIndicator('Reporte general exportado');
+                };
+
+                const exportEmployeeData = (employee) => {
+                    const stats = calculateEmployeeStats(employee);
+                    const currency = currencySymbols[employee.settings.currency] || '$';
+
+                    let exportText = `=== REPORTE DE NÓMINA - ${employee.name.toUpperCase()} ===\n`;
+                    exportText += `Costo por turno: ${currency}${employee.settings.costPerTurn}\n`;
+                    exportText += `Moneda: ${employee.settings.currency}\n`;
+                    exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n\n`;
+
+                    exportText += `=== RESUMEN GENERAL ===\n`;
+                    exportText += `Semanas registradas: ${stats.totalWeeks}\n`;
+                    exportText += `Total de horas: ${stats.totalHours.toFixed(1)}\n`;
+                    exportText += `Total de turnos: ${stats.totalShifts}\n`;
+                    exportText += `Promedio horas/semana: ${stats.avgHoursPerWeek.toFixed(1)}\n`;
+                    exportText += `PAGO TOTAL: ${currency}${stats.totalPay.toFixed(2)}\n\n`;
+
+                    exportText += `=== DETALLE POR SEMANAS ===\n`;
+                    employee.weeks.sort((a, b) => new Date(b.startDate) - new Date(a.startDate)).forEach(week => {
+                        exportText += `\nSemana del ${formatWeekDisplay(week.startDate)}:\n`;
+
+                        days.forEach(day => {
+                            const dayData = week.schedule[day.key];
+                            if (dayData.hoursWorked > 0) {
+                                const entry = dayData.entryHour && dayData.entryMinute ?
+                                    `${dayData.entryHour}:${dayData.entryMinute}` : '--:--';
+                                const exit = dayData.exitHour && dayData.exitMinute ?
+                                    `${dayData.exitHour}:${dayData.exitMinute}` : '--:--';
+
+                                exportText += `  ${day.name}: ${entry} - ${exit} | ${dayData.hoursWorked.toFixed(1)}hrs | ${dayData.completeShifts} turnos | ${currency}${dayData.dailyPay.toFixed(2)}\n`;
+                            }
+                        });
+                    });
+
+                    const blob = new Blob([exportText], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `nomina_${employee.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    showSaveIndicator(`Datos de ${employee.name} exportados`);
+                };
+
+
+                const clearAllSystemData = () => {
+                    if (confirm('¿Estás seguro de que quieres limpiar TODOS los datos del sistema?\n\nEsta acción no se puede deshacer.')) {
+                        if (confirm('Esta es tu última oportunidad. Se eliminarán todos los empleados y horarios.\n\n¿Continuar?')) {
+                            employees.value = [];
+                            currentEmployeeId.value = '';
+                            currentWeekId.value = '';
+
+                            saveSystemData();
+                            showSaveIndicator('Sistema limpiado completamente');
+                        }
+                    }
+                };
+
+                // === PERSISTENCIA ===
+                const saveSystemData = () => {
+                    const systemData = {
+                        employees: employees.value,
+                        currentEmployeeId: currentEmployeeId.value,
+                        currentWeekId: currentWeekId.value,
+                        activeTab: activeTab.value,
+                        version: 'Vue 3.0'
+                    };
+
+                    localStorage.setItem('payrollSystemDataVue', JSON.stringify(systemData));
+                    showSaveIndicator();
+                };
+
+                const loadSystemData = () => {
+                    const saved = localStorage.getItem('payrollSystemDataVue');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            employees.value = data.employees || [];
+                            currentEmployeeId.value = data.currentEmployeeId || '';
+                            currentWeekId.value = data.currentWeekId || '';
+                            activeTab.value = data.activeTab || 'schedules';
+                        } catch (e) {
+                            console.error('Error loading data:', e);
+                            initializeDefaultData();
+                        }
+                    } else {
+                        initializeDefaultData();
+                    }
+                };
+
+                const initializeDefaultData = () => {
+                    const defaultEmployee = {
+                        id: generateId(),
+                        name: 'Juan Pérez',
+                        weeks: [],
+                        settings: {
+                            costPerTurn: 450,
+                            currency: 'MXN'
+                        }
+                    };
+
+                    employees.value = [defaultEmployee];
+                    currentEmployeeId.value = defaultEmployee.id;
+                };
+
+                const setupAutoSave = () => {
+                    if (autoSaveTimer) clearInterval(autoSaveTimer);
+                    autoSaveTimer = setInterval(saveSystemData, 30000);
+                };
+
+                // === LIFECYCLE HOOKS ===
+                onMounted(() => {
+                    loadSystemData();
+                    setupAutoSave();
+                });
+
+                // === WATCHERS ===
+                watch([employees, currentEmployeeId, currentWeekId], saveSystemData, { deep: true });
+
+                return {
+                    // Datos reactivos
+                    activeTab,
+                    employees,
+                    currentEmployeeId,
+                    currentWeekId,
+                    showAddEmployeeModal,
+                    newEmployeeName,
+                    employeeNameError,
+                    saveMessage,
+                    saveIndicator,
+
+                    // Constantes
+                    days,
+                    hours,
+                    tabs,
+
+                    // Computed
+                    currentEmployee,
+                    currentEmployeeWeeks,
+                    currentWeek,
+                    weekTotals,
+                    totalWeeks,
+
+                    // Funciones
+                    formatCurrency,
+                    formatWeekDisplay,
+                    calculateDay,
+                    calculateEmployeeStats,
+                    addNewEmployee,
+                    deleteCurrentEmployee,
+                    onEmployeeChange,
+                    closeAddEmployeeModal,
+                    createNewWeek,
+                    saveCurrentWeek,
+                    onWeekChange,
+                    onSettingsChange,
+                    exportSystemData,
+                    exportAllEmployees,
+                    exportEmployeeData,
+                    clearAllSystemData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

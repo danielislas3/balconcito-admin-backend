@@ -68,6 +68,11 @@ Rails.application.routes.draw do
 
       # Dashboard
       namespace :dashboard do
+        get :summary, to: 'summary#index'
+        get :profitability, to: 'profitability#index'
+        get :break_even, to: 'break_even#index'
+        get :cash_flow, to: 'cash_flow#index'
+        get :expense_breakdown, to: 'expense_breakdown#index'
         get :summary
         get :profitability
         get :break_even

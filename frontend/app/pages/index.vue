@@ -18,11 +18,16 @@ const periodOptions = [
   { label: 'Personalizado', value: 'custom' }
 ]
 
+// Computed para obtener el label actual basado en el value
+const selectedPeriodLabel = computed(() => {
+  return periodOptions.find(p => p.value === period.value)?.label || 'Este Mes'
+})
+
 const currentPeriod = computed(() => {
   if (period.value === 'custom') {
     return customDateRange.value ? `${dateFrom.value} - ${dateTo.value}` : 'Selecciona rango'
   }
-  return periodOptions.find(p => p.value === period.value)?.label || ''
+  return selectedPeriodLabel.value
 })
 
 watch(period, (newPeriod) => {
@@ -62,13 +67,16 @@ watch(period, (newPeriod) => {
 
       <UDashboardToolbar>
         <template #left>
-          <USelect
+          <USelectMenu
             v-model="period"
             :options="periodOptions"
+            value-attribute="value"
             size="md"
-            variant="subtle"
-            class="w-48"
-          />
+          >
+            <template #label>
+              {{ selectedPeriodLabel }}
+            </template>
+          </USelectMenu>
 
           <div v-if="customDateRange" class="flex items-center gap-2">
             <UInput

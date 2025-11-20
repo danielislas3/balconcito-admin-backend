@@ -56,20 +56,45 @@ class MetricsCalculator
            .sum(:amount)
   end
 
-  # Gastos agrupados por categoría
+  # Gastos agrupados por categoría (formato array para frontend)
   def expenses_by_category
-    Expense.by_date_range(@start_date, @end_date)
-           .group(:category)
-           .sum(:amount)
-           .transform_keys { |k| k || 'sin_categoria' }
+    expenses = Expense.by_date_range(@start_date, @end_date)
+    total = total_expenses
+
+    categories_data = expenses.group(:category, :cost_type)
+                             .select('category, cost_type, SUM(amount) as total_amount, COUNT(*) as expense_count')
+                             .order('total_amount DESC')
+
+    categories_data.map do |data|
+      amount = data.total_amount.to_f
+      {
+        category: data.category || 'sin_categoria',
+        cost_type: data.cost_type || 'sin_tipo',
+        amount: amount.round(2),
+        percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
+        count: data.expense_count
+      }
+    end
   end
 
-  # Gastos agrupados por fuente de pago
+  # Gastos agrupados por fuente de pago (formato array para frontend)
   def expenses_by_payment_source
-    Expense.by_date_range(@start_date, @end_date)
-           .group(:payment_source)
-           .sum(:amount)
-           .transform_keys { |k| k || 'sin_fuente' }
+    expenses = Expense.by_date_range(@start_date, @end_date)
+    total = total_expenses
+
+    sources_data = expenses.group(:payment_source)
+                          .select('payment_source, SUM(amount) as total_amount, COUNT(*) as expense_count')
+                          .order('total_amount DESC')
+
+    sources_data.map do |data|
+      amount = data.total_amount.to_f
+      {
+        payment_source: data.payment_source || 'sin_fuente',
+        amount: amount.round(2),
+        percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
+        count: data.expense_count
+      }
+    end
   end
 
   # Top N gastos más altos del período

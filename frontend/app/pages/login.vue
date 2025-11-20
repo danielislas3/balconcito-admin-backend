@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as z from 'zod'
-import type { FormSubmitEvent } from '@nuxt/ui'
+import type { FormSubmitEvent, AuthFormField } from '@nuxt/ui'
 
 definePageMeta({
   layout: false
@@ -9,7 +9,19 @@ definePageMeta({
 const { login } = useAuth()
 const router = useRouter()
 
-const loading = ref(false)
+const fields: AuthFormField[] = [{
+  name: 'email',
+  type: 'email',
+  label: 'Email',
+  placeholder: 'Ingresa tu email',
+  required: true
+}, {
+  name: 'password',
+  label: 'Contraseña',
+  type: 'password',
+  placeholder: 'Ingresa tu contraseña',
+  required: true
+}]
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -18,28 +30,18 @@ const schema = z.object({
 
 type Schema = z.output<typeof schema>
 
-const state = reactive({
-  email: '',
-  password: ''
-})
-
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  loading.value = true
-
   try {
     await login(event.data.email, event.data.password)
-    // Las notificaciones ya se muestran en el composable useAuth
     router.push('/')
   } catch (error: any) {
-    // El error y notificación ya se manejan en el composable useAuth
-  } finally {
-    loading.value = false
+    // El error ya se maneja en el composable useAuth
   }
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen from-green-50 to-green-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <!-- Logo y título -->
       <div class="text-center mb-8">
@@ -53,49 +55,23 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
       <!-- Card de login -->
       <UCard class="shadow-xl">
-        <template #header>
-          <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center">
-            Iniciar Sesión
-          </h2>
-        </template>
+        <UAuthForm
+          :schema="schema"
+          :fields="fields"
+          title="Iniciar Sesión"
+          icon="i-lucide-lock"
+          @submit="onSubmit"
+        >
+          <template #description>
+            Ingresa tus credenciales para acceder al sistema
+          </template>
 
-        <UForm :schema="schema" :state="state" @submit="onSubmit" class="space-y-4">
-          <UFormGroup label="Email" name="email" required>
-            <UInput
-              v-model="state.email"
-              type="email"
-              placeholder="daniel@balconcito.com"
-              size="lg"
-              icon="i-lucide-mail"
-            />
-          </UFormGroup>
-
-          <UFormGroup label="Contraseña" name="password" required>
-            <UInput
-              v-model="state.password"
-              type="password"
-              placeholder="••••••••"
-              size="lg"
-              icon="i-lucide-lock"
-            />
-          </UFormGroup>
-
-          <UButton
-            type="submit"
-            block
-            size="lg"
-            :loading="loading"
-            :disabled="loading"
-          >
-            Ingresar
-          </UButton>
-        </UForm>
-
-        <template #footer>
-          <p class="text-sm text-center text-gray-500 dark:text-gray-400">
-            Sistema exclusivo para el equipo de Balconcito
-          </p>
-        </template>
+          <template #footer>
+            <p class="text-sm text-center text-gray-500 dark:text-gray-400">
+              Sistema exclusivo para el equipo de Balconcito
+            </p>
+          </template>
+        </UAuthForm>
       </UCard>
 
       <!-- Footer -->

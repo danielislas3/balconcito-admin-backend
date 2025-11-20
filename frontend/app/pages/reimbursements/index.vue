@@ -352,18 +352,18 @@ onMounted(() => {
       </template>
 
       <UForm :schema="schema" :state="reimbursementForm" @submit="submitReimbursement" class="space-y-4">
-        <UFormGroup label="Fecha del reembolso" name="reimbursement_date" required>
+        <UFormField label="Fecha del reembolso" name="reimbursement_date" required>
           <UInput v-model="reimbursementForm.reimbursement_date" type="date" />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Cuenta de origen" name="from_account_id" required>
+        <UFormField label="Cuenta de origen" name="from_account_id" required>
           <USelect
             v-model="reimbursementForm.from_account_id"
             :options="accountOptions"
           />
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Monto total">
+        <UFormField label="Monto total">
           <UInput
             :model-value="formatCurrency(reimbursementForm.amount)"
             disabled
@@ -372,11 +372,11 @@ onMounted(() => {
               <span class="text-gray-500">$</span>
             </template>
           </UInput>
-        </UFormGroup>
+        </UFormField>
 
-        <UFormGroup label="Notas (opcional)" name="notes">
+        <UFormField label="Notas (opcional)" name="notes">
           <UTextarea v-model="reimbursementForm.notes" rows="3" />
-        </UFormGroup>
+        </UFormField>
 
         <div class="flex gap-4">
           <UButton type="submit" :loading="submitting" class="flex-1">

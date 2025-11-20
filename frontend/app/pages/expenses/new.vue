@@ -164,16 +164,16 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         <UForm :schema="schema" :state="state" @submit="onSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-6">
             <!-- Fecha del gasto -->
-            <UFormGroup label="Fecha del gasto" name="expense_date" required>
+            <UFormField label="Fecha del gasto" name="expense_date" required>
               <UInput
                 v-model="state.expense_date"
                 type="date"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Monto -->
-            <UFormGroup label="Monto" name="amount" required>
+            <UFormField label="Monto" name="amount" required>
               <UInput
                 v-model.number="state.amount"
                 type="number"
@@ -185,19 +185,19 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
                   <span class="text-gray-500">$</span>
                 </template>
               </UInput>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Categoría -->
-            <UFormGroup label="Categoría" name="category" required>
+            <UFormField label="Categoría" name="category" required>
               <USelect
                 v-model="state.category"
                 :options="categoryOptions"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Fuente de pago -->
-            <UFormGroup label="Fuente de pago" name="payment_source" required>
+            <UFormField label="Fuente de pago" name="payment_source" required>
               <USelect
                 v-model="state.payment_source"
                 :options="paymentSourceOptions"
@@ -208,36 +208,36 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
                   ⚠️ Este gasto requerirá reembolso
                 </span>
               </template>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Proveedor -->
-            <UFormGroup label="Proveedor (opcional)" name="provider">
+            <UFormField label="Proveedor (opcional)" name="provider">
               <UInput
                 v-model="state.provider"
                 placeholder="Central"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- URL de foto de ticket -->
-            <UFormGroup label="URL de foto del ticket (opcional)" name="receipt_photo_url">
+            <UFormField label="URL de foto del ticket (opcional)" name="receipt_photo_url">
               <UInput
                 v-model="state.receipt_photo_url"
                 type="url"
                 placeholder="https://..."
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
 
           <!-- Descripción -->
-          <UFormGroup label="Descripción" name="description" required>
+          <UFormField label="Descripción" name="description" required>
             <UTextarea
               v-model="state.description"
               rows="3"
               placeholder="Cerveza corona 24 botellas"
             />
-          </UFormGroup>
+          </UFormField>
 
           <!-- Alerta si requiere reembolso -->
           <UAlert

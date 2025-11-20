@@ -134,7 +134,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         <UForm :schema="schema" :state="state" @submit="onSubmit" class="space-y-6">
           <div class="grid md:grid-cols-2 gap-6">
             <!-- Número de cierre -->
-            <UFormGroup label="Número de cierre de caja" name="closure_number" required>
+            <UFormField label="Número de cierre de caja" name="closure_number" required>
               <UInput
                 v-model.number="state.closure_number"
                 type="number"
@@ -144,10 +144,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               <template #help>
                 Del ticket de Loyverse
               </template>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Fecha del reporte -->
-            <UFormGroup label="Fecha del reporte" name="report_date" required>
+            <UFormField label="Fecha del reporte" name="report_date" required>
               <UInput
                 v-model="state.report_date"
                 type="date"
@@ -156,19 +156,19 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               <template #help>
                 Cuando abrió el turno
               </template>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Cerrado por -->
-            <UFormGroup label="Cerrado por" name="closed_by" required>
+            <UFormField label="Cerrado por" name="closed_by" required>
               <USelect
                 v-model="state.closed_by"
                 :options="employeeOptions"
                 size="lg"
               />
-            </UFormGroup>
+            </UFormField>
 
             <!-- Cobros en efectivo -->
-            <UFormGroup label="Cobros en efectivo" name="cash_collected" required>
+            <UFormField label="Cobros en efectivo" name="cash_collected" required>
               <UInput
                 v-model.number="state.cash_collected"
                 type="number"
@@ -180,10 +180,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
                   <span class="text-gray-500">$</span>
                 </template>
               </UInput>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Ingresos por transferencia -->
-            <UFormGroup label="Ingresos por transferencia (brutos)" name="transfer_income" required>
+            <UFormField label="Ingresos por transferencia (brutos)" name="transfer_income" required>
               <UInput
                 v-model.number="state.transfer_income"
                 type="number"
@@ -195,10 +195,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
                   <span class="text-gray-500">$</span>
                 </template>
               </UInput>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Ingresos por tarjeta -->
-            <UFormGroup label="Ingresos por tarjeta (brutos)" name="card_income" required>
+            <UFormField label="Ingresos por tarjeta (brutos)" name="card_income" required>
               <UInput
                 v-model.number="state.card_income"
                 type="number"
@@ -210,10 +210,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
                   <span class="text-gray-500">$</span>
                 </template>
               </UInput>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Efectivo teórico -->
-            <UFormGroup label="Efectivo teórico" name="theoretical_cash" required>
+            <UFormField label="Efectivo teórico" name="theoretical_cash" required>
               <UInput
                 v-model.number="state.theoretical_cash"
                 type="number"
@@ -228,10 +228,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               <template #help>
                 Del ticket de Loyverse
               </template>
-            </UFormGroup>
+            </UFormField>
 
             <!-- Pagos/Salidas -->
-            <UFormGroup label="Pagos/Salidas" name="payments_withdrawals" required>
+            <UFormField label="Pagos/Salidas" name="payments_withdrawals" required>
               <UInput
                 v-model.number="state.payments_withdrawals"
                 type="number"
@@ -246,17 +246,17 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               <template #help>
                 Del ticket de Loyverse
               </template>
-            </UFormGroup>
+            </UFormField>
           </div>
 
           <!-- Notas -->
-          <UFormGroup label="Notas (opcional)" name="notes">
+          <UFormField label="Notas (opcional)" name="notes">
             <UTextarea
               v-model="state.notes"
               rows="3"
               placeholder="Observaciones adicionales..."
             />
-          </UFormGroup>
+          </UFormField>
 
           <!-- Resumen calculado -->
           <UCard class="bg-green-50 dark:bg-green-950">

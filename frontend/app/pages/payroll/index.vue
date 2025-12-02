@@ -5,7 +5,8 @@ import { storeToRefs } from 'pinia'
 
 definePageMeta({
   layout: 'default',
-  requiresAuth: false
+  requiresAuth: false,
+  ssr: false  // Deshabilitar SSR porque depende de datos del cliente (localStorage)
 })
 
 const router = useRouter()
@@ -238,18 +239,19 @@ const tabs = computed(() => [
 </script>
 
 <template>
-  <div
-    class="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-emerald-950 overflow-y-auto">
-    <!-- Indicador de guardado flotante -->
-    <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-x-full opacity-0"
-      enter-to-class="translate-x-0 opacity-100" leave-active-class="transition duration-200 ease-in"
-      leave-from-class="translate-x-0 opacity-100" leave-to-class="translate-x-full opacity-0">
-      <div v-if="saveIndicatorVisible"
-        class="fixed top-20 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl shadow-xl shadow-emerald-900/20 backdrop-blur-sm">
-        <UIcon name="i-lucide-check-circle-2" class="size-5 animate-pulse" />
-        <span class="font-medium tracking-wide">{{ saveMessage }}</span>
-      </div>
-    </Transition>
+  <ClientOnly>
+    <div
+      class="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-emerald-950 overflow-y-auto">
+      <!-- Indicador de guardado flotante -->
+      <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-x-full opacity-0"
+        enter-to-class="translate-x-0 opacity-100" leave-active-class="transition duration-200 ease-in"
+        leave-from-class="translate-x-0 opacity-100" leave-to-class="translate-x-full opacity-0">
+        <div v-if="saveIndicatorVisible"
+          class="fixed top-20 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl shadow-xl shadow-emerald-900/20 backdrop-blur-sm">
+          <UIcon name="i-lucide-check-circle-2" class="size-5 animate-pulse" />
+          <span class="font-medium tracking-wide">{{ saveMessage }}</span>
+        </div>
+      </Transition>
 
     <!-- Header con gradiente premium -->
     <div
@@ -379,4 +381,5 @@ const tabs = computed(() => [
       </template>
     </UModal>
   </div>
+  </ClientOnly>
 </template>

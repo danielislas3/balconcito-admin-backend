@@ -382,15 +382,10 @@ export const usePayrollStore = defineStore('payroll', {
 
             // Importar datos
             this.employees = data.employees
-            console.log('[Store] Datos importados:', {
-              employeesCount: this.employees.length,
-              employeeNames: this.employees.map(e => e.name)
-            })
 
             // Si no hay currentEmployeeId o no es válido, seleccionar el primero
             if (!data.currentEmployeeId || !this.employees.find(e => e.id === data.currentEmployeeId)) {
               this.currentEmployeeId = this.employees.length > 0 ? this.employees[0].id : ''
-              console.log('[Store] Auto-seleccionando primer empleado:', this.currentEmployeeId)
             } else {
               this.currentEmployeeId = data.currentEmployeeId
             }
@@ -399,7 +394,6 @@ export const usePayrollStore = defineStore('payroll', {
             this.activeTab = data.activeTab || 'schedules'
 
             this.saveSystemData()
-            console.log('[Store] Importación completada. currentEmployeeId:', this.currentEmployeeId)
             resolve({ success: true })
           } catch (error) {
             resolve({ success: false, error: 'Error al leer el archivo. Verifica que sea un archivo JSON válido.' })
@@ -518,35 +512,25 @@ export const usePayrollStore = defineStore('payroll', {
     loadSystemData(): void {
       if (!import.meta.client) return
 
-      console.log('[Store] loadSystemData - Iniciando...')
       const saved = localStorage.getItem(STORAGE_KEY)
-      console.log('[Store] localStorage data:', saved ? 'EXISTS' : 'NULL')
 
       if (saved) {
         try {
           const data = JSON.parse(saved) as PayrollSystemData
-          console.log('[Store] Parsed data:', {
-            employeesCount: data.employees?.length || 0,
-            currentEmployeeId: data.currentEmployeeId,
-            employeeNames: data.employees?.map(e => e.name) || []
-          })
           this.employees = data.employees || []
           this.currentEmployeeId = data.currentEmployeeId || ''
           this.currentWeekId = data.currentWeekId || ''
           this.activeTab = data.activeTab || 'schedules'
-          console.log('[Store] Data loaded successfully. Employees count:', this.employees.length)
         } catch (e) {
-          console.error('[Store] Error loading data:', e)
+          console.error('Error loading data:', e)
           this.initializeDefaultData()
         }
       } else {
-        console.log('[Store] No saved data found, initializing default data')
         this.initializeDefaultData()
       }
     },
 
     initializeDefaultData(): void {
-      console.log('[Store] initializeDefaultData - Creating default employee')
       const defaultEmployee: Employee = {
         id: this.generateId(),
         name: 'Juan Pérez',
@@ -559,11 +543,6 @@ export const usePayrollStore = defineStore('payroll', {
 
       this.employees = [defaultEmployee]
       this.currentEmployeeId = defaultEmployee.id
-      console.log('[Store] Default employee created:', {
-        id: defaultEmployee.id,
-        name: defaultEmployee.name,
-        employeesCount: this.employees.length
-      })
 
       // Save the default data to localStorage
       this.saveSystemData()

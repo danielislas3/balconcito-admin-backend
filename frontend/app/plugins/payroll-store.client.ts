@@ -16,6 +16,8 @@ export default defineNuxtPlugin(() => {
 
   // Cargar datos desde localStorage al iniciar la aplicación
   if (import.meta.client) {
+    console.log('[Payroll Plugin] Inicializando store...')
     payrollStore.loadSystemData()
+    console.log('[Payroll Plugin] Empleados cargados:', payrollStore.employees.length)
   }
 })

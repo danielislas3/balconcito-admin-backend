@@ -19,12 +19,18 @@ const {
   currentEmployeeWeeks
 } = storeToRefs(payrollStore)
 
-const employeeOptions = computed(() =>
-  employees.value.map(emp => ({
+const employeeOptions = computed(() => {
+  const options = employees.value.map(emp => ({
     label: emp.name,
     value: emp.id
   }))
-)
+  console.log('[EmployeeWeekSelector] employeeOptions computed:', {
+    employeesCount: employees.value.length,
+    optionsCount: options.length,
+    options
+  })
+  return options
+})
 
 const weekOptions = computed(() =>
   currentEmployeeWeeks.value.map(week => ({
@@ -38,6 +44,14 @@ const currencyOptions = [
   { label: 'Dólares (USD)', value: 'USD', icon: 'i-lucide-dollar-sign' },
   { label: 'Euros (EUR)', value: 'EUR', icon: 'i-lucide-euro' }
 ]
+
+onMounted(() => {
+  console.log('[EmployeeWeekSelector] Component mounted:', {
+    employeesCount: employees.value.length,
+    currentEmployeeId: currentEmployeeId.value,
+    employees: employees.value.map(e => ({ id: e.id, name: e.name }))
+  })
+})
 </script>
 
 <template>
@@ -54,8 +68,13 @@ const currencyOptions = [
       <!-- Empleado Activo -->
       <UFormField label="Empleado Activo" required>
         <div class="flex gap-2">
-          <USelectMenu v-model="currentEmployeeId" :options="employeeOptions" placeholder="Seleccionar empleado..."
-            value-attribute="value" @change="payrollStore.onEmployeeChange" class="flex-1" />
+          <select v-model="currentEmployeeId" @change="payrollStore.onEmployeeChange"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+            <option value="" disabled>Seleccionar empleado...</option>
+            <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+              {{ emp.name }}
+            </option>
+          </select>
           <UButton icon="i-lucide-plus" color="success" @click="emit('add-employee')" square />
         </div>
       </UFormField>
@@ -63,9 +82,13 @@ const currencyOptions = [
       <!-- Semana Activa -->
       <UFormField label="Semana Activa">
         <div class="flex gap-2">
-          <USelectMenu v-model="currentWeekId" :options="weekOptions" :disabled="!currentEmployee"
-            placeholder="Seleccionar semana..." value-attribute="value" @change="payrollStore.onWeekChange"
-            class="flex-1" />
+          <select v-model="currentWeekId" @change="payrollStore.onWeekChange" :disabled="!currentEmployee"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+            <option value="" disabled>Seleccionar semana...</option>
+            <option v-for="week in currentEmployeeWeeks" :key="week.id" :value="week.id">
+              Semana del {{ payrollStore.formatWeekDisplay(week.startDate) }}
+            </option>
+          </select>
           <UButton icon="i-lucide-calendar-plus" color="success" @click="emit('create-week')"
             :disabled="!currentEmployee" square />
         </div>
@@ -80,9 +103,16 @@ const currencyOptions = [
 
       <!-- Moneda -->
       <UFormField label="Moneda">
-        <USelectMenu v-if="currentEmployee" v-model="currentEmployee.settings.currency" :options="currencyOptions"
-          value-attribute="value" @change="payrollStore.onSettingsChange" />
-        <USelectMenu v-else disabled :options="currencyOptions" placeholder="MXN" />
+        <select v-if="currentEmployee" v-model="currentEmployee.settings.currency" @change="payrollStore.onSettingsChange"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+          <option v-for="option in currencyOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <select v-else disabled
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 opacity-50 cursor-not-allowed">
+          <option>MXN</option>
+        </select>
       </UFormField>
     </div>
 

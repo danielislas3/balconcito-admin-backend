@@ -6,9 +6,15 @@ export interface DaySchedule {
   exitHour: string
   exitMinute: string
   hoursWorked: number
-  completeShifts: number
-  extraHours: number
-  dailyPay: number
+  regularHours: number        // Horas regulares (hasta 9)
+  overtimeHours1: number      // Primeras 2 horas extra (1.5x)
+  overtimeHours2: number      // Horas extra después de 2 (2x)
+  completeShifts: number      // Deprecated: se mantiene para compatibilidad
+  extraHours: number          // Deprecated: se mantiene para compatibilidad
+  regularPay: number          // Pago por horas regulares
+  overtimePay1: number        // Pago por overtime nivel 1
+  overtimePay2: number        // Pago por overtime nivel 2
+  dailyPay: number            // Total del día
 }
 
 export interface WeekSchedule {
@@ -49,8 +55,32 @@ export interface PayrollSystemData {
   version: string
 }
 
-const HOURS_PER_SHIFT = 9
+// ===== CONFIGURACIÓN DE TARIFAS Y TURNOS =====
+// Estas constantes son fáciles de modificar para ajustar la lógica de pago
+const HOURS_PER_SHIFT = 9          // Horas de trabajo en un turno completo
+const BREAK_HOURS = 1              // Hora de descanso (no se incluye en el cálculo)
+const OVERTIME_TIER1_HOURS = 2     // Primeras N horas extra con tarifa 1.5x
+const OVERTIME_TIER1_RATE = 1.5    // Tarifa para primeras horas extra (150%)
+const OVERTIME_TIER2_RATE = 2.0    // Tarifa para horas extra después del tier 1 (200%)
 const STORAGE_KEY = 'payrollSystemDataVue'
+
+/**
+ * CONFIGURACIÓN DE PAGOS - FÁCIL DE MODIFICAR
+ *
+ * Para cambiar la lógica de pago, modifica estas constantes:
+ *
+ * - HOURS_PER_SHIFT: Horas trabajadas en un turno completo (9 horas)
+ * - BREAK_HOURS: Horas de descanso no pagadas (1 hora)
+ * - OVERTIME_TIER1_HOURS: Cuántas horas extra se pagan al 150% (2 horas)
+ * - OVERTIME_TIER1_RATE: Multiplicador para primeras horas extra (1.5 = 150%)
+ * - OVERTIME_TIER2_RATE: Multiplicador para horas extra adicionales (2.0 = 200%)
+ *
+ * Ejemplo:
+ * Si trabajas 12 horas:
+ * - 9 horas regulares al 100%
+ * - 2 horas extra al 150%
+ * - 1 hora extra al 200%
+ */
 
 export const usePayrollStore = defineStore('payroll', {
   state: () => ({
@@ -87,19 +117,60 @@ export const usePayrollStore = defineStore('payroll', {
       return this.currentEmployee.weeks.find(week => week.id === this.currentWeekId) || null
     },
 
-    weekTotals(): { totalHours: number; totalShifts: number; totalExtraHours: number; totalBasePay: number; totalPay: number } {
+    weekTotals(): {
+      totalHours: number
+      regularHours: number
+      overtimeHours1: number
+      overtimeHours2: number
+      regularPay: number
+      overtimePay1: number
+      overtimePay2: number
+      totalShifts: number        // Deprecated
+      totalExtraHours: number    // Deprecated
+      totalBasePay: number
+      totalPay: number
+    } {
       if (!this.currentWeek) {
-        return { totalHours: 0, totalShifts: 0, totalExtraHours: 0, totalBasePay: 0, totalPay: 0 }
+        return {
+          totalHours: 0,
+          regularHours: 0,
+          overtimeHours1: 0,
+          overtimeHours2: 0,
+          regularPay: 0,
+          overtimePay1: 0,
+          overtimePay2: 0,
+          totalShifts: 0,
+          totalExtraHours: 0,
+          totalBasePay: 0,
+          totalPay: 0
+        }
       }
 
       const baseTotals = this.days.reduce((totals, day) => {
         const dayData = this.currentWeek!.schedule[day.key as keyof WeekSchedule]
         totals.totalHours += dayData.hoursWorked
+        totals.regularHours += dayData.regularHours
+        totals.overtimeHours1 += dayData.overtimeHours1
+        totals.overtimeHours2 += dayData.overtimeHours2
+        totals.regularPay += dayData.regularPay
+        totals.overtimePay1 += dayData.overtimePay1
+        totals.overtimePay2 += dayData.overtimePay2
         totals.totalShifts += dayData.completeShifts
         totals.totalExtraHours += dayData.extraHours
         totals.totalBasePay += dayData.dailyPay
         return totals
-      }, { totalHours: 0, totalShifts: 0, totalExtraHours: 0, totalBasePay: 0 })
+      }, {
+        totalHours: 0,
+        regularHours: 0,
+        overtimeHours1: 0,
+        overtimeHours2: 0,
+        regularPay: 0,
+        overtimePay1: 0,
+        overtimePay2: 0,
+        totalShifts: 0,
+        totalExtraHours: 0,
+        totalBasePay: 0
+      })
 
       const weeklyTips = this.currentWeek.weeklyTips || 0
       const totalPay = baseTotals.totalBasePay + weeklyTips
@@ -147,8 +218,14 @@ export const usePayrollStore = defineStore('payroll', {
         exitHour: '',
         exitMinute: '',
         hoursWorked: 0,
-        completeShifts: 0,
-        extraHours: 0,
+        regularHours: 0,
+        overtimeHours1: 0,
+        overtimeHours2: 0,
+        completeShifts: 0,      // Deprecated
+        extraHours: 0,          // Deprecated
+        regularPay: 0,
+        overtimePay1: 0,
+        overtimePay2: 0,
         dailyPay: 0
       }
     },
@@ -263,38 +340,101 @@ export const usePayrollStore = defineStore('payroll', {
     },
 
     // ===== SCHEDULE CALCULATIONS =====
+    /**
+     * Calcula el pago diario con lógica escalonada de horas extra
+     *
+     * LÓGICA DE CÁLCULO:
+     * 1. Calcula horas trabajadas (entrada a salida, incluyendo descanso)
+     * 2. Resta hora de descanso para obtener horas productivas
+     * 3. Primeras 9 horas = horas regulares (100%)
+     * 4. Siguientes 2 horas = overtime tier 1 (150%)
+     * 5. Horas adicionales = overtime tier 2 (200%)
+     *
+     * @param dayKey - Día de la semana a calcular
+     */
     calculateDay(dayKey: keyof WeekSchedule): void {
       if (!this.currentWeek) return
 
       const dayData = this.currentWeek.schedule[dayKey]
       const { entryHour, entryMinute, exitHour, exitMinute } = dayData
 
+      // Si no hay datos de entrada/salida, limpiar todo
       if (!entryHour || !entryMinute || !exitHour || !exitMinute) {
         dayData.hoursWorked = 0
+        dayData.regularHours = 0
+        dayData.overtimeHours1 = 0
+        dayData.overtimeHours2 = 0
         dayData.completeShifts = 0
         dayData.extraHours = 0
+        dayData.regularPay = 0
+        dayData.overtimePay1 = 0
+        dayData.overtimePay2 = 0
         dayData.dailyPay = 0
         return
       }
 
+      // Convertir horas y minutos a decimal
       const entryTime = parseInt(entryHour) + parseInt(entryMinute) / 60
       let exitTime = parseInt(exitHour) + parseInt(exitMinute) / 60
 
-      // Manejar turnos nocturnos
+      // Manejar turnos nocturnos (que cruzan medianoche)
       if (exitTime <= entryTime) {
         exitTime += 24
       }
 
-      const hoursWorked = exitTime - entryTime
-      const completeShifts = Math.floor(hoursWorked / HOURS_PER_SHIFT)
-      const extraHours = hoursWorked % HOURS_PER_SHIFT
-      const costPerShift = this.currentEmployee?.settings?.costPerTurn || 450
-      const dailyPay = (completeShifts * costPerShift) + (extraHours / HOURS_PER_SHIFT * costPerShift)
+      // Total de horas en el local (incluyendo descanso)
+      const totalHoursInPlace = exitTime - entryTime
 
+      // Horas productivas (restando hora de descanso si trabajó más de HOURS_PER_SHIFT)
+      const hoursWorked = totalHoursInPlace > HOURS_PER_SHIFT
+        ? totalHoursInPlace - BREAK_HOURS
+        : totalHoursInPlace
+
+      // Calcular tarifas
+      const costPerHour = (this.currentEmployee?.settings?.costPerTurn || 450) / HOURS_PER_SHIFT
+
+      // Desglosar horas por categoría
+      let regularHours = 0
+      let overtimeHours1 = 0
+      let overtimeHours2 = 0
+
+      if (hoursWorked <= HOURS_PER_SHIFT) {
+        // Solo horas regulares
+        regularHours = hoursWorked
+      } else {
+        // Horas regulares completas
+        regularHours = HOURS_PER_SHIFT
+        const remainingHours = hoursWorked - HOURS_PER_SHIFT
+
+        if (remainingHours <= OVERTIME_TIER1_HOURS) {
+          // Solo overtime tier 1
+          overtimeHours1 = remainingHours
+        } else {
+          // Overtime tier 1 completo + tier 2
+          overtimeHours1 = OVERTIME_TIER1_HOURS
+          overtimeHours2 = remainingHours - OVERTIME_TIER1_HOURS
+        }
+      }
+
+      // Calcular pagos por categoría
+      const regularPay = regularHours * costPerHour
+      const overtimePay1 = overtimeHours1 * costPerHour * OVERTIME_TIER1_RATE
+      const overtimePay2 = overtimeHours2 * costPerHour * OVERTIME_TIER2_RATE
+      const dailyPay = regularPay + overtimePay1 + overtimePay2
+
+      // Actualizar datos del día
       dayData.hoursWorked = hoursWorked
-      dayData.completeShifts = completeShifts
-      dayData.extraHours = extraHours
+      dayData.regularHours = regularHours
+      dayData.overtimeHours1 = overtimeHours1
+      dayData.overtimeHours2 = overtimeHours2
+      dayData.regularPay = regularPay
+      dayData.overtimePay1 = overtimePay1
+      dayData.overtimePay2 = overtimePay2
       dayData.dailyPay = dailyPay
+
+      // Mantener valores deprecated para compatibilidad con datos antiguos
+      dayData.completeShifts = Math.floor(hoursWorked / HOURS_PER_SHIFT)
+      dayData.extraHours = Math.max(0, hoursWorked - HOURS_PER_SHIFT)
 
       this.saveSystemData()
     },
@@ -304,11 +444,28 @@ export const usePayrollStore = defineStore('payroll', {
       const baseTotals = this.days.reduce((totals, day) => {
         const dayData = week.schedule[day.key as keyof WeekSchedule]
         totals.totalHours += dayData.hoursWorked || 0
+        totals.regularHours += dayData.regularHours || 0
+        totals.overtimeHours1 += dayData.overtimeHours1 || 0
+        totals.overtimeHours2 += dayData.overtimeHours2 || 0
+        totals.regularPay += dayData.regularPay || 0
+        totals.overtimePay1 += dayData.overtimePay1 || 0
+        totals.overtimePay2 += dayData.overtimePay2 || 0
         totals.totalShifts += dayData.completeShifts || 0
         totals.totalExtraHours += dayData.extraHours || 0
         totals.totalBasePay += dayData.dailyPay || 0
         return totals
-      }, { totalHours: 0, totalShifts: 0, totalExtraHours: 0, totalBasePay: 0 })
+      }, {
+        totalHours: 0,
+        regularHours: 0,
+        overtimeHours1: 0,
+        overtimeHours2: 0,
+        regularPay: 0,
+        overtimePay1: 0,
+        overtimePay2: 0,
+        totalShifts: 0,
+        totalExtraHours: 0,
+        totalBasePay: 0
+      })
 
       const weeklyTips = week.weeklyTips || 0
       const totalPay = baseTotals.totalBasePay + weeklyTips

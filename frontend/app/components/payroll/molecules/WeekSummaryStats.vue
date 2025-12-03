@@ -1,8 +1,11 @@
 <script setup lang="ts">
 export interface WeekSummaryStatsProps {
   totalHours: number
-  totalShifts: number
-  totalExtraHours: number
+  regularHours: number
+  overtimeHours1: number
+  overtimeHours2: number
+  totalShifts: number          // Deprecated pero mantenido para compatibilidad
+  totalExtraHours: number      // Deprecated pero mantenido para compatibilidad
   totalTips: number
   currency?: string
 }
@@ -16,7 +19,7 @@ const formatCurrency = (amount: number) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
     <!-- Total Hours -->
     <div class="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-xl">
       <div class="text-2xl font-bold text-blue-600 dark:text-blue-400 tabular-nums">
@@ -25,20 +28,31 @@ const formatCurrency = (amount: number) => {
       <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Total Horas</div>
     </div>
 
-    <!-- Total Shifts -->
+    <!-- Regular Hours -->
     <div class="text-center p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl">
       <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-        {{ totalShifts }}
+        {{ regularHours.toFixed(1) }}
       </div>
-      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Turnos Completos</div>
+      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Regulares</div>
+      <div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">100%</div>
     </div>
 
-    <!-- Extra Hours -->
+    <!-- Overtime Hours Tier 1 (1.5x) -->
     <div class="text-center p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl">
       <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-        {{ totalExtraHours.toFixed(1) }}
+        {{ overtimeHours1.toFixed(1) }}
       </div>
-      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Horas Extra</div>
+      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra</div>
+      <div class="text-xs text-amber-600 dark:text-amber-400 font-semibold">150%</div>
+    </div>
+
+    <!-- Overtime Hours Tier 2 (2x) -->
+    <div class="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-xl">
+      <div class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums">
+        {{ overtimeHours2.toFixed(1) }}
+      </div>
+      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra</div>
+      <div class="text-xs text-red-600 dark:text-red-400 font-semibold">200%</div>
     </div>
 
     <!-- Tips -->

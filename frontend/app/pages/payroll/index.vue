@@ -380,6 +380,6 @@ const tabs = computed(() => [
         </div>
       </template>
     </UModal>
-  </div>
+    </div>
   </ClientOnly>
 </template>

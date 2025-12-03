@@ -45,58 +45,74 @@ const formatCurrency = (amount: number) => {
 
 <template>
   <div :class="[
-    'p-4 rounded-xl border-2 transition-all',
+    'p-5 rounded-xl border-2 transition-all',
     hasDayData
       ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200 dark:border-emerald-800'
       : 'bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700',
     isActive && 'ring-2 ring-emerald-500'
   ]">
-    <div class="flex items-center justify-between flex-wrap gap-4">
-      <!-- Day Info -->
+    <!-- Encabezado: Día y horario -->
+    <div class="flex items-center justify-between mb-3">
       <PayrollAtomsDayLabel
         :emoji="dayEmoji"
         :name="dayName"
-        :subtitle="formatTime(schedule.entryHour, schedule.entryMinute) + ' - ' + formatTime(schedule.exitHour, schedule.exitMinute)" />
+        :subtitle="formatTime(schedule.entryHour, schedule.entryMinute) + ' → ' + formatTime(schedule.exitHour, schedule.exitMinute)" />
 
-      <!-- Day Stats -->
-      <div class="flex items-center gap-3 flex-wrap">
-        <!-- Hours Worked -->
-        <PayrollAtomsInlineStat
-          icon="i-lucide-clock"
-          :value="`${schedule.hoursWorked.toFixed(1)}h`"
-          color="blue"
-          size="md" />
-
-        <!-- Complete Shifts -->
-        <PayrollAtomsInlineStat
-          icon="i-lucide-briefcase"
-          :value="`${schedule.completeShifts} turno${schedule.completeShifts !== 1 ? 's' : ''}`"
-          color="emerald"
-          size="md" />
-
-        <!-- Extra Hours (only if > 0) -->
-        <PayrollAtomsInlineStat
-          v-if="schedule.extraHours > 0"
-          icon="i-lucide-clock-alert"
-          :value="`+${schedule.extraHours.toFixed(1)}h extra`"
-          color="amber"
-          size="md" />
-
-        <!-- Daily Pay -->
-        <PayrollAtomsInlineStat
-          icon="i-lucide-wallet"
-          :value="formatCurrency(schedule.dailyPay)"
-          color="violet"
-          size="md" />
-
-        <!-- Status Badge -->
-        <UBadge
-          :color="getShiftStatus.color"
-          variant="subtle"
-          size="md">
-          {{ getShiftStatus.label }}
-        </UBadge>
+      <div class="text-right">
+        <div class="text-xs text-gray-500 dark:text-gray-400">Total del día</div>
+        <div class="text-xl font-bold text-violet-600 dark:text-violet-400 tabular-nums">
+          {{ formatCurrency(schedule.dailyPay) }}
+        </div>
       </div>
+    </div>
+
+    <!-- Desglose de horas y pagos -->
+    <div v-if="hasDayData" class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+      <!-- Total Hours -->
+      <div class="text-center p-3 bg-blue-50/80 dark:bg-blue-950/30 rounded-lg">
+        <div class="text-sm font-bold text-blue-600 dark:text-blue-400 tabular-nums">
+          {{ schedule.hoursWorked.toFixed(1) }}h
+        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Total</div>
+      </div>
+
+      <!-- Regular Hours -->
+      <div class="text-center p-3 bg-emerald-50/80 dark:bg-emerald-950/30 rounded-lg">
+        <div class="text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+          {{ schedule.regularHours.toFixed(1) }}h
+        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Regular</div>
+        <div class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          {{ formatCurrency(schedule.regularPay) }}
+        </div>
+      </div>
+
+      <!-- Overtime Tier 1 (1.5x) -->
+      <div v-if="schedule.overtimeHours1 > 0" class="text-center p-3 bg-amber-50/80 dark:bg-amber-950/30 rounded-lg">
+        <div class="text-sm font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+          {{ schedule.overtimeHours1.toFixed(1) }}h
+        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra 1.5x</div>
+        <div class="text-xs font-semibold text-amber-600 dark:text-amber-400">
+          {{ formatCurrency(schedule.overtimePay1) }}
+        </div>
+      </div>
+
+      <!-- Overtime Tier 2 (2x) -->
+      <div v-if="schedule.overtimeHours2 > 0" class="text-center p-3 bg-red-50/80 dark:bg-red-950/30 rounded-lg">
+        <div class="text-sm font-bold text-red-600 dark:text-red-400 tabular-nums">
+          {{ schedule.overtimeHours2.toFixed(1) }}h
+        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra 2x</div>
+        <div class="text-xs font-semibold text-red-600 dark:text-red-400">
+          {{ formatCurrency(schedule.overtimePay2) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Sin datos -->
+    <div v-else class="text-center py-2 text-sm text-gray-400 dark:text-gray-500">
+      No trabajado
     </div>
   </div>
 </template>

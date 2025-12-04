@@ -4,10 +4,19 @@ class PayrollWeek < ApplicationRecord
   has_many :payroll_days, dependent: :destroy
 
   # Validations
-  validates :week_id, presence: true, uniqueness: { scope: :payroll_employee_id }
+  validates :week_id, presence: true, uniqueness: { scope: :payroll_employee_id },
+            format: { with: /\A\d{4}-W\d{2}\z/, message: 'debe tener formato YYYY-WXX' }
   validates :start_date, :end_date, presence: true
-  validates :weekly_tips, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :weekly_tips, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100000 }
+
+  # Validaciones de totales calculados
+  validates :total_hours, :total_regular_hours, :total_overtime_hours,
+            :total_extra_hours, :total_base_pay, :total_pay,
+            numericality: { greater_than_or_equal_to: 0 }
+  validates :total_shifts, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 7, only_integer: true }
+
   validate :end_date_after_start_date
+  validate :week_span_is_seven_days
 
   # Scopes
   scope :by_date, -> { order(start_date: :desc) }
@@ -17,6 +26,10 @@ class PayrollWeek < ApplicationRecord
   # Callbacks
   after_initialize :build_days, if: :new_record?
   before_save :calculate_totals
+
+  # Prevenir override manual de campos calculados
+  attr_readonly :total_hours, :total_regular_hours, :total_overtime_hours,
+                :total_extra_hours, :total_base_pay, :total_pay, :total_shifts
 
   # Instance methods
   def schedule
@@ -64,6 +77,15 @@ class PayrollWeek < ApplicationRecord
 
     if end_date < start_date
       errors.add(:end_date, 'debe ser posterior a la fecha de inicio')
+    end
+  end
+
+  def week_span_is_seven_days
+    return if end_date.blank? || start_date.blank?
+
+    days_diff = (end_date - start_date).to_i
+    if days_diff != 6
+      errors.add(:end_date, 'debe estar exactamente 6 días después de start_date (semana de 7 días)')
     end
   end
 

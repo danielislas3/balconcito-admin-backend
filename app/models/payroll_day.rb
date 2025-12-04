@@ -9,6 +9,10 @@ class PayrollDay < ApplicationRecord
 
   # Callbacks
   before_save :calculate_day_totals, if: :schedule_changed?
+  after_save :update_week_totals
+
+  # Prevenir override manual de campos calculados
+  attr_readonly :hours_worked, :regular_hours, :overtime_hours, :extra_hours, :daily_pay
 
   # Instance methods
   def to_schedule_hash
@@ -27,57 +31,23 @@ class PayrollDay < ApplicationRecord
   end
 
   def calculate_day_totals
-    # Si no está trabajando, resetear todo
-    unless is_working
-      self.hours_worked = 0
-      self.regular_hours = 0
-      self.overtime_hours = 0
-      self.extra_hours = 0
-      self.daily_pay = 0
-      return
-    end
+    # Usar el servicio PayrollCalculator para todos los cálculos
+    calculator = PayrollCalculator.new(payroll_week.payroll_employee)
 
-    # Obtener configuración del empleado
-    employee = payroll_week.payroll_employee
-    settings = employee.settings
+    calculated_values = calculator.calculate_day(
+      entry_hour: entry_hour,
+      entry_minute: entry_minute,
+      exit_hour: exit_hour,
+      exit_minute: exit_minute,
+      is_working: is_working
+    )
 
-    # Calcular horas trabajadas
-    total_hours_in_place = calculate_hours_in_place
-
-    # Aplicar lógica de descanso
-    worked_hours = if total_hours_in_place >= settings[:minHoursForBreak]
-                     total_hours_in_place - settings[:breakHours]
-                   else
-                     total_hours_in_place
-                   end
-
-    self.hours_worked = worked_hours
-
-    # Calcular horas regulares y extras
-    if settings[:usesOvertime] && worked_hours > settings[:hoursPerShift]
-      self.regular_hours = settings[:hoursPerShift]
-      total_extra = worked_hours - settings[:hoursPerShift]
-
-      # Calcular overtime tier 1 y tier 2
-      tier1_hours = [total_extra, settings[:overtimeTier1Hours]].min
-      tier2_hours = [total_extra - tier1_hours, 0].max
-
-      self.overtime_hours = tier1_hours
-      self.extra_hours = tier2_hours
-
-      # Calcular pago
-      regular_pay = regular_hours * employee.base_hourly_rate
-      overtime_pay = overtime_hours * employee.base_hourly_rate * settings[:overtimeTier1Rate]
-      extra_pay = extra_hours * employee.base_hourly_rate * settings[:overtimeTier2Rate]
-
-      self.daily_pay = regular_pay + overtime_pay + extra_pay
-    else
-      # Sin overtime, todo es regular
-      self.regular_hours = worked_hours
-      self.overtime_hours = 0
-      self.extra_hours = 0
-      self.daily_pay = worked_hours * employee.base_hourly_rate
-    end
+    # Asignar valores calculados
+    self.hours_worked = calculated_values[:hours_worked]
+    self.regular_hours = calculated_values[:regular_hours]
+    self.overtime_hours = calculated_values[:overtime_hours]
+    self.extra_hours = calculated_values[:extra_hours]
+    self.daily_pay = calculated_values[:daily_pay]
   end
 
   def calculate_day_totals!
@@ -97,23 +67,17 @@ class PayrollDay < ApplicationRecord
 
   private
 
-  def calculate_hours_in_place
-    return 0 unless entry_hour && entry_minute && exit_hour && exit_minute
-
-    entry_time = entry_hour.to_i + (entry_minute.to_i / 60.0)
-    exit_time = exit_hour.to_i + (exit_minute.to_i / 60.0)
-
-    # Si la salida es menor que la entrada, significa que cruzó medianoche
-    exit_time += 24 if exit_time <= entry_time
-
-    exit_time - entry_time
-  end
-
   def has_complete_schedule?
     entry_hour.present? && entry_minute.present? && exit_hour.present? && exit_minute.present?
   end
 
   def schedule_changed?
     entry_hour_changed? || entry_minute_changed? || exit_hour_changed? || exit_minute_changed? || is_working_changed?
+  end
+
+  def update_week_totals
+    # Actualizar totales de la semana automáticamente después de guardar el día
+    payroll_week.calculate_totals
+    payroll_week.save! if payroll_week.changed?
   end
 end

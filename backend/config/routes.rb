@@ -32,6 +32,17 @@ Rails.application.routes.draw do
 
       resources :reimbursements, only: [:index, :create, :show]
 
+      # Payroll
+      resources :payroll_employees do
+        collection do
+          post :import
+          get :export
+        end
+
+        resources :payroll_weeks, path: 'weeks' do
+          member do
+            patch :update_schedule
+          end
       # Credit Cards & Debt
       resources :credit_cards do
         collection do

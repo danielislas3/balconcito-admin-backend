@@ -75,13 +75,25 @@ module Api
         # Actualizar cada día del horario
         schedule_params = params.require(:schedule)
         updated_days = []
+        errors = []
 
         schedule_params.each do |day_key, day_data|
           day = @payroll_week.payroll_days.find_or_initialize_by(day_key: day_key)
 
-          if day.update_schedule(day_data.permit(:entryHour, :entryMinute, :exitHour, :exitMinute, :isWorking).to_h.symbolize_keys)
+          # IMPORTANTE: Solo permitir campos de entrada (horarios), NO valores calculados
+          # El backend calculará automáticamente: hoursWorked, regularHours, overtimeHours, extraHours, dailyPay
+          allowed_params = day_data.permit(:entryHour, :entryMinute, :exitHour, :exitMinute, :isWorking).to_h.symbolize_keys
+
+          if day.update_schedule(allowed_params)
             updated_days << day_key
+          else
+            errors << "#{day_key}: #{day.errors.full_messages.join(', ')}"
           end
+        end
+
+        # Si hubo errores, retornar
+        if errors.any?
+          return render_error("Errores al actualizar horarios: #{errors.join(' | ')}")
         end
 
         # Recalcular totales de la semana

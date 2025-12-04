@@ -42,6 +42,10 @@ tags:
     description: Integración con Loyverse POS
   - name: Debt Management
     description: Gestión de deudas (MSI, préstamos, capital)
+  - name: Payroll - Employees
+    description: Gestión de empleados del sistema de nómina
+  - name: Payroll - Weeks
+    description: Gestión de semanas laborales y horarios con cálculo automático de pagos
 
 components:
   securitySchemes:
@@ -213,6 +217,117 @@ components:
         recommendation:
           type: string
           example: "HAY ERRORES CRÍTICOS. Verifica los montos antes de continuar."
+
+    # Payroll Schemas
+    PayrollEmployeeFull:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "juan-perez-1701234567"
+        name:
+          type: string
+          example: "Juan Pérez"
+        settings:
+          type: object
+          properties:
+            baseHourlyRate:
+              type: number
+              example: 85.50
+            currency:
+              type: string
+              example: "MXN"
+            usesOvertime:
+              type: boolean
+              example: true
+            usesTips:
+              type: boolean
+              example: false
+            overtimeTier1Rate:
+              type: number
+              example: 1.5
+            overtimeTier2Rate:
+              type: number
+              example: 2.0
+            overtimeTier1Hours:
+              type: integer
+              example: 2
+            hoursPerShift:
+              type: integer
+              example: 8
+            breakHours:
+              type: integer
+              example: 1
+            minHoursForBreak:
+              type: integer
+              example: 5
+        weeks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayrollWeek'
+
+    PayrollWeek:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "2025-W49"
+        startDate:
+          type: string
+          format: date
+          example: "2025-12-02"
+        weeklyTips:
+          type: number
+          example: 450.00
+        schedule:
+          type: object
+          description: "Horarios de cada día de la semana"
+          additionalProperties:
+            $ref: '#/components/schemas/DayScheduleFull'
+
+    DayScheduleFull:
+      type: object
+      description: "Horario completo con cálculos"
+      properties:
+        entryHour:
+          type: string
+          example: "17"
+          nullable: true
+        entryMinute:
+          type: string
+          example: "00"
+          nullable: true
+        exitHour:
+          type: string
+          example: "02"
+          nullable: true
+        exitMinute:
+          type: string
+          example: "00"
+          nullable: true
+        hoursWorked:
+          type: number
+          example: 8.0
+          description: "Horas trabajadas (después de descontar descanso)"
+        regularHours:
+          type: number
+          example: 8.0
+          description: "Horas regulares (sin overtime)"
+        overtimeHours:
+          type: number
+          example: 0.0
+          description: "Horas extras tier 1 (primeras 2h al 150%)"
+        extraHours:
+          type: number
+          example: 0.0
+          description: "Horas extras tier 2 (después de 2h al 200%)"
+        dailyPay:
+          type: number
+          example: 684.00
+          description: "Pago total del día"
+        isWorking:
+          type: boolean
+          example: true
 
 paths:
   /api/v1/auth/login:
@@ -820,3 +935,407 @@ paths:
           description: Configuración actualizada
         '422':
           description: Token inválido
+
+  # ============================================
+  # PAYROLL ENDPOINTS
+  # ============================================
+  /api/v1/payroll_employees:
+    get:
+      summary: Listar empleados de nómina
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de empleados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollEmployeeFull'
+                  count:
+                    type: integer
+
+    post:
+      summary: Crear empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payroll_employee
+              properties:
+                payroll_employee:
+                  type: object
+                  required:
+                    - name
+                    - base_hourly_rate
+                  properties:
+                    name:
+                      type: string
+                      example: "Juan Pérez"
+                    base_hourly_rate:
+                      type: number
+                      example: 85.50
+                    currency:
+                      type: string
+                      default: "MXN"
+      responses:
+        '201':
+          description: Empleado creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employee:
+                    $ref: '#/components/schemas/PayrollEmployeeFull'
+                  message:
+                    type: string
+
+  /api/v1/payroll_employees/{id}:
+    get:
+      summary: Obtener empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalles del empleado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employee:
+                    $ref: '#/components/schemas/PayrollEmployeeFull'
+
+    patch:
+      summary: Actualizar empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_employee:
+                  type: object
+      responses:
+        '200':
+          description: Empleado actualizado
+
+    delete:
+      summary: Eliminar empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Empleado eliminado
+
+  /api/v1/payroll_employees/import:
+    post:
+      summary: Importar datos del sistema
+      description: Importa empleados completos con semanas y horarios (migración desde localStorage)
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: "JSON stringificado con estructura de empleados"
+      responses:
+        '200':
+          description: Datos importados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  count:
+                    type: integer
+
+  /api/v1/payroll_employees/export:
+    get:
+      summary: Exportar todos los datos
+      description: Exporta todos los empleados con semanas y horarios (backup completo)
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Datos exportados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollEmployeeFull'
+                  exportedAt:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+
+  /api/v1/payroll_employees/{employee_id}/weeks:
+    get:
+      summary: Listar semanas
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de semanas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weeks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollWeek'
+                  count:
+                    type: integer
+
+    post:
+      summary: Crear semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_week:
+                  type: object
+                  required:
+                    - start_date
+                  properties:
+                    start_date:
+                      type: string
+                      format: date
+                      example: "2025-12-02"
+                    weekly_tips:
+                      type: number
+                      default: 0
+      responses:
+        '201':
+          description: Semana creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    $ref: '#/components/schemas/PayrollWeek'
+                  message:
+                    type: string
+
+  /api/v1/payroll_employees/{employee_id}/weeks/{id}:
+    get:
+      summary: Obtener semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "week_id (ej: 2025-W49)"
+      responses:
+        '200':
+          description: Detalles de la semana
+
+    patch:
+      summary: Actualizar semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_week:
+                  type: object
+                  properties:
+                    weekly_tips:
+                      type: number
+      responses:
+        '200':
+          description: Semana actualizada
+
+    delete:
+      summary: Eliminar semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Semana eliminada
+
+  /api/v1/payroll_employees/{employee_id}/weeks/{id}/update_schedule:
+    patch:
+      summary: Actualizar horarios
+      description: |
+        Actualiza horarios de trabajo para cada día de la semana.
+        Recalcula automáticamente: horas trabajadas, horas extras, y pagos.
+
+        **Lógica de descanso:** Si se trabajan ≥5 horas, se descuenta 1h de descanso obligatorio.
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - schedule
+              properties:
+                schedule:
+                  type: object
+                  description: "Horarios por día (monday, tuesday, etc.)"
+                  additionalProperties:
+                    type: object
+                    properties:
+                      entryHour:
+                        type: string
+                        example: "17"
+                      entryMinute:
+                        type: string
+                        example: "00"
+                      exitHour:
+                        type: string
+                        example: "02"
+                      exitMinute:
+                        type: string
+                        example: "00"
+                      isWorking:
+                        type: boolean
+                        example: true
+      responses:
+        '200':
+          description: Horario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    $ref: '#/components/schemas/PayrollWeek'
+                  message:
+                    type: string
+                    example: "Horario actualizado para 5 días"

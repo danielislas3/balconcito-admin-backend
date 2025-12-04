@@ -67,7 +67,7 @@ const handleDeleteEmployee = () => {
   if (!currentEmployee.value) return
 
   const name = currentEmployee.value.name
-  if (!confirm(`¿Estás seguro de que quieres eliminar a ${name}?\n\nSe perderán todos sus horarios y no se puede deshacer.`)) {
+  if (!confirm(`\u00BFEstás seguro de que quieres eliminar a ${name}?\n\nSe perderán todos sus horarios y no se puede deshacer.`)) {
     return
   }
 
@@ -225,6 +225,12 @@ const tabs = computed(() => [
     badge: currentWeek.value ? undefined : '!'
   },
   {
+    id: 'monthly',
+    label: 'Mensual',
+    icon: 'i-lucide-calendar-range',
+    badge: undefined
+  },
+  {
     id: 'reports',
     label: 'Reportes',
     icon: 'i-lucide-bar-chart-3',
@@ -308,6 +314,9 @@ const tabs = computed(() => [
         <!-- PESTAÑA DE HORARIOS -->
         <PayrollOrganismsSchedulesTab v-show="activeTab === 'schedules'" @add-employee="openAddEmployeeModal"
           @delete-employee="handleDeleteEmployee" @create-week="handleCreateWeek" @save-week="handleSaveWeek" />
+
+        <!-- PESTAÑA MENSUAL -->
+        <PayrollOrganismsMonthlyDashboard v-show="activeTab === 'monthly'" />
 
         <!-- PESTAÑA DE REPORTES -->
         <PayrollOrganismsReportsTab v-show="activeTab === 'reports'" @export-all="handleExportAll"

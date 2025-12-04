@@ -47,12 +47,22 @@ export interface Employee {
   settings: EmployeeSettings
 }
 
+export interface WeekTemplate {
+  id: string
+  name: string
+  description?: string
+  schedule: WeekSchedule
+  createdAt: string
+  employeeId: string
+}
+
 export interface PayrollSystemData {
   employees: Employee[]
   currentEmployeeId: string
   currentWeekId: string
   activeTab: string
   version: string
+  weekTemplates?: WeekTemplate[]
 }
 
 // ===== CONFIGURACIÓN DE TARIFAS Y TURNOS =====
@@ -88,6 +98,7 @@ export const usePayrollStore = defineStore('payroll', {
     currentEmployeeId: '',
     currentWeekId: '',
     activeTab: 'schedules' as string,
+    weekTemplates: [] as WeekTemplate[],
 
     // Constants
     currencySymbols: { MXN: '$', USD: '$', EUR: '€' } as const,
@@ -498,11 +509,152 @@ export const usePayrollStore = defineStore('payroll', {
       }
     },
 
+    // ===== MONTHLY CALCULATIONS =====
+    calculateMonthlyStats(year: number, month: number) {
+      const employee = this.currentEmployee
+      if (!employee) return null
+
+      // Filtrar semanas del mes especificado
+      const weeksInMonth = employee.weeks.filter(week => {
+        const weekDate = new Date(week.startDate)
+        return weekDate.getFullYear() === year && weekDate.getMonth() === month
+      })
+
+      if (weeksInMonth.length === 0) return null
+
+      // Calcular totales del mes
+      const monthlyTotals = weeksInMonth.reduce((totals, week) => {
+        const weekTotals = this.calculateWeekTotals(week)
+
+        totals.totalHours += weekTotals.totalHours
+        totals.regularHours += weekTotals.regularHours
+        totals.overtimeHours1 += weekTotals.overtimeHours1
+        totals.overtimeHours2 += weekTotals.overtimeHours2
+        totals.regularPay += weekTotals.regularPay
+        totals.overtimePay1 += weekTotals.overtimePay1
+        totals.overtimePay2 += weekTotals.overtimePay2
+        totals.totalTips += week.weeklyTips || 0
+        totals.totalBasePay += weekTotals.totalBasePay
+        totals.totalPay += weekTotals.totalPay
+
+        return totals
+      }, {
+        totalHours: 0,
+        regularHours: 0,
+        overtimeHours1: 0,
+        overtimeHours2: 0,
+        regularPay: 0,
+        overtimePay1: 0,
+        overtimePay2: 0,
+        totalTips: 0,
+        totalBasePay: 0,
+        totalPay: 0
+      })
+
+      return {
+        year,
+        month,
+        weeksCount: weeksInMonth.length,
+        weeks: weeksInMonth,
+        avgHoursPerWeek: monthlyTotals.totalHours / weeksInMonth.length,
+        avgPayPerWeek: monthlyTotals.totalPay / weeksInMonth.length,
+        ...monthlyTotals
+      }
+    },
+
+    getAvailableMonths(): Array<{ year: number; month: number; label: string }> {
+      const employee = this.currentEmployee
+      if (!employee || employee.weeks.length === 0) return []
+
+      const monthsSet = new Set<string>()
+
+      employee.weeks.forEach(week => {
+        const date = new Date(week.startDate)
+        const key = `${date.getFullYear()}-${date.getMonth()}`
+        monthsSet.add(key)
+      })
+
+      const months = Array.from(monthsSet).map(key => {
+        const [year, month] = key.split('-').map(Number)
+        const date = new Date(year, month)
+        const label = date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })
+        return { year, month, label }
+      })
+
+      // Ordenar por fecha descendente (más reciente primero)
+      months.sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year
+        return b.month - a.month
+      })
+
+      return months
+    },
+
+    // ===== WEEK TEMPLATES =====
+    saveWeekAsTemplate(weekId: string, name: string, description?: string): WeekTemplate | null {
+      const employee = this.currentEmployee
+      if (!employee) return null
+
+      const week = employee.weeks.find(w => w.id === weekId)
+      if (!week) return null
+
+      // Crear una copia profunda del schedule
+      const scheduleCopy = JSON.parse(JSON.stringify(week.schedule)) as WeekSchedule
+
+      const template: WeekTemplate = {
+        id: `template-${Date.now()}`,
+        name,
+        description,
+        schedule: scheduleCopy,
+        createdAt: new Date().toISOString(),
+        employeeId: employee.id
+      }
+
+      this.weekTemplates.push(template)
+      this.saveSystemData()
+
+      return template
+    },
+
+    loadTemplateToWeek(templateId: string, weekId: string): boolean {
+      const template = this.weekTemplates.find(t => t.id === templateId)
+      if (!template) return false
+
+      const employee = this.currentEmployee
+      if (!employee) return false
+
+      const week = employee.weeks.find(w => w.id === weekId)
+      if (!week) return false
+
+      // Copiar el schedule de la plantilla a la semana
+      const scheduleCopy = JSON.parse(JSON.stringify(template.schedule)) as WeekSchedule
+
+      // Actualizar cada día y recalcular
+      this.days.forEach(day => {
+        const dayKey = day.key as keyof WeekSchedule
+        week.schedule[dayKey] = scheduleCopy[dayKey]
+        this.calculateDay(dayKey)
+      })
+
+      this.saveSystemData()
+      return true
+    },
+
+    deleteTemplate(templateId: string): boolean {
+      const index = this.weekTemplates.findIndex(t => t.id === templateId)
+      if (index === -1) return false
+
+      this.weekTemplates.splice(index, 1)
+      this.saveSystemData()
+      return true
+    },
+
     // ===== EXPORT / IMPORT =====
     // TODO: These will remain client-side but data will come from API
     exportSystemData(): void {
       const systemData: PayrollSystemData = {
         employees: this.employees,
+        weekTemplates: this.weekTemplates,
         version: 'Vue 3.0',
         exportDate: new Date().toISOString(),
         currentEmployeeId: this.currentEmployeeId,
@@ -657,7 +809,8 @@ export const usePayrollStore = defineStore('payroll', {
         currentEmployeeId: this.currentEmployeeId,
         currentWeekId: this.currentWeekId,
         activeTab: this.activeTab,
-        version: 'Vue 3.0'
+        version: 'Vue 3.0',
+        weekTemplates: this.weekTemplates
       }
 
       if (import.meta.client) {
@@ -678,6 +831,7 @@ export const usePayrollStore = defineStore('payroll', {
           this.currentEmployeeId = data.currentEmployeeId || ''
           this.currentWeekId = data.currentWeekId || ''
           this.activeTab = data.activeTab || 'schedules'
+          this.weekTemplates = data.weekTemplates || []
         } catch (e) {
           console.error('Error loading data:', e)
           this.initializeDefaultData()

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_04_024327) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -264,7 +264,7 @@ zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
     t.decimal "hours_worked", precision: 5, scale: 2, default: "0.0"
     t.boolean "is_working", default: false
     t.decimal "overtime_hours", precision: 5, scale: 2, default: "0.0"
-    t.integer "payroll_week_id", null: false
+    t.bigint "payroll_week_id", null: false
     t.decimal "regular_hours", precision: 5, scale: 2, default: "0.0"
     t.datetime "updated_at", null: false
     t.index ["date"], name: "index_payroll_days_on_date"
@@ -285,7 +285,7 @@ zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
     t.decimal "overtime_tier1_rate", precision: 5, scale: 2, default: "1.5"
     t.decimal "overtime_tier2_rate", precision: 5, scale: 2, default: "2.0"
     t.datetime "updated_at", null: false
-    t.integer "user_id"
+    t.bigint "user_id"
     t.boolean "uses_overtime", default: true, null: false
     t.boolean "uses_tips", default: false, null: false
     t.index ["employee_id"], name: "index_payroll_employees_on_employee_id", unique: true
@@ -296,7 +296,7 @@ zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
   create_table "payroll_weeks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "end_date", null: false
-    t.integer "payroll_employee_id", null: false
+    t.bigint "payroll_employee_id", null: false
     t.date "start_date", null: false
     t.decimal "total_base_pay", precision: 10, scale: 2, default: "0.0"
     t.decimal "total_extra_hours", precision: 10, scale: 2, default: "0.0"

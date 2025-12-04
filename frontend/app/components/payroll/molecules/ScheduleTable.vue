@@ -80,6 +80,30 @@ const formatDate = (dateStr: string) => {
   return payrollStore.formatWeekDisplay(dateStr)
 }
 
+// Calcular horas en el local (incluyendo descanso) para un día específico
+const calculateHoursInPlace = (dayKey: string): number => {
+  const schedule = props.week.schedule[dayKey as keyof WeekSchedule]
+  const { entryHour, entryMinute, exitHour, exitMinute } = schedule
+
+  if (!entryHour || !entryMinute || !exitHour || !exitMinute) return 0
+
+  const entryTime = parseInt(entryHour) + parseInt(entryMinute) / 60
+  let exitTime = parseInt(exitHour) + parseInt(exitMinute) / 60
+
+  // Manejar turnos nocturnos
+  if (exitTime <= entryTime) {
+    exitTime += 24
+  }
+
+  return exitTime - entryTime
+}
+
+// Verificar si el descanso se está deduciendo para este día
+const isBreakDeducted = (dayKey: string): boolean => {
+  const hoursInPlace = calculateHoursInPlace(dayKey)
+  return hoursInPlace >= 5  // MIN_HOURS_FOR_BREAK
+}
+
 // Aplicar preset a un día
 const applyPreset = (dayKey: string, preset: typeof schedulePresets[0], showToast = true) => {
   const schedule = props.week.schedule[dayKey as keyof WeekSchedule]
@@ -271,6 +295,15 @@ const availableTemplates = computed(() => {
           <p class="text-sm text-gray-500">Semana del {{ formatDate(week.startDate) }}</p>
         </div>
 
+        <!-- Política de Descanso -->
+        <UAlert
+          color="blue"
+          variant="subtle"
+          icon="i-lucide-info"
+          title="Política de Descanso"
+          description="Si trabajas 5 horas o más, se deduce automáticamente 1 hora de descanso obligatorio. Turnos menores a 5 horas no tienen descuento."
+          class="mb-4" />
+
         <div
           class="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800">
           <span
@@ -361,30 +394,45 @@ const availableTemplates = computed(() => {
 
         <!-- Results - Responsive -->
         <div v-if="hasDayData(day.key)"
-          class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div
-            class="px-3 py-2 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800">
-            <div class="text-xs text-violet-600 dark:text-violet-400 font-semibold mb-0.5">Total</div>
-            <div class="text-lg font-bold text-violet-600 dark:text-violet-400">
-              {{ payrollStore.formatCurrency(week.schedule[day.key as keyof WeekSchedule].dailyPay) }}
+          class="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+
+          <!-- Break Time Indicator -->
+          <div v-if="isBreakDeducted(day.key)"
+            class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <UIcon name="i-lucide-coffee" class="size-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div class="text-xs text-blue-700 dark:text-blue-300">
+              <span class="font-semibold">Descanso obligatorio de 1h deducido</span>
+              <span class="block text-blue-600 dark:text-blue-400 mt-0.5">
+                {{ calculateHoursInPlace(day.key).toFixed(1) }}h en local → {{ week.schedule[day.key as keyof WeekSchedule].hoursWorked.toFixed(1) }}h pagadas
+              </span>
             </div>
           </div>
 
-          <div class="flex gap-3 text-sm">
-            <div>
-              <span class="text-gray-500 dark:text-gray-400">Regular: </span>
-              <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ week.schedule[day.key as keyof
-                WeekSchedule].regularHours.toFixed(1) }}h</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <div
+              class="px-3 py-2 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800">
+              <div class="text-xs text-violet-600 dark:text-violet-400 font-semibold mb-0.5">Total</div>
+              <div class="text-lg font-bold text-violet-600 dark:text-violet-400">
+                {{ payrollStore.formatCurrency(week.schedule[day.key as keyof WeekSchedule].dailyPay) }}
+              </div>
             </div>
-            <div v-if="week.schedule[day.key as keyof WeekSchedule].overtimeHours1 > 0">
-              <span class="text-gray-500 dark:text-gray-400">Extra 1.5x: </span>
-              <span class="font-semibold text-amber-600 dark:text-amber-400">{{ week.schedule[day.key as keyof
-                WeekSchedule].overtimeHours1.toFixed(1) }}h</span>
-            </div>
-            <div v-if="week.schedule[day.key as keyof WeekSchedule].overtimeHours2 > 0">
-              <span class="text-gray-500 dark:text-gray-400">Extra 2x: </span>
-              <span class="font-semibold text-red-600 dark:text-red-400">{{ week.schedule[day.key as keyof
-                WeekSchedule].overtimeHours2.toFixed(1) }}h</span>
+
+            <div class="flex gap-3 text-sm">
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Regular: </span>
+                <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ week.schedule[day.key as keyof
+                  WeekSchedule].regularHours.toFixed(1) }}h</span>
+              </div>
+              <div v-if="week.schedule[day.key as keyof WeekSchedule].overtimeHours1 > 0">
+                <span class="text-gray-500 dark:text-gray-400">Extra 1.5x: </span>
+                <span class="font-semibold text-amber-600 dark:text-amber-400">{{ week.schedule[day.key as keyof
+                  WeekSchedule].overtimeHours1.toFixed(1) }}h</span>
+              </div>
+              <div v-if="week.schedule[day.key as keyof WeekSchedule].overtimeHours2 > 0">
+                <span class="text-gray-500 dark:text-gray-400">Extra 2x: </span>
+                <span class="font-semibold text-red-600 dark:text-red-400">{{ week.schedule[day.key as keyof
+                  WeekSchedule].overtimeHours2.toFixed(1) }}h</span>
+              </div>
             </div>
           </div>
         </div>

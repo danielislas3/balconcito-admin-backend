@@ -67,7 +67,7 @@ const handleDeleteEmployee = () => {
   if (!currentEmployee.value) return
 
   const name = currentEmployee.value.name
-  if (!confirm(`\u00BFEstás seguro de que quieres eliminar a ${name}?\n\nSe perderán todos sus horarios y no se puede deshacer.`)) {
+  if (!confirm(`¿Estás seguro de que quieres eliminar a ${name}?\n\nSe perderán todos sus horarios y no se puede deshacer.`)) {
     return
   }
 

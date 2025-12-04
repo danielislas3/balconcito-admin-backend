@@ -66,30 +66,38 @@ export interface PayrollSystemData {
 }
 
 // ===== CONFIGURACIÓN DE TARIFAS Y TURNOS =====
-// Estas constantes son fáciles de modificar para ajustar la lógica de pago
-const HOURS_PER_SHIFT = 9          // Horas de trabajo en un turno completo
+const HOURS_PER_SHIFT = 8          // Horas de trabajo en un turno completo (SIN incluir descanso)
 const BREAK_HOURS = 1              // Hora de descanso (no se incluye en el cálculo)
+const MIN_HOURS_FOR_BREAK = 5      // Mínimo de horas trabajadas para que se aplique el descanso
 const OVERTIME_TIER1_HOURS = 2     // Primeras N horas extra con tarifa 1.5x
 const OVERTIME_TIER1_RATE = 1.5    // Tarifa para primeras horas extra (150%)
 const OVERTIME_TIER2_RATE = 2.0    // Tarifa para horas extra después del tier 1 (200%)
 const STORAGE_KEY = 'payrollSystemDataVue'
 
 /**
- * CONFIGURACIÓN DE PAGOS - FÁCIL DE MODIFICAR
+ * CONFIGURACIÓN DE PAGOS 
  *
- * Para cambiar la lógica de pago, modifica estas constantes:
+ * 🎯 LÓGICA DEL DESCANSO:
+ * - Si trabajas MENOS de 5 horas: NO hay descanso, se pagan todas las horas
+ * - Si trabajas 5 horas o MÁS: el descanso de 1 hora es OBLIGATORIO y se descuenta
  *
- * - HOURS_PER_SHIFT: Horas trabajadas en un turno completo (9 horas)
- * - BREAK_HOURS: Horas de descanso no pagadas (1 hora)
- * - OVERTIME_TIER1_HOURS: Cuántas horas extra se pagan al 150% (2 horas)
- * - OVERTIME_TIER1_RATE: Multiplicador para primeras horas extra (1.5 = 150%)
- * - OVERTIME_TIER2_RATE: Multiplicador para horas extra adicionales (2.0 = 200%)
+ * Esto previene que empleados se vayan temprano para "evitar" el descanso
  *
- * Ejemplo:
- * Si trabajas 12 horas:
- * - 9 horas regulares al 100%
- * - 2 horas extra al 150%
- * - 1 hora extra al 200%
+ * 📊 EJEMPLO DE TURNOS:
+ *
+ * Turno corto (4h): 16:00-20:00 = 4h pagadas (sin descanso)
+ * Turno medio (6h): 16:00-23:00 = 6h pagadas (7h en local - 1h descanso)
+ * Turno completo: 16:00-01:00 = 8h pagadas (9h en local - 1h descanso) ✅
+ * Con overtime: 16:00-03:00 = 10h pagadas (11h en local - 1h descanso)
+ *   → 8h regulares + 2h extra al 150%
+ *
+ * 🔧 CONFIGURACIÓN:
+ * - HOURS_PER_SHIFT: Horas de un turno completo SIN descanso (8 horas)
+ * - BREAK_HOURS: Duración del descanso (1 hora)
+ * - MIN_HOURS_FOR_BREAK: Horas mínimas para aplicar descanso (5 horas)
+ * - OVERTIME_TIER1_HOURS: Horas extra al 150% (2 horas)
+ * - OVERTIME_TIER1_RATE: Multiplicador tier 1 (1.5 = 150%)
+ * - OVERTIME_TIER2_RATE: Multiplicador tier 2+ (2.0 = 200%)
  */
 
 export const usePayrollStore = defineStore('payroll', {
@@ -396,8 +404,10 @@ export const usePayrollStore = defineStore('payroll', {
       // Total de horas en el local (incluyendo descanso)
       const totalHoursInPlace = exitTime - entryTime
 
-      // Horas productivas (restando hora de descanso si trabajó más de HOURS_PER_SHIFT)
-      const hoursWorked = totalHoursInPlace > HOURS_PER_SHIFT
+      // 🎯 LÓGICA DE DESCANSO MEJORADA:
+      // Si trabajas 5+ horas, el descanso es OBLIGATORIO
+      // Esto previene que empleados se vayan antes para "evitar" el descanso
+      const hoursWorked = totalHoursInPlace >= MIN_HOURS_FOR_BREAK
         ? totalHoursInPlace - BREAK_HOURS
         : totalHoursInPlace
 

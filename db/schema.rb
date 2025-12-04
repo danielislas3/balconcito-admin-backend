@@ -251,6 +251,69 @@ zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
     t.index ["user_id"], name: "index_payment_methods_on_user_id"
   end
 
+  create_table "payroll_days", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.decimal "daily_pay", precision: 10, scale: 2, default: "0.0"
+    t.date "date", null: false
+    t.string "day_key", null: false
+    t.string "entry_hour"
+    t.string "entry_minute"
+    t.string "exit_hour"
+    t.string "exit_minute"
+    t.decimal "extra_hours", precision: 5, scale: 2, default: "0.0"
+    t.decimal "hours_worked", precision: 5, scale: 2, default: "0.0"
+    t.boolean "is_working", default: false
+    t.decimal "overtime_hours", precision: 5, scale: 2, default: "0.0"
+    t.integer "payroll_week_id", null: false
+    t.decimal "regular_hours", precision: 5, scale: 2, default: "0.0"
+    t.datetime "updated_at", null: false
+    t.index ["date"], name: "index_payroll_days_on_date"
+    t.index ["payroll_week_id", "day_key"], name: "index_payroll_days_on_payroll_week_id_and_day_key", unique: true
+    t.index ["payroll_week_id"], name: "index_payroll_days_on_payroll_week_id"
+  end
+
+  create_table "payroll_employees", force: :cascade do |t|
+    t.decimal "base_hourly_rate", precision: 10, scale: 2, default: "0.0", null: false
+    t.integer "break_hours", default: 1
+    t.datetime "created_at", null: false
+    t.string "currency", default: "MXN", null: false
+    t.string "employee_id", null: false
+    t.integer "hours_per_shift", default: 8
+    t.integer "min_hours_for_break", default: 5
+    t.string "name", null: false
+    t.integer "overtime_tier1_hours", default: 2
+    t.decimal "overtime_tier1_rate", precision: 5, scale: 2, default: "1.5"
+    t.decimal "overtime_tier2_rate", precision: 5, scale: 2, default: "2.0"
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.boolean "uses_overtime", default: true, null: false
+    t.boolean "uses_tips", default: false, null: false
+    t.index ["employee_id"], name: "index_payroll_employees_on_employee_id", unique: true
+    t.index ["name"], name: "index_payroll_employees_on_name"
+    t.index ["user_id"], name: "index_payroll_employees_on_user_id"
+  end
+
+  create_table "payroll_weeks", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.date "end_date", null: false
+    t.integer "payroll_employee_id", null: false
+    t.date "start_date", null: false
+    t.decimal "total_base_pay", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_extra_hours", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_hours", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_overtime_hours", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_pay", precision: 10, scale: 2, default: "0.0"
+    t.decimal "total_regular_hours", precision: 10, scale: 2, default: "0.0"
+    t.integer "total_shifts", default: 0
+    t.datetime "updated_at", null: false
+    t.string "week_id", null: false
+    t.decimal "weekly_tips", precision: 10, scale: 2, default: "0.0"
+    t.index ["payroll_employee_id", "week_id"], name: "index_payroll_weeks_on_payroll_employee_id_and_week_id", unique: true
+    t.index ["payroll_employee_id"], name: "index_payroll_weeks_on_payroll_employee_id"
+    t.index ["start_date"], name: "index_payroll_weeks_on_start_date"
+    t.index ["week_id"], name: "index_payroll_weeks_on_week_id"
+  end
+
   create_table "reimbursement_expenses", force: :cascade do |t|
     t.decimal "amount", precision: 15, scale: 2, null: false
     t.datetime "created_at", null: false
@@ -330,6 +393,9 @@ zActiveRecord::Schema[8.1].define(version: 2025_11_18_200000) do
   add_foreign_key "loyverse_receipts", "turn_closures"
   add_foreign_key "loyverse_shifts", "turn_closures"
   add_foreign_key "payment_methods", "users"
+  add_foreign_key "payroll_days", "payroll_weeks"
+  add_foreign_key "payroll_employees", "users"
+  add_foreign_key "payroll_weeks", "payroll_employees"
   add_foreign_key "reimbursement_expenses", "expenses", on_delete: :cascade
   add_foreign_key "reimbursement_expenses", "reimbursements", on_delete: :cascade
   add_foreign_key "reimbursements", "accounts", column: "from_account_id"

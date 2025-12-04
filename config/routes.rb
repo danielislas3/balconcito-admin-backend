@@ -43,6 +43,9 @@ Rails.application.routes.draw do
           member do
             patch :update_schedule
           end
+        end
+      end
+
       # Credit Cards & Debt
       resources :credit_cards do
         collection do

@@ -1,82 +1,204 @@
 namespace :loyverse do
-  desc "Sincronizar payment types desde Loyverse"
-  task sync_payment_types: :environment do
-    puts "🔄 Sincronizando payment types desde Loyverse..."
-
-    # TODO: Implementar cuando se agregue integración Loyverse API
-    # LoyverseService.sync_payment_types
-
-    puts "⚠️  Esta funcionalidad requiere integración con Loyverse API (Milestone 4)"
-    puts "   Por ahora, usa los payment methods que ya están en la base de datos"
-  end
-
-  desc "Sincronizar receipts desde Loyverse (uso: bin/rails loyverse:sync_receipts[2024-11-01,2024-11-18])"
+  desc "Sincronizar receipts de Loyverse para una fecha específica"
   task :sync_receipts, [:start_date, :end_date] => :environment do |t, args|
-    start_date = args[:start_date] || Date.today.beginning_of_month.to_s
-    end_date = args[:end_date] || Date.today.to_s
+    start_date = args[:start_date]&.to_date || Date.today
+    end_date = args[:end_date]&.to_date || start_date
 
-    puts "🔄 Sincronizando receipts desde Loyverse..."
-    puts "   Rango: #{start_date} a #{end_date}"
+    puts "🔄 Iniciando sincronización de Loyverse..."
+    puts "   Período: #{start_date} a #{end_date}"
 
-    # TODO: Implementar cuando se agregue integración Loyverse API
-    # LoyverseService.sync_receipts(start_date, end_date)
+    service = Loyverse::SyncService.new(start_date: start_date, end_date: end_date)
+    result = service.sync_receipts
 
-    puts "⚠️  Esta funcionalidad requiere integración con Loyverse API (Milestone 4)"
-    puts "   Por ahora, registra los cierres manualmente desde el frontend"
+    puts "\n✅ Sincronización completada:"
+    puts "   - Receipts sincronizados: #{result[:receipts_synced]}"
+    puts "   - TurnClosures creados: #{result[:turn_closures_created]}"
+
+    if result[:errors].any?
+      puts "\n⚠️  Errores (#{result[:errors].count}):"
+      result[:errors].each do |error|
+        puts "   - Receipt #{error[:receipt]}: #{error[:error]}"
+      end
+    end
   end
 
-  desc "Sincronización completa (payment types + receipts del mes actual)"
-  task full_sync: :environment do
-    puts "🔄 Iniciando sincronización completa con Loyverse..."
+  desc "Sincronizar payment types de Loyverse"
+  task sync_payment_types: :environment do
+    puts "🔄 Sincronizando payment types de Loyverse..."
 
-    # Sincronizar payment types
-    Rake::Task['loyverse:sync_payment_types'].invoke
+    service = Loyverse::SyncService.new
+    result = service.sync_payment_types
 
-    # Sincronizar receipts del mes actual
-    start_date = Date.today.beginning_of_month.to_s
-    end_date = Date.today.to_s
-    Rake::Task['loyverse:sync_receipts'].invoke(start_date, end_date)
+    puts "✅ Payment types sincronizados: #{result[:payment_types_count]}"
 
-    puts "✅ Sincronización completa finalizada"
+    puts "\nMappings creados:"
+    LoyversePaymentMapping.all.each do |mapping|
+      status = mapping.mapped? ? "✅ Mapeado" : "⚠️  Sin mapear"
+      method_name = mapping.payment_method&.name || "---"
+      puts "   #{status} #{mapping.loyverse_payment_name} (#{mapping.loyverse_payment_type}) → #{method_name}"
+    end
   end
 
-  desc "Verificar configuración de Loyverse API"
-  task check_config: :environment do
-    puts "🔍 Verificando configuración de Loyverse API..."
+  desc "Configurar token de API de Loyverse"
+  task :configure, [:api_token] => :environment do |t, args|
+    token = args[:api_token] || ENV['LOYVERSE_API_TOKEN']
 
-    api_token = ENV['LOYVERSE_API_TOKEN']
-
-    if api_token.present?
-      puts "✅ LOYVERSE_API_TOKEN configurado"
-      puts "   Token: #{api_token[0..10]}..."
-    else
-      puts "❌ LOYVERSE_API_TOKEN no configurado"
-      puts ""
-      puts "Para configurar:"
-      puts "  1. Obtén tu API token desde: https://r.loyverse.com/settings/api"
-      puts "  2. Agrega a .env: LOYVERSE_API_TOKEN=tu_token_aqui"
-      puts "  3. Reinicia el servidor"
+    if token.blank?
+      puts "❌ Error: Debes proporcionar un token de API"
+      puts "   Uso: rails loyverse:configure[tu_token]"
+      puts "   O: LOYVERSE_API_TOKEN=tu_token rails loyverse:configure"
+      exit 1
     end
 
-    puts ""
-    puts "📝 Nota: La integración completa con Loyverse está planificada para Milestone 4"
+    config = LoyverseConfig.instance
+    config.api_token = token
+    config.enable_sync!
+    config.save!
+
+    puts "✅ Token de Loyverse configurado correctamente"
+    puts "   Sync habilitado: #{config.sync_active?}"
   end
 
-  desc "Mostrar estadísticas de sincronización"
-  task stats: :environment do
-    puts "📊 Estadísticas de datos:"
+  desc "Probar conexión con API de Loyverse"
+  task test_connection: :environment do
+    puts "🔌 Probando conexión con Loyverse API..."
+
+    begin
+      client = Loyverse::Client.new
+      stores = client.get_stores
+
+      puts "✅ Conexión exitosa!"
+      puts "\nTiendas encontradas:"
+      stores['stores'].each do |store|
+        puts "   - #{store['name']} (#{store['id']})"
+      end
+
+      payment_types = client.get_payment_types
+      puts "\nPayment types encontrados:"
+      payment_types['payment_types'].each do |pt|
+        puts "   - #{pt['name']} (#{pt['type']})"
+      end
+    rescue => e
+      puts "❌ Error de conexión: #{e.message}"
+      exit 1
+    end
+  end
+
+  desc "Crear webhook en Loyverse"
+  task :create_webhook, [:url] => :environment do |t, args|
+    url = args[:url] || "#{ENV['APP_URL']}/api/v1/loyverse/webhooks"
+
+    if url.blank?
+      puts "❌ Error: Debes proporcionar una URL"
+      puts "   Uso: rails loyverse:create_webhook[https://tu-api.com/api/v1/loyverse/webhooks]"
+      exit 1
+    end
+
+    puts "🔌 Creando webhook en Loyverse..."
+    puts "   URL: #{url}"
+
+    begin
+      client = Loyverse::Client.new
+      events = [
+        LoyverseWebhookEvent::RECEIPT_CREATED,
+        LoyverseWebhookEvent::RECEIPT_UPDATED,
+        LoyverseWebhookEvent::SHIFT_CREATED
+      ]
+
+      result = client.create_webhook(url, events)
+
+      puts "✅ Webhook creado exitosamente!"
+      puts "   ID: #{result['id']}"
+      puts "   Eventos: #{events.join(', ')}"
+    rescue => e
+      puts "❌ Error: #{e.message}"
+      exit 1
+    end
+  end
+
+  desc "Listar webhooks configurados en Loyverse"
+  task list_webhooks: :environment do
+    puts "📋 Listando webhooks de Loyverse..."
+
+    begin
+      client = Loyverse::Client.new
+      webhooks = client.get_webhooks
+
+      if webhooks['webhooks'].empty?
+        puts "   No hay webhooks configurados"
+      else
+        webhooks['webhooks'].each do |webhook|
+          puts "\n   ID: #{webhook['id']}"
+          puts "   URL: #{webhook['url']}"
+          puts "   Eventos: #{webhook['events'].join(', ')}"
+          puts "   Activo: #{webhook['active']}"
+        end
+      end
+    rescue => e
+      puts "❌ Error: #{e.message}"
+      exit 1
+    end
+  end
+
+  desc "Sincronizar shifts (turnos de caja) de Loyverse"
+  task :sync_shifts, [:start_date, :end_date] => :environment do |t, args|
+    start_date = args[:start_date]&.to_date || 1.week.ago.to_date
+    end_date = args[:end_date]&.to_date || Date.today
+
+    puts "🔄 Iniciando sincronización de Shifts (turnos)..."
+    puts "   Período: #{start_date} a #{end_date}"
+
+    service = Loyverse::SyncService.new(start_date: start_date, end_date: end_date)
+    result = service.sync_shifts
+
+    puts "\n✅ Sincronización de shifts completada:"
+    puts "   - Shifts sincronizados: #{result[:shifts_synced]}"
+    puts "   - TurnClosures creados: #{result[:turn_closures_created]}"
+
+    if result[:errors].any?
+      puts "\n⚠️  Errores (#{result[:errors].count}):"
+      result[:errors].each do |error|
+        puts "   - Shift #{error[:shift]}: #{error[:error]}"
+      end
+    end
+  end
+
+  desc "Sincronizar solo receipts (sin crear TurnClosures)"
+  task :sync_receipts_only, [:start_date, :end_date] => :environment do |t, args|
+    start_date = args[:start_date]&.to_date || Date.today
+    end_date = args[:end_date]&.to_date || start_date
+
+    puts "🔄 Iniciando sincronización de Receipts (sin crear TurnClosures)..."
+    puts "   Período: #{start_date} a #{end_date}"
+
+    service = Loyverse::SyncService.new(start_date: start_date, end_date: end_date)
+    result = service.sync_receipts(create_turn_closures: false)
+
+    puts "\n✅ Sincronización de receipts completada:"
+    puts "   - Receipts sincronizados: #{result[:receipts_synced]}"
+
+    if result[:errors].any?
+      puts "\n⚠️  Errores (#{result[:errors].count}):"
+      result[:errors].each do |error|
+        puts "   - Receipt #{error[:receipt]}: #{error[:error]}"
+      end
+    end
+  end
+
+  desc "Sincronización completa (payment types + shifts de últimos 3 meses)"
+  task full_sync: :environment do
+    Rake::Task['loyverse:sync_payment_types'].invoke
+    puts "\n" + ("=" * 60) + "\n\n"
+
+    start_date = 3.months.ago.to_date
+    end_date = Date.today
+
+    # IMPORTANTE: Sincronizar SHIFTS, no receipts individuales
+    # Los shifts son los turnos de caja que deben crear TurnClosures
+    puts "ℹ️  NOTA: Sincronizando SHIFTS (turnos de caja), no receipts individuales"
+    puts "    Cada shift = 1 turno del mesero = 1 TurnClosure"
     puts ""
-    puts "Cierres de turno registrados: #{TurnClosure.count}"
-    puts "  - Este mes: #{TurnClosure.where('report_date >= ?', Date.today.beginning_of_month).count}"
-    puts "  - Esta semana: #{TurnClosure.where('report_date >= ?', Date.today.beginning_of_week).count}"
-    puts "  - Hoy: #{TurnClosure.where(report_date: Date.today).count}"
-    puts ""
-    puts "Gastos registrados: #{Expense.count}"
-    puts "  - Este mes: #{Expense.where('expense_date >= ?', Date.today.beginning_of_month).count}"
-    puts "  - Esta semana: #{Expense.where('expense_date >= ?', Date.today.beginning_of_week).count}"
-    puts "  - Hoy: #{Expense.where(expense_date: Date.today).count}"
-    puts ""
-    puts "Métodos de pago activos: #{PaymentMethod.where(is_active: true).count}"
-    puts "Reembolsos pendientes: #{Expense.pending_reimbursement.count} (Total: $#{Expense.pending_reimbursement.sum(:amount)})"
+
+    Rake::Task['loyverse:sync_shifts'].invoke(start_date, end_date)
   end
 end

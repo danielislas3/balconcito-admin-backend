@@ -11,9 +11,6 @@ class PayrollDay < ApplicationRecord
   before_save :calculate_day_totals, if: :schedule_changed?
   after_save :update_week_totals
 
-  # Prevenir override manual de campos calculados
-  attr_readonly :hours_worked, :regular_hours, :overtime_hours, :extra_hours, :daily_pay
-
   # Instance methods
   def to_schedule_hash
     {

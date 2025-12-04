@@ -27,10 +27,6 @@ class PayrollWeek < ApplicationRecord
   after_initialize :build_days, if: :new_record?
   before_save :calculate_totals
 
-  # Prevenir override manual de campos calculados
-  attr_readonly :total_hours, :total_regular_hours, :total_overtime_hours,
-                :total_extra_hours, :total_base_pay, :total_pay, :total_shifts
-
   # Instance methods
   def schedule
     days = {}

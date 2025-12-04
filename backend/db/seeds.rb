@@ -14,6 +14,7 @@ if Rails.env.development? || Rails.env.test?
   Reimbursement.destroy_all
   Expense.destroy_all
   TurnClosure.destroy_all
+  LoyversePaymentMapping.destroy_all
   PaymentMethod.destroy_all
   Account.destroy_all
   User.destroy_all

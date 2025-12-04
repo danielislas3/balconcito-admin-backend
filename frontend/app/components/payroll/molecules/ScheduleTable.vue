@@ -291,21 +291,28 @@ const availableTemplates = computed(() => {
           <div class="flex items-center gap-2 mb-1">
             <UIcon name="i-lucide-calendar-clock" class="size-5 text-emerald-600" />
             <h2 class="text-lg font-semibold">Horarios - {{ employeeName }}</h2>
+            <UPopover mode="hover">
+              <UButton icon="i-lucide-info" size="xs" color="blue" variant="ghost" />
+              <template #panel>
+                <div class="p-3 max-w-xs">
+                  <div class="flex items-start gap-2 mb-2">
+                    <UIcon name="i-lucide-coffee" class="size-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">Política de Descanso</p>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Si trabajas <strong>5 horas o más</strong>, se deduce automáticamente 1 hora de descanso obligatorio. Turnos menores a 5 horas no tienen descuento.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </UPopover>
           </div>
           <p class="text-sm text-gray-500">Semana del {{ formatDate(week.startDate) }}</p>
         </div>
 
-        <!-- Política de Descanso -->
-        <UAlert
-          color="blue"
-          variant="subtle"
-          icon="i-lucide-info"
-          title="Política de Descanso"
-          description="Si trabajas 5 horas o más, se deduce automáticamente 1 hora de descanso obligatorio. Turnos menores a 5 horas no tienen descuento."
-          class="mb-4" />
-
         <div
-          class="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800">
+          class="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800">
           <span
             class="text-xs uppercase tracking-wider font-semibold text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
             Quick Fill
@@ -329,16 +336,16 @@ const availableTemplates = computed(() => {
     </template>
 
     <!-- Day Cards - Compacto y Responsive -->
-    <div class="space-y-3">
+    <div class="space-y-2">
       <div v-for="day in payrollStore.days" :key="day.key" :class="[
-        'day-card p-4 rounded-lg border',
+        'day-card p-2 rounded-lg border',
         hasDayData(day.key)
           ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
           : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-700'
       ]">
 
         <!-- Header: Day + Actions -->
-        <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-3">
             <span class="text-2xl">{{ day.emoji }}</span>
             <div>
@@ -363,49 +370,47 @@ const availableTemplates = computed(() => {
         </div>
 
         <!-- Quick Presets -->
-        <div class="flex flex-wrap gap-2 mb-3">
+        <div class="flex flex-wrap gap-1 mb-2">
           <button v-for="preset in schedulePresets" :key="preset.label" @click="applyPreset(day.key, preset)"
-            class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-emerald-600 hover:text-white border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded transition-all"
+            class="px-2 py-1 text-xs font-medium bg-white dark:bg-gray-800 hover:bg-emerald-600 hover:text-white border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded transition-all"
             title="Quick fill">
             {{ preset.label }}
           </button>
         </div>
 
         <!-- Time Inputs - Responsive Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
           <!-- Entry Time -->
           <div>
-            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Entrada
             </label>
             <UInputTime :model-value="getEntryTime(day.key)" icon="i-lucide-clock"
-              @update:model-value="(value) => setEntryTime(day.key, value)" size="md" />
+              @update:model-value="(value) => setEntryTime(day.key, value)" size="sm" />
           </div>
 
           <!-- Exit Time -->
           <div>
-            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Salida
             </label>
             <UInputTime :model-value="getExitTime(day.key)" @update:model-value="(value) => setExitTime(day.key, value)"
-              icon="i-lucide-clock" size="md" />
+              icon="i-lucide-clock" size="sm" />
           </div>
         </div>
 
         <!-- Results - Responsive -->
         <div v-if="hasDayData(day.key)"
-          class="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          class="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
 
           <!-- Break Time Indicator -->
           <div v-if="isBreakDeducted(day.key)"
-            class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <UIcon name="i-lucide-coffee" class="size-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div class="text-xs text-blue-700 dark:text-blue-300">
-              <span class="font-semibold">Descanso obligatorio de 1h deducido</span>
-              <span class="block text-blue-600 dark:text-blue-400 mt-0.5">
-                {{ calculateHoursInPlace(day.key).toFixed(1) }}h en local → {{ week.schedule[day.key as keyof WeekSchedule].hoursWorked.toFixed(1) }}h pagadas
-              </span>
-            </div>
+            class="flex items-center gap-1.5 px-2 py-1 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
+            <UIcon name="i-lucide-coffee" class="size-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <span class="text-xs text-blue-700 dark:text-blue-300">
+              <span class="font-semibold">1h descanso</span> ·
+              {{ calculateHoursInPlace(day.key).toFixed(1) }}h → {{ week.schedule[day.key as keyof WeekSchedule].hoursWorked.toFixed(1) }}h pagadas
+            </span>
           </div>
 
           <div class="flex flex-wrap items-center gap-3">

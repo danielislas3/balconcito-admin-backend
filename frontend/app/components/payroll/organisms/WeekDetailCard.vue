@@ -1,32 +1,27 @@
 <script setup lang="ts">
-import type { Week, WeekSchedule } from '~/stores/payroll'
+import type { PayrollWeek, WeekSchedule } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 
 export interface WeekDetailCardProps {
-  week: Week
+  week: PayrollWeek
   currency?: string
 }
 
 const props = defineProps<WeekDetailCardProps>()
 const payrollStore = usePayrollStore()
+const dayjs = useDayjs()
 
 const weekTotals = computed(() => payrollStore.calculateWeekTotals(props.week))
 
 const formatWeekDisplay = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  return dayjs(dateStr).format('DD/MM/YYYY')
 }
 
 const formatMonth = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })
+  return dayjs(dateStr).format('MMMM YYYY')
 }
 
-const formatCurrency = (amount: number) => {
+const formatCurrency = (amount: number = 0) => {
   const symbol = props.currency === 'USD' ? '$' : props.currency === 'EUR' ? '€' : '$'
   return `${symbol}${amount.toFixed(2)}`
 }
@@ -62,10 +57,8 @@ const formatCurrency = (amount: number) => {
     <PayrollMoleculesWeekSummaryStats
       :total-hours="weekTotals.totalHours"
       :regular-hours="weekTotals.regularHours"
-      :overtime-hours1="weekTotals.overtimeHours1"
-      :overtime-hours2="weekTotals.overtimeHours2"
-      :total-shifts="weekTotals.totalShifts"
-      :total-extra-hours="weekTotals.totalExtraHours"
+      :overtime-hours="weekTotals.overtimeHours"
+      :extra-hours="weekTotals.extraHours"
       :total-tips="week.weeklyTips || 0"
       :currency="currency"
       class="mb-6 pb-6 border-b border-gray-200 dark:border-gray-700" />
@@ -97,7 +90,7 @@ const formatCurrency = (amount: number) => {
 
       <!-- Desglose de Pagos -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-        <!-- Pago Regular -->
+        <!-- Horas Regulares -->
         <div class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
           <div class="flex items-center justify-between">
             <div>
@@ -106,43 +99,45 @@ const formatCurrency = (amount: number) => {
                 {{ weekTotals.regularHours.toFixed(1) }}h × 100%
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Horas Extra Tier 1 -->
+        <div v-if="weekTotals.overtimeHours > 0" class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Horas Extra (Tier 1)</div>
+              <div class="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                {{ weekTotals.overtimeHours.toFixed(1) }}h
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Horas Extra Tier 2 -->
+        <div v-if="weekTotals.extraHours > 0" class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Horas Extra (Tier 2)</div>
+              <div class="text-sm font-semibold text-red-600 dark:text-red-400">
+                {{ weekTotals.extraHours.toFixed(1) }}h
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pago Base -->
+        <div class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Pago Base</div>
+              <div class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                Total de horas trabajadas
+              </div>
+            </div>
             <div class="text-right">
               <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {{ formatCurrency(weekTotals.regularPay) }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pago Extra 1.5x -->
-        <div v-if="weekTotals.overtimeHours1 > 0" class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Horas Extra (1.5x)</div>
-              <div class="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                {{ weekTotals.overtimeHours1.toFixed(1) }}h × 150%
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-lg font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                {{ formatCurrency(weekTotals.overtimePay1) }}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pago Extra 2x -->
-        <div v-if="weekTotals.overtimeHours2 > 0" class="p-4 bg-white/80 dark:bg-gray-800/80 rounded-xl">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Horas Extra (2x)</div>
-              <div class="text-sm font-semibold text-red-600 dark:text-red-400">
-                {{ weekTotals.overtimeHours2.toFixed(1) }}h × 200%
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-lg font-bold text-red-600 dark:text-red-400 tabular-nums">
-                {{ formatCurrency(weekTotals.overtimePay2) }}
+                {{ formatCurrency(weekTotals.totalBasePay) }}
               </div>
             </div>
           </div>

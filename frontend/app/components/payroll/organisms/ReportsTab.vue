@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { Employee } from '~/stores/payroll'
+import type { PayrollEmployee } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
 
 const emit = defineEmits<{
   'export-all': []
-  'export-employee': [employee: Employee]
+  'export-employee': [employee: PayrollEmployee]
   'view-employee': [employeeId: string]
 }>()
 

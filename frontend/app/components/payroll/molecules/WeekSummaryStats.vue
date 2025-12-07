@@ -2,10 +2,8 @@
 export interface WeekSummaryStatsProps {
   totalHours: number
   regularHours: number
-  overtimeHours1: number
-  overtimeHours2: number
-  totalShifts: number          // Deprecated pero mantenido para compatibilidad
-  totalExtraHours: number      // Deprecated pero mantenido para compatibilidad
+  overtimeHours: number  // Tier 1 overtime
+  extraHours: number     // Tier 2 overtime
   totalTips: number
   currency?: string
 }
@@ -37,22 +35,22 @@ const formatCurrency = (amount: number) => {
       <div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">100%</div>
     </div>
 
-    <!-- Overtime Hours Tier 1 (1.5x) -->
+    <!-- Overtime Hours Tier 1 -->
     <div class="text-center p-3 bg-amber-50 dark:bg-amber-950/20 rounded-xl">
       <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-        {{ overtimeHours1.toFixed(1) }}
+        {{ overtimeHours.toFixed(1) }}
       </div>
-      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra</div>
-      <div class="text-xs text-amber-600 dark:text-amber-400 font-semibold">150%</div>
+      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra T1</div>
+      <div class="text-xs text-amber-600 dark:text-amber-400 font-semibold">Tier 1</div>
     </div>
 
-    <!-- Overtime Hours Tier 2 (2x) -->
+    <!-- Overtime Hours Tier 2 -->
     <div class="text-center p-3 bg-red-50 dark:bg-red-950/20 rounded-xl">
       <div class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums">
-        {{ overtimeHours2.toFixed(1) }}
+        {{ extraHours.toFixed(1) }}
       </div>
-      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra</div>
-      <div class="text-xs text-red-600 dark:text-red-400 font-semibold">200%</div>
+      <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hrs Extra T2</div>
+      <div class="text-xs text-red-600 dark:text-red-400 font-semibold">Tier 2</div>
     </div>
 
     <!-- Tips -->

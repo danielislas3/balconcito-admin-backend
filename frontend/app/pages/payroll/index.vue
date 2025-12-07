@@ -103,12 +103,11 @@ const handleDeleteEmployee = async () => {
 
 // Funciones para semanas
 const handleCreateWeek = async () => {
-  // Calcular el siguiente lunes
-  const today = new Date()
-  const day = today.getDay()
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(today.setDate(diff))
-  const weekKey = monday.toISOString().split('T')[0]
+  // Calcular el siguiente lunes usando dayjs
+  const dayjs = useDayjs()
+  const today = dayjs()
+  const monday = today.day() === 1 ? today : today.day(1) // Si es lunes, usar hoy, sino ir al lunes de esta semana
+  const weekKey = monday.format('YYYY-MM-DD')
 
   const result = await payrollStore.createWeek(weekKey, 0)
 

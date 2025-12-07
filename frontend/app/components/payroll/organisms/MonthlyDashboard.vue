@@ -2,10 +2,11 @@
 import { usePayrollStore } from '~/stores/payroll'
 
 const payrollStore = usePayrollStore()
+const dayjs = useDayjs()
 
 // Estado para selección de mes
-const selectedYear = ref<number>(new Date().getFullYear())
-const selectedMonth = ref<number>(new Date().getMonth())
+const selectedYear = ref<number>(dayjs().year())
+const selectedMonth = ref<number>(dayjs().month())
 
 // Obtener meses disponibles
 const availableMonths = computed(() => payrollStore.getAvailableMonths())
@@ -23,18 +24,12 @@ const formatCurrency = (amount: number | undefined) => {
 
 // Formato de fecha
 const formatWeekDisplay = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  return dayjs(dateStr).format('DD/MM/YYYY')
 }
 
 // Nombre del mes actual
 const currentMonthLabel = computed(() => {
-  const date = new Date(selectedYear.value, selectedMonth.value)
-  return date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })
+  return dayjs().year(selectedYear.value).month(selectedMonth.value).format('MMMM YYYY')
 })
 
 // Auto-seleccionar el mes más reciente si hay datos
@@ -180,34 +175,34 @@ watchEffect(() => {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <!-- Regular Hours -->
           <div class="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl">
-            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Regulares (100%)</div>
-            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mb-2">
+            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Regulares</div>
+            <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
               {{ (monthlyStats.regularHours ?? 0).toFixed(1) }}h
             </div>
-            <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-              {{ formatCurrency(monthlyStats.regularPay) }}
+            <div class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-1">
+              100%
             </div>
           </div>
 
           <!-- Overtime Tier 1 -->
           <div class="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl">
-            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra (150%)</div>
-            <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums mb-2">
-              {{ (monthlyStats.overtimeHours1 ?? 0).toFixed(1) }}h
+            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra Tier 1</div>
+            <div class="text-3xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
+              {{ (monthlyStats.overtimeHours ?? 0).toFixed(1) }}h
             </div>
-            <div class="text-lg font-semibold text-amber-600 dark:text-amber-400">
-              {{ formatCurrency(monthlyStats.overtimePay1) }}
+            <div class="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-1">
+              Tier 1
             </div>
           </div>
 
           <!-- Overtime Tier 2 -->
           <div class="p-4 bg-red-50 dark:bg-red-950/20 rounded-xl">
-            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra (200%)</div>
-            <div class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums mb-2">
-              {{ (monthlyStats.overtimeHours2 ?? 0).toFixed(1) }}h
+            <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra Tier 2</div>
+            <div class="text-3xl font-bold text-red-600 dark:text-red-400 tabular-nums">
+              {{ (monthlyStats.extraHours ?? 0).toFixed(1) }}h
             </div>
-            <div class="text-lg font-semibold text-red-600 dark:text-red-400">
-              {{ formatCurrency(monthlyStats.overtimePay2) }}
+            <div class="text-xs text-red-600 dark:text-red-400 font-semibold mt-1">
+              Tier 2
             </div>
           </div>
         </div>

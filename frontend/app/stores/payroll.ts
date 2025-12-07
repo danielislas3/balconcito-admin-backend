@@ -151,12 +151,8 @@ export const usePayrollStore = defineStore('payroll', {
     },
 
     formatWeekDisplay(dateStr: string): string {
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })
+      const dayjs = useDayjs()
+      return dayjs(dateStr).format('DD/MM/YYYY')
     },
 
     // ===== API ACTIONS =====
@@ -453,9 +449,10 @@ export const usePayrollStore = defineStore('payroll', {
       const employee = this.currentEmployee
       if (!employee) return null
 
+      const dayjs = useDayjs()
       const weeksInMonth = employee.weeks.filter(week => {
-        const weekDate = new Date(week.startDate)
-        return weekDate.getFullYear() === year && weekDate.getMonth() === month
+        const weekDate = dayjs(week.startDate)
+        return weekDate.year() === year && weekDate.month() === month
       })
 
       if (weeksInMonth.length === 0) return null
@@ -497,18 +494,19 @@ export const usePayrollStore = defineStore('payroll', {
       const employee = this.currentEmployee
       if (!employee || employee.weeks.length === 0) return []
 
+      const dayjs = useDayjs()
       const monthsSet = new Set<string>()
 
       employee.weeks.forEach(week => {
-        const date = new Date(week.startDate)
-        const key = `${date.getFullYear()}-${date.getMonth()}`
+        const date = dayjs(week.startDate)
+        const key = `${date.year()}-${date.month()}`
         monthsSet.add(key)
       })
 
       const months = Array.from(monthsSet).map(key => {
         const [year, month] = key.split('-').map(Number)
-        const date = new Date(year, month)
-        const label = date.toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })
+        const date = dayjs().year(year).month(month)
+        const label = date.format('MMMM YYYY')
         return { year, month, label }
       })
 
@@ -522,8 +520,9 @@ export const usePayrollStore = defineStore('payroll', {
 
     // ===== EXPORT (client-side, uses backend data) =====
     exportAllEmployees(): void {
+      const dayjs = useDayjs()
       let exportText = `=== REPORTE GENERAL DE NÓMINAS ===\n`
-      exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n`
+      exportText += `Fecha de exportación: ${dayjs().format('DD/MM/YYYY')}\n`
       exportText += `Total de empleados: ${this.employees.length}\n\n`
 
       this.employees.forEach(employee => {
@@ -541,7 +540,7 @@ export const usePayrollStore = defineStore('payroll', {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `reporte_general_nominas_${new Date().toISOString().split('T')[0]}.txt`
+      a.download = `reporte_general_nominas_${dayjs().format('YYYY-MM-DD')}.txt`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -549,13 +548,14 @@ export const usePayrollStore = defineStore('payroll', {
     },
 
     exportEmployeeData(employee: PayrollEmployee): void {
+      const dayjs = useDayjs()
       const stats = this.calculateEmployeeStats(employee)
       const currency = this.currencySymbols[employee.settings.currency] || '$'
 
       let exportText = `=== REPORTE DE NÓMINA - ${employee.name.toUpperCase()} ===\n`
       exportText += `Tarifa por hora: ${currency}${employee.settings.baseHourlyRate}\n`
       exportText += `Moneda: ${employee.settings.currency}\n`
-      exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n\n`
+      exportText += `Fecha de exportación: ${dayjs().format('DD/MM/YYYY')}\n\n`
 
       exportText += `=== RESUMEN GENERAL ===\n`
       exportText += `Semanas registradas: ${stats.totalWeeks}\n`
@@ -564,7 +564,7 @@ export const usePayrollStore = defineStore('payroll', {
       exportText += `PAGO TOTAL: ${currency}${stats.totalPay.toFixed(2)}\n\n`
 
       exportText += `=== DETALLE POR SEMANAS ===\n`
-      employee.weeks.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()).forEach(week => {
+      employee.weeks.sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf()).forEach(week => {
         exportText += `\nSemana del ${this.formatWeekDisplay(week.startDate)}:\n`
 
         this.days.forEach(day => {
@@ -588,7 +588,7 @@ export const usePayrollStore = defineStore('payroll', {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `nomina_${employee.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.txt`
+      a.download = `nomina_${employee.name.replace(/\s+/g, '_')}_${dayjs().format('YYYY-MM-DD')}.txt`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

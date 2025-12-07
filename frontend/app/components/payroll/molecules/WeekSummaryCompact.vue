@@ -1,23 +1,19 @@
 <script setup lang="ts">
-import type { Week } from '~/stores/payroll'
+import type { PayrollWeek } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 
 export interface WeekSummaryCompactProps {
-  week: Week
+  week: PayrollWeek
   employeeName: string
   currency?: string
 }
 
 const props = defineProps<WeekSummaryCompactProps>()
 const payrollStore = usePayrollStore()
+const dayjs = useDayjs()
 
 const formatWeekDisplay = (dateStr: string) => {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  return dayjs(dateStr).format('DD/MM/YYYY')
 }
 
 const formatCurrency = (amount: number) => {

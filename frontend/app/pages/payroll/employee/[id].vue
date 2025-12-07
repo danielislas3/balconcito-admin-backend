@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Employee, Week, WeekSchedule } from '~/stores/payroll'
+import type { PayrollEmployee, PayrollWeek, WeekSchedule } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 
 definePageMeta({
@@ -11,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const payrollStore = usePayrollStore()
 const toast = useToast()
+const dayjs = useDayjs()
 
 // Get employee from route params
 const employeeId = route.params.id as string
@@ -34,7 +35,7 @@ watch(employee, (emp) => {
 const sortedWeeks = computed(() => {
   if (!employee.value) return []
   return [...employee.value.weeks].sort((a, b) =>
-    new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf()
   )
 })
 

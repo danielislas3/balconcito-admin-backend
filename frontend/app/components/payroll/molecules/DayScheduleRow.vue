@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { DaySchedule } from '~/stores/payroll'
+import type { DaySchedule } from '~/types/payroll'
 
 export interface DayScheduleRowProps {
   dayKey: string
@@ -22,19 +22,6 @@ const formatTime = (hour: string, minute: string) => {
 const hasDayData = computed(() => {
   return props.schedule.hoursWorked > 0 ||
          (props.schedule.entryHour && props.schedule.exitHour)
-})
-
-const getShiftStatus = computed(() => {
-  if (!hasDayData.value) {
-    return { label: 'Sin datos', color: 'neutral' as const }
-  }
-  if (props.schedule.completeShifts >= 1) {
-    return { label: 'Turno completo', color: 'success' as const }
-  }
-  if (props.schedule.hoursWorked > 0) {
-    return { label: 'Turno parcial', color: 'warning' as const }
-  }
-  return { label: 'Sin turno', color: 'neutral' as const }
 })
 
 const formatCurrency = (amount: number) => {
@@ -82,31 +69,22 @@ const formatCurrency = (amount: number) => {
           {{ schedule.regularHours.toFixed(1) }}h
         </div>
         <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Regular</div>
-        <div class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-          {{ formatCurrency(schedule.regularPay) }}
-        </div>
       </div>
 
-      <!-- Overtime Tier 1 (1.5x) -->
-      <div v-if="schedule.overtimeHours1 > 0" class="text-center p-3 bg-amber-50/80 dark:bg-amber-950/30 rounded-lg">
+      <!-- Overtime Tier 1 -->
+      <div v-if="schedule.overtimeHours > 0" class="text-center p-3 bg-amber-50/80 dark:bg-amber-950/30 rounded-lg">
         <div class="text-sm font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-          {{ schedule.overtimeHours1.toFixed(1) }}h
+          {{ schedule.overtimeHours.toFixed(1) }}h
         </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra 1.5x</div>
-        <div class="text-xs font-semibold text-amber-600 dark:text-amber-400">
-          {{ formatCurrency(schedule.overtimePay1) }}
-        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra T1</div>
       </div>
 
-      <!-- Overtime Tier 2 (2x) -->
-      <div v-if="schedule.overtimeHours2 > 0" class="text-center p-3 bg-red-50/80 dark:bg-red-950/30 rounded-lg">
+      <!-- Overtime Tier 2 -->
+      <div v-if="schedule.extraHours > 0" class="text-center p-3 bg-red-50/80 dark:bg-red-950/30 rounded-lg">
         <div class="text-sm font-bold text-red-600 dark:text-red-400 tabular-nums">
-          {{ schedule.overtimeHours2.toFixed(1) }}h
+          {{ schedule.extraHours.toFixed(1) }}h
         </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra 2x</div>
-        <div class="text-xs font-semibold text-red-600 dark:text-red-400">
-          {{ formatCurrency(schedule.overtimePay2) }}
-        </div>
+        <div class="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Extra T2</div>
       </div>
     </div>
 

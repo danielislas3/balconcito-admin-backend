@@ -10,12 +10,12 @@ console_command = '/rails/bin/rails console'
 [build]
 
 [env]
-  PORT = "3000"
+  PORT = "8080"
   RAILS_ENV = "production"
   RAILS_MAX_THREADS = "5"
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true

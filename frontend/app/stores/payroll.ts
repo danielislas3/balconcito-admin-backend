@@ -115,7 +115,8 @@ export const usePayrollStore = defineStore('payroll', {
 
       // Simply sum up values from backend-calculated schedule
       const totals = this.days.reduce((acc, day) => {
-        const dayData = this.currentWeek!.schedule[day.key as keyof WeekSchedule]
+        const dayData = this.currentWeek!.schedule?.[day.key as keyof WeekSchedule]
+        if (!dayData) return acc
         acc.totalHours += dayData.hoursWorked || 0
         acc.regularHours += dayData.regularHours || 0
         acc.overtimeHours += dayData.overtimeHours || 0

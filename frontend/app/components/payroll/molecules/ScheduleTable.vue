@@ -235,8 +235,29 @@ const toggleDaySelection = (dayKey: string) => {
 
 // Verificar si un día tiene datos
 const hasDayData = (dayKey: string) => {
-  const schedule = props.week.schedule[dayKey as keyof WeekSchedule]
+  const schedule = props.week.schedule?.[dayKey as keyof WeekSchedule]
+  if (!schedule) return false
   return schedule.hoursWorked > 0 || (schedule.entryHour && schedule.exitHour)
+}
+
+// Helper seguro para obtener el schedule de un día con valores por defecto
+const getDaySchedule = (dayKey: string): DaySchedule => {
+  const schedule = props.week.schedule?.[dayKey as keyof WeekSchedule]
+  if (!schedule) {
+    return {
+      entryHour: '',
+      entryMinute: '',
+      exitHour: '',
+      exitMinute: '',
+      hoursWorked: 0,
+      regularHours: 0,
+      overtimeHours: 0,
+      extraHours: 0,
+      dailyPay: 0,
+      isWorking: false
+    }
+  }
+  return schedule
 }
 </script>
 
@@ -311,7 +332,7 @@ const hasDayData = (dayKey: string) => {
             <div>
               <h3 class="font-semibold text-base text-gray-800 dark:text-gray-100">{{ day.name }}</h3>
               <p class="text-sm text-gray-600 dark:text-gray-400">
-                {{ week.schedule[day.key as keyof WeekSchedule].hoursWorked.toFixed(1) }}h trabajadas
+                {{ getDaySchedule(day.key).hoursWorked.toFixed(1) }}h trabajadas
               </p>
             </div>
           </div>
@@ -369,7 +390,7 @@ const hasDayData = (dayKey: string) => {
             <UIcon name="i-lucide-coffee" class="size-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
             <span class="text-xs text-blue-700 dark:text-blue-300">
               <span class="font-semibold">1h descanso</span> ·
-              {{ calculateHoursInPlace(day.key).toFixed(1) }}h → {{ week.schedule[day.key as keyof WeekSchedule].hoursWorked.toFixed(1) }}h pagadas
+              {{ calculateHoursInPlace(day.key).toFixed(1) }}h → {{ getDaySchedule(day.key).hoursWorked.toFixed(1) }}h pagadas
             </span>
           </div>
 
@@ -378,25 +399,22 @@ const hasDayData = (dayKey: string) => {
               class="px-3 py-2 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800">
               <div class="text-xs text-violet-600 dark:text-violet-400 font-semibold mb-0.5">Total</div>
               <div class="text-lg font-bold text-violet-600 dark:text-violet-400">
-                {{ payrollStore.formatCurrency(week.schedule[day.key as keyof WeekSchedule].dailyPay) }}
+                {{ payrollStore.formatCurrency(getDaySchedule(day.key).dailyPay) }}
               </div>
             </div>
 
             <div class="flex gap-3 text-sm">
               <div>
                 <span class="text-gray-500 dark:text-gray-400">Regular: </span>
-                <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ week.schedule[day.key as keyof
-                  WeekSchedule].regularHours.toFixed(1) }}h</span>
+                <span class="font-semibold text-emerald-600 dark:text-emerald-400">{{ getDaySchedule(day.key).regularHours.toFixed(1) }}h</span>
               </div>
-              <div v-if="week.schedule[day.key as keyof WeekSchedule].overtimeHours > 0">
+              <div v-if="getDaySchedule(day.key).overtimeHours > 0">
                 <span class="text-gray-500 dark:text-gray-400">Extra 1.5x: </span>
-                <span class="font-semibold text-amber-600 dark:text-amber-400">{{ week.schedule[day.key as keyof
-                  WeekSchedule].overtimeHours.toFixed(1) }}h</span>
+                <span class="font-semibold text-amber-600 dark:text-amber-400">{{ getDaySchedule(day.key).overtimeHours.toFixed(1) }}h</span>
               </div>
-              <div v-if="week.schedule[day.key as keyof WeekSchedule].extraHours > 0">
+              <div v-if="getDaySchedule(day.key).extraHours > 0">
                 <span class="text-gray-500 dark:text-gray-400">Extra 2x: </span>
-                <span class="font-semibold text-red-600 dark:text-red-400">{{ week.schedule[day.key as keyof
-                  WeekSchedule].extraHours.toFixed(1) }}h</span>
+                <span class="font-semibold text-red-600 dark:text-red-400">{{ getDaySchedule(day.key).extraHours.toFixed(1) }}h</span>
               </div>
             </div>
           </div>

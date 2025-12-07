@@ -15,11 +15,10 @@ const monthlyStats = computed(() => {
   return payrollStore.calculateMonthlyStats(selectedYear.value, selectedMonth.value)
 })
 
-// Formato de moneda
-const formatCurrency = (amount: number) => {
-  const currency = payrollStore.currentEmployee?.settings?.currency || 'MXN'
-  const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : '$'
-  return `${symbol}${amount.toFixed(2)}`
+// Formato de moneda (siempre MXN)
+const formatCurrency = (amount: number | undefined) => {
+  const value = amount ?? 0
+  return `$${value.toFixed(2)}`
 }
 
 // Formato de fecha
@@ -121,7 +120,7 @@ watchEffect(() => {
               <UIcon name="i-lucide-clock" class="size-8 text-blue-600 dark:text-blue-400" />
             </div>
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-              {{ monthlyStats.totalHours.toFixed(1) }}
+              {{ (monthlyStats.totalHours ?? 0).toFixed(1) }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Total Horas</div>
           </div>
@@ -134,7 +133,7 @@ watchEffect(() => {
               <UIcon name="i-lucide-calendar-days" class="size-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {{ monthlyStats.weeksCount }}
+              {{ monthlyStats.weeksCount ?? 0 }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Semanas</div>
           </div>
@@ -147,7 +146,7 @@ watchEffect(() => {
               <UIcon name="i-lucide-trending-up" class="size-8 text-amber-600 dark:text-amber-400" />
             </div>
             <div class="text-3xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-              {{ monthlyStats.avgHoursPerWeek.toFixed(1) }}
+              {{ (monthlyStats.avgHoursPerWeek ?? 0).toFixed(1) }}
             </div>
             <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">Hrs/Semana</div>
           </div>
@@ -183,7 +182,7 @@ watchEffect(() => {
           <div class="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl">
             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Regulares (100%)</div>
             <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mb-2">
-              {{ monthlyStats.regularHours.toFixed(1) }}h
+              {{ (monthlyStats.regularHours ?? 0).toFixed(1) }}h
             </div>
             <div class="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
               {{ formatCurrency(monthlyStats.regularPay) }}
@@ -194,7 +193,7 @@ watchEffect(() => {
           <div class="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl">
             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra (150%)</div>
             <div class="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums mb-2">
-              {{ monthlyStats.overtimeHours1.toFixed(1) }}h
+              {{ (monthlyStats.overtimeHours1 ?? 0).toFixed(1) }}h
             </div>
             <div class="text-lg font-semibold text-amber-600 dark:text-amber-400">
               {{ formatCurrency(monthlyStats.overtimePay1) }}
@@ -205,7 +204,7 @@ watchEffect(() => {
           <div class="p-4 bg-red-50 dark:bg-red-950/20 rounded-xl">
             <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Horas Extra (200%)</div>
             <div class="text-2xl font-bold text-red-600 dark:text-red-400 tabular-nums mb-2">
-              {{ monthlyStats.overtimeHours2.toFixed(1) }}h
+              {{ (monthlyStats.overtimeHours2 ?? 0).toFixed(1) }}h
             </div>
             <div class="text-lg font-semibold text-red-600 dark:text-red-400">
               {{ formatCurrency(monthlyStats.overtimePay2) }}
@@ -240,7 +239,7 @@ watchEffect(() => {
                     Semana del {{ formatWeekDisplay(week.startDate) }}
                   </div>
                   <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ payrollStore.calculateWeekTotals(week).totalHours.toFixed(1) }} horas trabajadas
+                    {{ (payrollStore.calculateWeekTotals(week).totalHours ?? 0).toFixed(1) }} horas trabajadas
                   </div>
                 </div>
               </div>
@@ -276,7 +275,7 @@ watchEffect(() => {
               {{ formatCurrency(monthlyStats.totalBasePay) }}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              {{ monthlyStats.totalHours.toFixed(1) }} horas totales
+              {{ (monthlyStats.totalHours ?? 0).toFixed(1) }} horas totales
             </div>
           </div>
 

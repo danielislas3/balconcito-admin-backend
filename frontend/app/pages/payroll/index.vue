@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 
 definePageMeta({
   layout: 'default',
-  requiresAuth: false,
+  requiresAuth: true,
   ssr: false  // Deshabilitar SSR porque ahora carga datos del backend via API
 })
 

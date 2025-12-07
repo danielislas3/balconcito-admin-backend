@@ -57,10 +57,15 @@ export const useAuth = () => {
     }
   }
 
+  const getToken = async () => {
+    return authStore.token
+  }
+
   return {
     login,
     logout,
     checkAuth,
+    getToken,
     user: computed(() => authStore.currentUser),
     isAuthenticated: computed(() => authStore.isAuthenticated),
     userRole: computed(() => authStore.userRole)

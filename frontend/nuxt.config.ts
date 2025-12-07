@@ -4,8 +4,15 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui',
     '@vueuse/nuxt',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    'dayjs-nuxt'
   ],
+
+  dayjs: {
+    locales: ['es'],
+    defaultLocale: 'es',
+    plugins: ['duration', 'isSameOrBefore', 'isSameOrAfter', 'customParseFormat']
+  },
 
   devtools: {
     enabled: true

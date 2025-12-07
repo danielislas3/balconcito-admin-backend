@@ -1,123 +1,80 @@
 import { defineStore } from 'pinia'
+import type { PayrollEmployee, PayrollWeek, DaySchedule, WeekSchedule, EmployeeSettings } from '~/types/payroll'
 
-export interface DaySchedule {
+// ===== LEGACY TYPES (for backwards compatibility with old localStorage data) =====
+interface LegacyDaySchedule {
   entryHour: string
   entryMinute: string
   exitHour: string
   exitMinute: string
-  hoursWorked: number
-  regularHours: number        // Horas regulares (hasta 9)
-  overtimeHours1: number      // Primeras 2 horas extra (1.5x)
-  overtimeHours2: number      // Horas extra después de 2 (2x)
-  completeShifts: number      // Deprecated: se mantiene para compatibilidad
-  extraHours: number          // Deprecated: se mantiene para compatibilidad
-  regularPay: number          // Pago por horas regulares
-  overtimePay1: number        // Pago por overtime nivel 1
-  overtimePay2: number        // Pago por overtime nivel 2
-  dailyPay: number            // Total del día
+  hoursWorked?: number
+  regularHours?: number
+  overtimeHours1?: number
+  overtimeHours2?: number
+  completeShifts?: number
+  extraHours?: number
+  regularPay?: number
+  overtimePay1?: number
+  overtimePay2?: number
+  dailyPay?: number
 }
 
-export interface WeekSchedule {
-  lunes: DaySchedule
-  martes: DaySchedule
-  miercoles: DaySchedule
-  jueves: DaySchedule
-  viernes: DaySchedule
-  sabado: DaySchedule
-  domingo: DaySchedule
+interface LegacyWeekSchedule {
+  lunes?: LegacyDaySchedule
+  martes?: LegacyDaySchedule
+  miercoles?: LegacyDaySchedule
+  jueves?: LegacyDaySchedule
+  viernes?: LegacyDaySchedule
+  sabado?: LegacyDaySchedule
+  domingo?: LegacyDaySchedule
 }
 
-export interface Week {
+interface LegacyWeek {
   id: string
   startDate: string
-  schedule: WeekSchedule
-  weeklyTips: number
-  saved: boolean
+  schedule?: LegacyWeekSchedule
+  weeklyTips?: number
+  saved?: boolean
 }
 
-export interface EmployeeSettings {
-  costPerTurn: number
-  currency: 'MXN' | 'USD' | 'EUR'
-}
-
-export interface Employee {
+interface LegacyEmployee {
   id: string
   name: string
-  weeks: Week[]
-  settings: EmployeeSettings
+  weeks?: LegacyWeek[]
+  settings?: {
+    costPerTurn?: number
+    currency?: 'MXN' | 'USD' | 'EUR'
+  }
 }
 
-export interface WeekTemplate {
-  id: string
-  name: string
-  description?: string
-  schedule: WeekSchedule
-  createdAt: string
-  employeeId: string
+interface LegacyPayrollSystemData {
+  employees?: LegacyEmployee[]
+  currentEmployeeId?: string
+  currentWeekId?: string
+  activeTab?: string
+  version?: string
+  weekTemplates?: any[]
 }
-
-export interface PayrollSystemData {
-  employees: Employee[]
-  currentEmployeeId: string
-  currentWeekId: string
-  activeTab: string
-  version: string
-  weekTemplates?: WeekTemplate[]
-}
-
-// ===== CONFIGURACIÓN DE TARIFAS Y TURNOS =====
-const HOURS_PER_SHIFT = 8          // Horas de trabajo en un turno completo (SIN incluir descanso)
-const BREAK_HOURS = 1              // Hora de descanso (no se incluye en el cálculo)
-const MIN_HOURS_FOR_BREAK = 5      // Mínimo de horas trabajadas para que se aplique el descanso
-const OVERTIME_TIER1_HOURS = 2     // Primeras N horas extra con tarifa 1.5x
-const OVERTIME_TIER1_RATE = 1.5    // Tarifa para primeras horas extra (150%)
-const OVERTIME_TIER2_RATE = 2.0    // Tarifa para horas extra después del tier 1 (200%)
-const STORAGE_KEY = 'payrollSystemDataVue'
-
-/**
- * CONFIGURACIÓN DE PAGOS 
- *
- * 🎯 LÓGICA DEL DESCANSO:
- * - Si trabajas MENOS de 5 horas: NO hay descanso, se pagan todas las horas
- * - Si trabajas 5 horas o MÁS: el descanso de 1 hora es OBLIGATORIO y se descuenta
- *
- * Esto previene que empleados se vayan temprano para "evitar" el descanso
- *
- * 📊 EJEMPLO DE TURNOS:
- *
- * Turno corto (4h): 16:00-20:00 = 4h pagadas (sin descanso)
- * Turno medio (6h): 16:00-23:00 = 6h pagadas (7h en local - 1h descanso)
- * Turno completo: 16:00-01:00 = 8h pagadas (9h en local - 1h descanso) ✅
- * Con overtime: 16:00-03:00 = 10h pagadas (11h en local - 1h descanso)
- *   → 8h regulares + 2h extra al 150%
- *
- * 🔧 CONFIGURACIÓN:
- * - HOURS_PER_SHIFT: Horas de un turno completo SIN descanso (8 horas)
- * - BREAK_HOURS: Duración del descanso (1 hora)
- * - MIN_HOURS_FOR_BREAK: Horas mínimas para aplicar descanso (5 horas)
- * - OVERTIME_TIER1_HOURS: Horas extra al 150% (2 horas)
- * - OVERTIME_TIER1_RATE: Multiplicador tier 1 (1.5 = 150%)
- * - OVERTIME_TIER2_RATE: Multiplicador tier 2+ (2.0 = 200%)
- */
 
 export const usePayrollStore = defineStore('payroll', {
   state: () => ({
-    employees: [] as Employee[],
+    employees: [] as PayrollEmployee[],
     currentEmployeeId: '',
     currentWeekId: '',
     activeTab: 'schedules' as string,
-    weekTemplates: [] as WeekTemplate[],
+    loading: false,
+    error: null as string | null,
 
-    // Constants
+    // UI Constants
     currencySymbols: { MXN: '$', USD: '$', EUR: '€' } as const,
     days: [
-      { key: 'lunes', name: 'Lunes', emoji: '📅' },
-      { key: 'martes', name: 'Martes', emoji: '📊' },
-      { key: 'miercoles', name: 'Miércoles', emoji: '📈' },
-      { key: 'jueves', name: 'Jueves', emoji: '📋' },
-      { key: 'viernes', name: 'Viernes', emoji: '📌' },
-      { key: 'sabado', name: 'Sábado', emoji: '🎯' },
-      { key: 'domingo', name: 'Domingo', emoji: '✨' }
+      { key: 'monday', name: 'Lunes', emoji: '📅' },
+      { key: 'tuesday', name: 'Martes', emoji: '📊' },
+      { key: 'wednesday', name: 'Miércoles', emoji: '📈' },
+      { key: 'thursday', name: 'Jueves', emoji: '📋' },
+      { key: 'friday', name: 'Viernes', emoji: '📌' },
+      { key: 'saturday', name: 'Sábado', emoji: '🎯' },
+      { key: 'sunday', name: 'Domingo', emoji: '✨' }
     ],
     hours: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
   }),
@@ -127,25 +84,21 @@ export const usePayrollStore = defineStore('payroll', {
       return state.employees.find(emp => emp.id === state.currentEmployeeId) || null
     },
 
-    currentEmployeeWeeks(): Week[] {
+    currentEmployeeWeeks(): PayrollWeek[] {
       return this.currentEmployee?.weeks || []
     },
 
-    currentWeek(): Week | null {
+    currentWeek(): PayrollWeek | null {
       if (!this.currentEmployee || !this.currentWeekId) return null
       return this.currentEmployee.weeks.find(week => week.id === this.currentWeekId) || null
     },
 
+    // Totals are now read-only from backend data
     weekTotals(): {
       totalHours: number
       regularHours: number
-      overtimeHours1: number
-      overtimeHours2: number
-      regularPay: number
-      overtimePay1: number
-      overtimePay2: number
-      totalShifts: number        // Deprecated
-      totalExtraHours: number    // Deprecated
+      overtimeHours: number  // Tier 1
+      extraHours: number     // Tier 2
       totalBasePay: number
       totalPay: number
     } {
@@ -153,48 +106,34 @@ export const usePayrollStore = defineStore('payroll', {
         return {
           totalHours: 0,
           regularHours: 0,
-          overtimeHours1: 0,
-          overtimeHours2: 0,
-          regularPay: 0,
-          overtimePay1: 0,
-          overtimePay2: 0,
-          totalShifts: 0,
-          totalExtraHours: 0,
+          overtimeHours: 0,
+          extraHours: 0,
           totalBasePay: 0,
           totalPay: 0
         }
       }
 
-      const baseTotals = this.days.reduce((totals, day) => {
+      // Simply sum up values from backend-calculated schedule
+      const totals = this.days.reduce((acc, day) => {
         const dayData = this.currentWeek!.schedule[day.key as keyof WeekSchedule]
-        totals.totalHours += dayData.hoursWorked
-        totals.regularHours += dayData.regularHours
-        totals.overtimeHours1 += dayData.overtimeHours1
-        totals.overtimeHours2 += dayData.overtimeHours2
-        totals.regularPay += dayData.regularPay
-        totals.overtimePay1 += dayData.overtimePay1
-        totals.overtimePay2 += dayData.overtimePay2
-        totals.totalShifts += dayData.completeShifts
-        totals.totalExtraHours += dayData.extraHours
-        totals.totalBasePay += dayData.dailyPay
-        return totals
+        acc.totalHours += dayData.hoursWorked || 0
+        acc.regularHours += dayData.regularHours || 0
+        acc.overtimeHours += dayData.overtimeHours || 0
+        acc.extraHours += dayData.extraHours || 0
+        acc.totalBasePay += dayData.dailyPay || 0
+        return acc
       }, {
         totalHours: 0,
         regularHours: 0,
-        overtimeHours1: 0,
-        overtimeHours2: 0,
-        regularPay: 0,
-        overtimePay1: 0,
-        overtimePay2: 0,
-        totalShifts: 0,
-        totalExtraHours: 0,
+        overtimeHours: 0,
+        extraHours: 0,
         totalBasePay: 0
       })
 
       const weeklyTips = this.currentWeek.weeklyTips || 0
-      const totalPay = baseTotals.totalBasePay + weeklyTips
+      const totalPay = totals.totalBasePay + weeklyTips
 
-      return { ...baseTotals, totalPay }
+      return { ...totals, totalPay }
     },
 
     totalWeeks: (state) => {
@@ -204,10 +143,6 @@ export const usePayrollStore = defineStore('payroll', {
 
   actions: {
     // ===== UTILITY ACTIONS =====
-    generateId(): string {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2)
-    },
-
     formatCurrency(amount: number, currency: string | null = null): string {
       const curr = currency || this.currentEmployee?.settings?.currency || 'MXN'
       const symbol = this.currencySymbols[curr as keyof typeof this.currencySymbols] || '$'
@@ -223,297 +158,290 @@ export const usePayrollStore = defineStore('payroll', {
       })
     },
 
-    getNextMonday(): Date {
-      const today = new Date()
-      const day = today.getDay()
-      const diff = today.getDate() - day + (day === 0 ? -6 : 1)
-      return new Date(today.setDate(diff))
-    },
+    // ===== API ACTIONS =====
+    async fetchEmployees() {
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        this.employees = await api.fetchEmployees()
 
-    createEmptyDaySchedule(): DaySchedule {
-      return {
-        entryHour: '',
-        entryMinute: '',
-        exitHour: '',
-        exitMinute: '',
-        hoursWorked: 0,
-        regularHours: 0,
-        overtimeHours1: 0,
-        overtimeHours2: 0,
-        completeShifts: 0,      // Deprecated
-        extraHours: 0,          // Deprecated
-        regularPay: 0,
-        overtimePay1: 0,
-        overtimePay2: 0,
-        dailyPay: 0
-      }
-    },
-
-    createEmptySchedule(): WeekSchedule {
-      const schedule: Partial<WeekSchedule> = {}
-      this.days.forEach(day => {
-        schedule[day.key as keyof WeekSchedule] = this.createEmptyDaySchedule()
-      })
-      return schedule as WeekSchedule
-    },
-
-    // ===== EMPLOYEE MANAGEMENT =====
-    // TODO: Convert to API call
-    addNewEmployee(name: string): { success: boolean; error?: string } {
-      const trimmedName = name.trim()
-
-      if (!trimmedName) {
-        return { success: false, error: 'El nombre del empleado es requerido' }
-      }
-
-      if (this.employees.some(emp => emp.name === trimmedName)) {
-        return { success: false, error: 'Este empleado ya existe' }
-      }
-
-      const newEmployee: Employee = {
-        id: this.generateId(),
-        name: trimmedName,
-        weeks: [],
-        settings: {
-          costPerTurn: 450,
-          currency: 'MXN'
+        // Set current employee if not set or invalid
+        if (!this.currentEmployeeId || !this.employees.find(e => e.id === this.currentEmployeeId)) {
+          this.currentEmployeeId = this.employees.length > 0 ? this.employees[0].id : ''
         }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al cargar empleados'
+        console.error('Error fetching employees:', error)
+      } finally {
+        this.loading = false
       }
-
-      this.employees.push(newEmployee)
-      this.currentEmployeeId = newEmployee.id
-      this.currentWeekId = ''
-
-      this.saveSystemData()
-      return { success: true }
     },
 
-    // TODO: Convert to API call
-    deleteCurrentEmployee(): { success: boolean; error?: string } {
-      if (!this.currentEmployee || this.employees.length <= 1) {
-        return { success: false, error: 'No puedes eliminar el último empleado del sistema' }
+    async createEmployee(name: string, baseHourlyRate: number, currency: string = 'MXN'): Promise<{ success: boolean; error?: string }> {
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        const newEmployee = await api.createEmployee({
+          name: name.trim(),
+          base_hourly_rate: baseHourlyRate,
+          currency
+        })
+
+        this.employees.push(newEmployee)
+        this.currentEmployeeId = newEmployee.id
+        this.currentWeekId = ''
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al crear empleado'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async updateEmployeeSettings(settings: Partial<EmployeeSettings>): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId) {
+        return { success: false, error: 'No hay empleado seleccionado' }
       }
 
-      const index = this.employees.findIndex(emp => emp.id === this.currentEmployeeId)
-      this.employees.splice(index, 1)
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        const updatedEmployee = await api.updateEmployee(this.currentEmployeeId, { settings })
 
-      this.currentEmployeeId = this.employees.length > 0 ? this.employees[0].id : ''
-      this.currentWeekId = ''
+        // Update local state
+        const index = this.employees.findIndex(e => e.id === this.currentEmployeeId)
+        if (index !== -1) {
+          this.employees[index] = updatedEmployee
+        }
 
-      this.saveSystemData()
-      return { success: true }
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al actualizar configuración'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteCurrentEmployee(): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId) {
+        return { success: false, error: 'No hay empleado seleccionado' }
+      }
+
+      if (this.employees.length <= 1) {
+        return { success: false, error: 'No puedes eliminar el último empleado' }
+      }
+
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        await api.deleteEmployee(this.currentEmployeeId)
+
+        // Remove from local state
+        const index = this.employees.findIndex(e => e.id === this.currentEmployeeId)
+        if (index !== -1) {
+          this.employees.splice(index, 1)
+        }
+
+        // Select first employee
+        this.currentEmployeeId = this.employees[0].id
+        this.currentWeekId = ''
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al eliminar empleado'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
     },
 
     onEmployeeChange(): void {
       this.currentWeekId = ''
-      this.saveSystemData()
     },
 
-    // ===== WEEK MANAGEMENT =====
-    // TODO: Convert to API call
-    createNewWeek(): { success: boolean; error?: string } {
-      if (!this.currentEmployee) {
-        return { success: false, error: 'Primero selecciona o crea un empleado' }
+    async createWeek(startDate: string, weeklyTips: number = 0): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId) {
+        return { success: false, error: 'No hay empleado seleccionado' }
       }
 
-      const monday = this.getNextMonday()
-      const weekKey = monday.toISOString().split('T')[0]
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        const newWeek = await api.createWeek(this.currentEmployeeId, {
+          start_date: startDate,
+          weekly_tips: weeklyTips
+        })
 
-      if (this.currentEmployee.weeks.some(week => week.startDate === weekKey)) {
-        return { success: false, error: 'Esta semana ya existe para este empleado' }
-      }
-
-      const newWeek: Week = {
-        id: this.generateId(),
-        startDate: weekKey,
-        schedule: this.createEmptySchedule(),
-        weeklyTips: 0,
-        saved: false
-      }
-
-      this.currentEmployee.weeks.push(newWeek)
-      this.currentWeekId = newWeek.id
-
-      this.saveSystemData()
-      return { success: true }
-    },
-
-    // TODO: Convert to API call
-    saveCurrentWeek(): void {
-      if (!this.currentWeek) return
-
-      this.currentWeek.saved = true
-      this.saveSystemData()
-    },
-
-    onWeekChange(): void {
-      this.saveSystemData()
-    },
-
-    onSettingsChange(): void {
-      if (!this.currentEmployee || !this.currentWeek) return
-
-      // Recalcular todos los días con la nueva configuración
-      this.days.forEach(day => this.calculateDay(day.key as keyof WeekSchedule))
-      this.saveSystemData()
-    },
-
-    // ===== SCHEDULE CALCULATIONS =====
-    /**
-     * Calcula el pago diario con lógica escalonada de horas extra
-     *
-     * LÓGICA DE CÁLCULO:
-     * 1. Calcula horas trabajadas (entrada a salida, incluyendo descanso)
-     * 2. Resta hora de descanso para obtener horas productivas
-     * 3. Primeras 9 horas = horas regulares (100%)
-     * 4. Siguientes 2 horas = overtime tier 1 (150%)
-     * 5. Horas adicionales = overtime tier 2 (200%)
-     *
-     * @param dayKey - Día de la semana a calcular
-     */
-    calculateDay(dayKey: keyof WeekSchedule): void {
-      if (!this.currentWeek) return
-
-      const dayData = this.currentWeek.schedule[dayKey]
-      const { entryHour, entryMinute, exitHour, exitMinute } = dayData
-
-      // Si no hay datos de entrada/salida, limpiar todo
-      if (!entryHour || !entryMinute || !exitHour || !exitMinute) {
-        dayData.hoursWorked = 0
-        dayData.regularHours = 0
-        dayData.overtimeHours1 = 0
-        dayData.overtimeHours2 = 0
-        dayData.completeShifts = 0
-        dayData.extraHours = 0
-        dayData.regularPay = 0
-        dayData.overtimePay1 = 0
-        dayData.overtimePay2 = 0
-        dayData.dailyPay = 0
-        return
-      }
-
-      // Convertir horas y minutos a decimal
-      const entryTime = parseInt(entryHour) + parseInt(entryMinute) / 60
-      let exitTime = parseInt(exitHour) + parseInt(exitMinute) / 60
-
-      // Manejar turnos nocturnos (que cruzan medianoche)
-      if (exitTime <= entryTime) {
-        exitTime += 24
-      }
-
-      // Total de horas en el local (incluyendo descanso)
-      const totalHoursInPlace = exitTime - entryTime
-
-      // 🎯 LÓGICA DE DESCANSO MEJORADA:
-      // Si trabajas 5+ horas, el descanso es OBLIGATORIO
-      // Esto previene que empleados se vayan antes para "evitar" el descanso
-      const hoursWorked = totalHoursInPlace >= MIN_HOURS_FOR_BREAK
-        ? totalHoursInPlace - BREAK_HOURS
-        : totalHoursInPlace
-
-      // Calcular tarifas
-      const costPerHour = (this.currentEmployee?.settings?.costPerTurn || 450) / HOURS_PER_SHIFT
-
-      // Desglosar horas por categoría
-      let regularHours = 0
-      let overtimeHours1 = 0
-      let overtimeHours2 = 0
-
-      if (hoursWorked <= HOURS_PER_SHIFT) {
-        // Solo horas regulares
-        regularHours = hoursWorked
-      } else {
-        // Horas regulares completas
-        regularHours = HOURS_PER_SHIFT
-        const remainingHours = hoursWorked - HOURS_PER_SHIFT
-
-        if (remainingHours <= OVERTIME_TIER1_HOURS) {
-          // Solo overtime tier 1
-          overtimeHours1 = remainingHours
-        } else {
-          // Overtime tier 1 completo + tier 2
-          overtimeHours1 = OVERTIME_TIER1_HOURS
-          overtimeHours2 = remainingHours - OVERTIME_TIER1_HOURS
+        // Add to local state
+        const employee = this.employees.find(e => e.id === this.currentEmployeeId)
+        if (employee) {
+          employee.weeks.push(newWeek)
+          this.currentWeekId = newWeek.id
         }
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al crear semana'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
       }
-
-      // Calcular pagos por categoría
-      const regularPay = regularHours * costPerHour
-      const overtimePay1 = overtimeHours1 * costPerHour * OVERTIME_TIER1_RATE
-      const overtimePay2 = overtimeHours2 * costPerHour * OVERTIME_TIER2_RATE
-      const dailyPay = regularPay + overtimePay1 + overtimePay2
-
-      // Actualizar datos del día
-      dayData.hoursWorked = hoursWorked
-      dayData.regularHours = regularHours
-      dayData.overtimeHours1 = overtimeHours1
-      dayData.overtimeHours2 = overtimeHours2
-      dayData.regularPay = regularPay
-      dayData.overtimePay1 = overtimePay1
-      dayData.overtimePay2 = overtimePay2
-      dayData.dailyPay = dailyPay
-
-      // Mantener valores deprecated para compatibilidad con datos antiguos
-      dayData.completeShifts = Math.floor(hoursWorked / HOURS_PER_SHIFT)
-      dayData.extraHours = Math.max(0, hoursWorked - HOURS_PER_SHIFT)
-
-      this.saveSystemData()
     },
 
-    // ===== REPORTS =====
-    calculateWeekTotals(week: Week) {
-      const baseTotals = this.days.reduce((totals, day) => {
+    async updateDaySchedule(dayKey: keyof WeekSchedule, schedule: Partial<DaySchedule>): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId || !this.currentWeekId) {
+        return { success: false, error: 'No hay empleado o semana seleccionada' }
+      }
+
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+
+        // IMPORTANT: Only send raw schedule data (entry/exit times, isWorking)
+        // Backend will calculate all other values
+        const rawSchedule = {
+          entryHour: schedule.entryHour,
+          entryMinute: schedule.entryMinute,
+          exitHour: schedule.exitHour,
+          exitMinute: schedule.exitMinute,
+          isWorking: schedule.isWorking ?? true
+        }
+
+        const updatedWeek = await api.updateWeekSchedule(
+          this.currentEmployeeId,
+          this.currentWeekId,
+          { [dayKey]: rawSchedule }
+        )
+
+        // Update local state with backend-calculated values
+        const employee = this.employees.find(e => e.id === this.currentEmployeeId)
+        if (employee) {
+          const weekIndex = employee.weeks.findIndex(w => w.id === this.currentWeekId)
+          if (weekIndex !== -1) {
+            employee.weeks[weekIndex] = updatedWeek
+          }
+        }
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al actualizar horario'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async updateWeeklyTips(tips: number): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId || !this.currentWeekId) {
+        return { success: false, error: 'No hay empleado o semana seleccionada' }
+      }
+
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        const updatedWeek = await api.updateWeek(
+          this.currentEmployeeId,
+          this.currentWeekId,
+          { weekly_tips: tips }
+        )
+
+        // Update local state
+        const employee = this.employees.find(e => e.id === this.currentEmployeeId)
+        if (employee) {
+          const weekIndex = employee.weeks.findIndex(w => w.id === this.currentWeekId)
+          if (weekIndex !== -1) {
+            employee.weeks[weekIndex] = updatedWeek
+          }
+        }
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al actualizar propinas'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async deleteCurrentWeek(): Promise<{ success: boolean; error?: string }> {
+      if (!this.currentEmployeeId || !this.currentWeekId) {
+        return { success: false, error: 'No hay empleado o semana seleccionada' }
+      }
+
+      this.loading = true
+      this.error = null
+      try {
+        const api = usePayrollApi()
+        await api.deleteWeek(this.currentEmployeeId, this.currentWeekId)
+
+        // Remove from local state
+        const employee = this.employees.find(e => e.id === this.currentEmployeeId)
+        if (employee) {
+          const weekIndex = employee.weeks.findIndex(w => w.id === this.currentWeekId)
+          if (weekIndex !== -1) {
+            employee.weeks.splice(weekIndex, 1)
+          }
+        }
+
+        this.currentWeekId = ''
+
+        return { success: true }
+      } catch (error: any) {
+        this.error = error?.message || 'Error al eliminar semana'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // ===== REPORTS (read-only, based on backend data) =====
+    calculateWeekTotals(week: PayrollWeek) {
+      const totals = this.days.reduce((acc, day) => {
         const dayData = week.schedule[day.key as keyof WeekSchedule]
-        totals.totalHours += dayData.hoursWorked || 0
-        totals.regularHours += dayData.regularHours || 0
-        totals.overtimeHours1 += dayData.overtimeHours1 || 0
-        totals.overtimeHours2 += dayData.overtimeHours2 || 0
-        totals.regularPay += dayData.regularPay || 0
-        totals.overtimePay1 += dayData.overtimePay1 || 0
-        totals.overtimePay2 += dayData.overtimePay2 || 0
-        totals.totalShifts += dayData.completeShifts || 0
-        totals.totalExtraHours += dayData.extraHours || 0
-        totals.totalBasePay += dayData.dailyPay || 0
-        return totals
+        acc.totalHours += dayData.hoursWorked || 0
+        acc.regularHours += dayData.regularHours || 0
+        acc.overtimeHours += dayData.overtimeHours || 0
+        acc.extraHours += dayData.extraHours || 0
+        acc.totalBasePay += dayData.dailyPay || 0
+        return acc
       }, {
         totalHours: 0,
         regularHours: 0,
-        overtimeHours1: 0,
-        overtimeHours2: 0,
-        regularPay: 0,
-        overtimePay1: 0,
-        overtimePay2: 0,
-        totalShifts: 0,
-        totalExtraHours: 0,
+        overtimeHours: 0,
+        extraHours: 0,
         totalBasePay: 0
       })
 
       const weeklyTips = week.weeklyTips || 0
-      const totalPay = baseTotals.totalBasePay + weeklyTips
+      const totalPay = totals.totalBasePay + weeklyTips
 
-      return { ...baseTotals, totalPay }
+      return { ...totals, totalPay }
     },
 
-    calculateEmployeeStats(employee: Employee) {
+    calculateEmployeeStats(employee: PayrollEmployee) {
       let totalWeeksCount = employee.weeks.length
       let totalHours = 0
-      let totalShifts = 0
       let totalPay = 0
 
       employee.weeks.forEach(week => {
-        this.days.forEach(day => {
-          const dayData = week.schedule[day.key as keyof WeekSchedule]
-          totalHours += dayData.hoursWorked || 0
-          totalShifts += dayData.completeShifts || 0
-          totalPay += dayData.dailyPay || 0
-        })
-        totalPay += week.weeklyTips || 0
+        const weekTotals = this.calculateWeekTotals(week)
+        totalHours += weekTotals.totalHours
+        totalPay += weekTotals.totalPay
       })
 
       return {
         totalWeeks: totalWeeksCount,
         totalHours,
-        totalShifts,
         totalPay,
         avgHoursPerWeek: totalWeeksCount > 0 ? (totalHours / totalWeeksCount) : 0
       }
@@ -524,7 +452,6 @@ export const usePayrollStore = defineStore('payroll', {
       const employee = this.currentEmployee
       if (!employee) return null
 
-      // Filtrar semanas del mes especificado
       const weeksInMonth = employee.weeks.filter(week => {
         const weekDate = new Date(week.startDate)
         return weekDate.getFullYear() === year && weekDate.getMonth() === month
@@ -532,17 +459,13 @@ export const usePayrollStore = defineStore('payroll', {
 
       if (weeksInMonth.length === 0) return null
 
-      // Calcular totales del mes
       const monthlyTotals = weeksInMonth.reduce((totals, week) => {
         const weekTotals = this.calculateWeekTotals(week)
 
         totals.totalHours += weekTotals.totalHours
         totals.regularHours += weekTotals.regularHours
-        totals.overtimeHours1 += weekTotals.overtimeHours1
-        totals.overtimeHours2 += weekTotals.overtimeHours2
-        totals.regularPay += weekTotals.regularPay
-        totals.overtimePay1 += weekTotals.overtimePay1
-        totals.overtimePay2 += weekTotals.overtimePay2
+        totals.overtimeHours += weekTotals.overtimeHours
+        totals.extraHours += weekTotals.extraHours
         totals.totalTips += week.weeklyTips || 0
         totals.totalBasePay += weekTotals.totalBasePay
         totals.totalPay += weekTotals.totalPay
@@ -551,11 +474,8 @@ export const usePayrollStore = defineStore('payroll', {
       }, {
         totalHours: 0,
         regularHours: 0,
-        overtimeHours1: 0,
-        overtimeHours2: 0,
-        regularPay: 0,
-        overtimePay1: 0,
-        overtimePay2: 0,
+        overtimeHours: 0,
+        extraHours: 0,
         totalTips: 0,
         totalBasePay: 0,
         totalPay: 0
@@ -591,7 +511,6 @@ export const usePayrollStore = defineStore('payroll', {
         return { year, month, label }
       })
 
-      // Ordenar por fecha descendente (más reciente primero)
       months.sort((a, b) => {
         if (a.year !== b.year) return b.year - a.year
         return b.month - a.month
@@ -600,133 +519,7 @@ export const usePayrollStore = defineStore('payroll', {
       return months
     },
 
-    // ===== WEEK TEMPLATES =====
-    saveWeekAsTemplate(weekId: string, name: string, description?: string): WeekTemplate | null {
-      const employee = this.currentEmployee
-      if (!employee) return null
-
-      const week = employee.weeks.find(w => w.id === weekId)
-      if (!week) return null
-
-      // Crear una copia profunda del schedule
-      const scheduleCopy = JSON.parse(JSON.stringify(week.schedule)) as WeekSchedule
-
-      const template: WeekTemplate = {
-        id: `template-${Date.now()}`,
-        name,
-        description,
-        schedule: scheduleCopy,
-        createdAt: new Date().toISOString(),
-        employeeId: employee.id
-      }
-
-      this.weekTemplates.push(template)
-      this.saveSystemData()
-
-      return template
-    },
-
-    loadTemplateToWeek(templateId: string, weekId: string): boolean {
-      const template = this.weekTemplates.find(t => t.id === templateId)
-      if (!template) return false
-
-      const employee = this.currentEmployee
-      if (!employee) return false
-
-      const week = employee.weeks.find(w => w.id === weekId)
-      if (!week) return false
-
-      // Copiar el schedule de la plantilla a la semana
-      const scheduleCopy = JSON.parse(JSON.stringify(template.schedule)) as WeekSchedule
-
-      // Actualizar cada día y recalcular
-      this.days.forEach(day => {
-        const dayKey = day.key as keyof WeekSchedule
-        week.schedule[dayKey] = scheduleCopy[dayKey]
-        this.calculateDay(dayKey)
-      })
-
-      this.saveSystemData()
-      return true
-    },
-
-    deleteTemplate(templateId: string): boolean {
-      const index = this.weekTemplates.findIndex(t => t.id === templateId)
-      if (index === -1) return false
-
-      this.weekTemplates.splice(index, 1)
-      this.saveSystemData()
-      return true
-    },
-
-    // ===== EXPORT / IMPORT =====
-    // TODO: These will remain client-side but data will come from API
-    exportSystemData(): void {
-      const systemData: PayrollSystemData = {
-        employees: this.employees,
-        weekTemplates: this.weekTemplates,
-        version: 'Vue 3.0',
-        exportDate: new Date().toISOString(),
-        currentEmployeeId: this.currentEmployeeId,
-        currentWeekId: this.currentWeekId,
-        activeTab: this.activeTab
-      } as any
-
-      const dataStr = JSON.stringify(systemData, null, 2)
-      const blob = new Blob([dataStr], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `sistema_nomina_${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    },
-
-    async importSystemData(file: File): Promise<{ success: boolean; error?: string }> {
-      return new Promise((resolve) => {
-        const reader = new FileReader()
-
-        reader.onload = (e) => {
-          try {
-            const content = e.target?.result as string
-            const data = JSON.parse(content) as PayrollSystemData
-
-            // Validar estructura básica
-            if (!data.employees || !Array.isArray(data.employees)) {
-              resolve({ success: false, error: 'Archivo inválido: falta estructura de empleados' })
-              return
-            }
-
-            // Importar datos
-            this.employees = data.employees
-
-            // Si no hay currentEmployeeId o no es válido, seleccionar el primero
-            if (!data.currentEmployeeId || !this.employees.find(e => e.id === data.currentEmployeeId)) {
-              this.currentEmployeeId = this.employees.length > 0 ? this.employees[0].id : ''
-            } else {
-              this.currentEmployeeId = data.currentEmployeeId
-            }
-
-            this.currentWeekId = data.currentWeekId || ''
-            this.activeTab = data.activeTab || 'schedules'
-
-            this.saveSystemData()
-            resolve({ success: true })
-          } catch (error) {
-            resolve({ success: false, error: 'Error al leer el archivo. Verifica que sea un archivo JSON válido.' })
-          }
-        }
-
-        reader.onerror = () => {
-          resolve({ success: false, error: 'Error al leer el archivo' })
-        }
-
-        reader.readAsText(file)
-      })
-    },
-
+    // ===== EXPORT (client-side, uses backend data) =====
     exportAllEmployees(): void {
       let exportText = `=== REPORTE GENERAL DE NÓMINAS ===\n`
       exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n`
@@ -739,7 +532,6 @@ export const usePayrollStore = defineStore('payroll', {
         exportText += `=== ${employee.name.toUpperCase()} ===\n`
         exportText += `Semanas registradas: ${stats.totalWeeks}\n`
         exportText += `Total de horas: ${stats.totalHours.toFixed(1)}\n`
-        exportText += `Total de turnos: ${stats.totalShifts}\n`
         exportText += `Promedio horas/semana: ${stats.avgHoursPerWeek.toFixed(1)}\n`
         exportText += `PAGO TOTAL: ${currency}${stats.totalPay.toFixed(2)}\n\n`
       })
@@ -755,19 +547,18 @@ export const usePayrollStore = defineStore('payroll', {
       URL.revokeObjectURL(url)
     },
 
-    exportEmployeeData(employee: Employee): void {
+    exportEmployeeData(employee: PayrollEmployee): void {
       const stats = this.calculateEmployeeStats(employee)
       const currency = this.currencySymbols[employee.settings.currency] || '$'
 
       let exportText = `=== REPORTE DE NÓMINA - ${employee.name.toUpperCase()} ===\n`
-      exportText += `Costo por turno: ${currency}${employee.settings.costPerTurn}\n`
+      exportText += `Tarifa por hora: ${currency}${employee.settings.baseHourlyRate}\n`
       exportText += `Moneda: ${employee.settings.currency}\n`
       exportText += `Fecha de exportación: ${new Date().toLocaleDateString()}\n\n`
 
       exportText += `=== RESUMEN GENERAL ===\n`
       exportText += `Semanas registradas: ${stats.totalWeeks}\n`
       exportText += `Total de horas: ${stats.totalHours.toFixed(1)}\n`
-      exportText += `Total de turnos: ${stats.totalShifts}\n`
       exportText += `Promedio horas/semana: ${stats.avgHoursPerWeek.toFixed(1)}\n`
       exportText += `PAGO TOTAL: ${currency}${stats.totalPay.toFixed(2)}\n\n`
 
@@ -783,7 +574,7 @@ export const usePayrollStore = defineStore('payroll', {
             const exit = dayData.exitHour && dayData.exitMinute ?
               `${dayData.exitHour}:${dayData.exitMinute}` : '--:--'
 
-            exportText += `  ${day.name}: ${entry} - ${exit} | ${dayData.hoursWorked.toFixed(1)}hrs | ${dayData.completeShifts} turnos | ${currency}${dayData.dailyPay.toFixed(2)}\n`
+            exportText += `  ${day.name}: ${entry} - ${exit} | ${dayData.hoursWorked.toFixed(1)}hrs | ${currency}${dayData.dailyPay.toFixed(2)}\n`
           }
         })
 
@@ -801,72 +592,6 @@ export const usePayrollStore = defineStore('payroll', {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    },
-
-    // TODO: Convert to API call
-    clearAllSystemData(): void {
-      this.employees = []
-      this.currentEmployeeId = ''
-      this.currentWeekId = ''
-      this.saveSystemData()
-    },
-
-    // ===== PERSISTENCE (will be replaced with API calls) =====
-    // TODO: Replace with API fetch
-    saveSystemData(): void {
-      const systemData: PayrollSystemData = {
-        employees: this.employees,
-        currentEmployeeId: this.currentEmployeeId,
-        currentWeekId: this.currentWeekId,
-        activeTab: this.activeTab,
-        version: 'Vue 3.0',
-        weekTemplates: this.weekTemplates
-      }
-
-      if (import.meta.client) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(systemData))
-      }
-    },
-
-    // TODO: Replace with API fetch
-    loadSystemData(): void {
-      if (!import.meta.client) return
-
-      const saved = localStorage.getItem(STORAGE_KEY)
-
-      if (saved) {
-        try {
-          const data = JSON.parse(saved) as PayrollSystemData
-          this.employees = data.employees || []
-          this.currentEmployeeId = data.currentEmployeeId || ''
-          this.currentWeekId = data.currentWeekId || ''
-          this.activeTab = data.activeTab || 'schedules'
-          this.weekTemplates = data.weekTemplates || []
-        } catch (e) {
-          console.error('Error loading data:', e)
-          this.initializeDefaultData()
-        }
-      } else {
-        this.initializeDefaultData()
-      }
-    },
-
-    initializeDefaultData(): void {
-      const defaultEmployee: Employee = {
-        id: this.generateId(),
-        name: 'Juan Pérez',
-        weeks: [],
-        settings: {
-          costPerTurn: 450,
-          currency: 'MXN'
-        }
-      }
-
-      this.employees = [defaultEmployee]
-      this.currentEmployeeId = defaultEmployee.id
-
-      // Save the default data to localStorage
-      this.saveSystemData()
     }
   }
 })

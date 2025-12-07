@@ -23,9 +23,9 @@ info:
 
 servers:
   - url: http://localhost:3000
-    description: Desarrollo local
-  - url: https://api.balconcito.com
-    description: Producción
+    description: Local
+  - url: https://backend-green-leaf-3728.fly.dev
+    description: Production
 
 tags:
   - name: Authentication

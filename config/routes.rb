@@ -2,6 +2,9 @@ Rails.application.routes.draw do
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Root para evitar errores en "/"
+  root to: "rails/health#show"
+
   # API v1
   namespace :api do
     namespace :v1 do

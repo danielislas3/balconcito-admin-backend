@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import type { Employee } from '~/stores/payroll'
+import type { PayrollEmployee } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
 
 definePageMeta({
   layout: 'default',
   requiresAuth: false,
-  ssr: false  // Deshabilitar SSR porque depende de datos del cliente (localStorage)
+  ssr: false  // Deshabilitar SSR porque ahora carga datos del backend via API
 })
 
 const router = useRouter()
@@ -18,25 +18,31 @@ const {
   employees,
   currentEmployee,
   currentWeek,
-  activeTab
+  activeTab,
+  loading
 } = storeToRefs(payrollStore)
 
 // Modales
 const showAddEmployeeModal = ref(false)
-const showImportModal = ref(false)
 const newEmployeeName = ref('')
+const newEmployeeRate = ref(450)
+const newEmployeeCurrency = ref<'MXN' | 'USD' | 'EUR'>('MXN')
 const employeeNameError = ref('')
-const importFile = ref<File | null>(null)
 
 // Refs para animaciones
 const saveIndicatorVisible = ref(false)
 const saveMessage = ref('Guardado automáticamente')
 
-// Los datos se cargan automáticamente mediante el plugin payroll-store.client.ts
+// Cargar datos al montar el componente
+onMounted(async () => {
+  await payrollStore.fetchEmployees()
+})
 
 // Funciones para empleados
 const openAddEmployeeModal = () => {
   newEmployeeName.value = ''
+  newEmployeeRate.value = 450
+  newEmployeeCurrency.value = 'MXN'
   employeeNameError.value = ''
   showAddEmployeeModal.value = true
 }
@@ -44,11 +50,17 @@ const openAddEmployeeModal = () => {
 const closeAddEmployeeModal = () => {
   showAddEmployeeModal.value = false
   newEmployeeName.value = ''
+  newEmployeeRate.value = 450
+  newEmployeeCurrency.value = 'MXN'
   employeeNameError.value = ''
 }
 
-const handleAddEmployee = () => {
-  const result = payrollStore.addNewEmployee(newEmployeeName.value)
+const handleAddEmployee = async () => {
+  const result = await payrollStore.createEmployee(
+    newEmployeeName.value,
+    newEmployeeRate.value,
+    newEmployeeCurrency.value
+  )
 
   if (result.success) {
     toast.add({
@@ -63,7 +75,7 @@ const handleAddEmployee = () => {
   }
 }
 
-const handleDeleteEmployee = () => {
+const handleDeleteEmployee = async () => {
   if (!currentEmployee.value) return
 
   const name = currentEmployee.value.name
@@ -71,7 +83,7 @@ const handleDeleteEmployee = () => {
     return
   }
 
-  const result = payrollStore.deleteCurrentEmployee()
+  const result = await payrollStore.deleteCurrentEmployee()
 
   if (result.success) {
     toast.add({
@@ -90,8 +102,15 @@ const handleDeleteEmployee = () => {
 }
 
 // Funciones para semanas
-const handleCreateWeek = () => {
-  const result = payrollStore.createNewWeek()
+const handleCreateWeek = async () => {
+  // Calcular el siguiente lunes
+  const today = new Date()
+  const day = today.getDay()
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(today.setDate(diff))
+  const weekKey = monday.toISOString().split('T')[0]
+
+  const result = await payrollStore.createWeek(weekKey, 0)
 
   if (result.success) {
     toast.add({
@@ -109,103 +128,19 @@ const handleCreateWeek = () => {
   }
 }
 
-const handleSaveWeek = () => {
-  payrollStore.saveCurrentWeek()
-  toast.add({
-    title: 'Éxito',
-    description: 'Semana guardada correctamente',
-    color: 'success'
-  })
-  showSaveIndicator('Semana guardada exitosamente')
-}
-
 // Funciones de exportación
-const handleExportSystem = () => {
-  payrollStore.exportSystemData()
-  showSaveIndicator('Sistema exportado exitosamente')
-}
-
 const handleExportAll = () => {
   payrollStore.exportAllEmployees()
   showSaveIndicator('Reporte general exportado')
 }
 
-const handleExportEmployee = (employee: Employee) => {
+const handleExportEmployee = (employee: PayrollEmployee) => {
   payrollStore.exportEmployeeData(employee)
   showSaveIndicator(`Datos de ${employee.name} exportados`)
 }
 
 const handleViewEmployee = (employeeId: string) => {
   router.push(`/payroll/employee/${employeeId}`)
-}
-
-// Funciones de importación
-const openImportModal = () => {
-  importFile.value = null
-  showImportModal.value = true
-}
-
-const closeImportModal = () => {
-  showImportModal.value = false
-  importFile.value = null
-  const fileInput = document.getElementById('file-upload') as HTMLInputElement
-  if (fileInput) {
-    fileInput.value = ''
-  }
-}
-
-const handleFileSelect = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    importFile.value = input.files[0]
-  }
-}
-
-const handleImportData = async () => {
-  if (!importFile.value) {
-    toast.add({
-      title: 'Error',
-      description: 'Por favor selecciona un archivo',
-      color: 'error'
-    })
-    return
-  }
-
-  const result = await payrollStore.importSystemData(importFile.value)
-
-  if (result.success) {
-    toast.add({
-      title: 'Éxito',
-      description: 'Datos importados correctamente',
-      color: 'success'
-    })
-    closeImportModal()
-    showSaveIndicator('Datos importados exitosamente')
-  } else {
-    toast.add({
-      title: 'Error',
-      description: result.error || 'Error al importar datos',
-      color: 'error'
-    })
-  }
-}
-
-const handleClearAll = () => {
-  if (!confirm('¿Estás seguro de que quieres limpiar TODOS los datos del sistema?\n\nEsta acción no se puede deshacer.')) {
-    return
-  }
-
-  if (!confirm('Esta es tu última oportunidad. Se eliminarán todos los empleados y horarios.\n\n¿Continuar?')) {
-    return
-  }
-
-  payrollStore.clearAllSystemData()
-  toast.add({
-    title: 'Sistema limpiado',
-    description: 'Todos los datos han sido eliminados',
-    color: 'success'
-  })
-  showSaveIndicator('Sistema limpiado completamente')
 }
 
 const showSaveIndicator = (message: string) => {
@@ -248,6 +183,24 @@ const tabs = computed(() => [
   <ClientOnly>
     <div
       class="min-h-screen w-full bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-emerald-950 overflow-y-auto">
+
+      <!-- Loading Overlay -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="loading" class="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4">
+            <UIcon name="i-lucide-loader-2" class="size-12 text-emerald-600 animate-spin" />
+            <p class="text-lg font-semibold text-gray-700 dark:text-gray-300">Cargando...</p>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Indicador de guardado flotante -->
       <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="translate-x-full opacity-0"
         enter-to-class="translate-x-0 opacity-100" leave-active-class="transition duration-200 ease-in"
@@ -313,7 +266,7 @@ const tabs = computed(() => [
       <div class="payroll-content">
         <!-- PESTAÑA DE HORARIOS -->
         <PayrollOrganismsSchedulesTab v-show="activeTab === 'schedules'" @add-employee="openAddEmployeeModal"
-          @delete-employee="handleDeleteEmployee" @create-week="handleCreateWeek" @save-week="handleSaveWeek" />
+          @delete-employee="handleDeleteEmployee" @create-week="handleCreateWeek" />
 
         <!-- PESTAÑA MENSUAL -->
         <PayrollOrganismsMonthlyDashboard v-show="activeTab === 'monthly'" />
@@ -323,69 +276,37 @@ const tabs = computed(() => [
           @export-employee="handleExportEmployee" @view-employee="handleViewEmployee" />
 
         <!-- PESTAÑA DE CONFIGURACIÓN -->
-        <PayrollOrganismsSettingsTab v-show="activeTab === 'settings'" @export-system="handleExportSystem"
-          @import-data="openImportModal" @clear-all="handleClearAll" />
+        <PayrollOrganismsSettingsTab v-show="activeTab === 'settings'" />
       </div>
     </div>
 
     <!-- Modal Agregar Empleado -->
     <UModal v-model:open="showAddEmployeeModal" title="Agregar Nuevo Empleado"
-      description="Ingresa el nombre del nuevo empleado" :ui="{ content: 'w-full max-w-md' }">
+      description="Ingresa los datos del nuevo empleado" :ui="{ content: 'w-full max-w-md' }">
       <template #body>
-        <UFormField label="Nombre del Empleado" required :error="employeeNameError">
-          <UInput v-model="newEmployeeName" placeholder="Ej. María García" @keyup.enter="handleAddEmployee" autofocus />
-        </UFormField>
+        <div class="space-y-4">
+          <UFormField label="Nombre del Empleado" required :error="employeeNameError">
+            <UInput v-model="newEmployeeName" placeholder="Ej. María García" @keyup.enter="handleAddEmployee" autofocus />
+          </UFormField>
+
+          <UFormField label="Tarifa por Hora" required>
+            <UInput v-model.number="newEmployeeRate" type="number" placeholder="450" />
+          </UFormField>
+
+          <UFormField label="Moneda" required>
+            <USelect v-model="newEmployeeCurrency" :options="[
+              { value: 'MXN', label: 'Pesos Mexicanos (MXN)' },
+              { value: 'USD', label: 'Dólares (USD)' },
+              { value: 'EUR', label: 'Euros (EUR)' }
+            ]" option-attribute="label" value-attribute="value" />
+          </UFormField>
+        </div>
       </template>
 
       <template #footer>
         <div class="flex justify-end gap-3">
           <UButton label="Cancelar" color="neutral" variant="ghost" @click="closeAddEmployeeModal" />
-          <UButton label="Agregar" icon="i-lucide-check" color="success" @click="handleAddEmployee" />
-        </div>
-      </template>
-    </UModal>
-
-    <!-- Modal Importar Datos -->
-    <UModal v-model:open="showImportModal" title="Importar Datos del Sistema"
-      description="Selecciona un archivo JSON con los datos a importar" :ui="{ content: 'w-full max-w-md' }">
-      <template #body>
-        <div class="space-y-4">
-          <UFormField label="Selecciona un archivo JSON" required>
-            <div class="relative">
-              <input type="file" accept=".json" @change="handleFileSelect" class="sr-only" id="file-upload" />
-              <label for="file-upload" :class="[
-                'flex flex-col items-center justify-center w-full px-6 py-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200',
-                importFile
-                  ? 'border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/20'
-                  : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/10'
-              ]">
-                <UIcon :name="importFile ? 'i-lucide-file-check' : 'i-lucide-file-json'"
-                  :class="importFile ? 'size-12 text-emerald-600 dark:text-emerald-400 mb-3' : 'size-12 text-gray-400 dark:text-gray-500 mb-3'" />
-                <span v-if="!importFile" class="text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
-                  Haz clic para seleccionar un archivo JSON
-                </span>
-                <div v-else class="text-center space-y-1">
-                  <span class="block text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                    {{ importFile.name }}
-                  </span>
-                  <span class="block text-xs text-emerald-600 dark:text-emerald-400">
-                    {{ (importFile.size / 1024).toFixed(2) }} KB
-                  </span>
-                </div>
-              </label>
-            </div>
-          </UFormField>
-
-          <UAlert color="warning" variant="subtle" icon="i-lucide-alert-triangle" title="Advertencia"
-            description="La importación reemplazará todos los datos actuales del sistema. Asegúrate de haber exportado tus datos antes de continuar." />
-        </div>
-      </template>
-
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <UButton label="Cancelar" color="neutral" variant="ghost" @click="closeImportModal" />
-          <UButton label="Importar" icon="i-lucide-upload" color="success" @click="handleImportData"
-            :disabled="!importFile" />
+          <UButton label="Agregar" icon="i-lucide-check" color="success" @click="handleAddEmployee" :loading="loading" />
         </div>
       </template>
     </UModal>

@@ -1,6 +1,6 @@
 class Reimbursement < ApplicationRecord
-  belongs_to :to_user, class_name: 'User' # A quién se le paga
-  belongs_to :from_account, class_name: 'Account' # De qué cuenta sale
+  belongs_to :to_user, class_name: "User" # A quién se le paga
+  belongs_to :from_account, class_name: "Account" # De qué cuenta sale
   belongs_to :user # Quién registró el reembolso
 
   has_many :reimbursement_expenses, dependent: :destroy

@@ -1,17 +1,17 @@
 module Api
   module V1
     class LendersController < ApplicationController
-      before_action :set_lender, only: [:show, :update, :destroy]
+      before_action :set_lender, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/lenders
       def index
         @lenders = Lender.includes(:loans).order(created_at: :desc)
 
         # Filtros
-        @lenders = @lenders.active if params[:active] == 'true'
-        @lenders = @lenders.investors if params[:relationship] == 'inversionista'
-        @lenders = @lenders.family if params[:relationship] == 'familiar'
-        @lenders = @lenders.friends if params[:relationship] == 'amigo'
+        @lenders = @lenders.active if params[:active] == "true"
+        @lenders = @lenders.investors if params[:relationship] == "inversionista"
+        @lenders = @lenders.family if params[:relationship] == "familiar"
+        @lenders = @lenders.friends if params[:relationship] == "amigo"
 
         render json: @lenders.map { |lender|
           {
@@ -75,7 +75,7 @@ module Api
 
         if @lender.save
           render json: {
-            message: 'Prestamista creado exitosamente',
+            message: "Prestamista creado exitosamente",
             lender: @lender
           }, status: :created
         else
@@ -87,7 +87,7 @@ module Api
       def update
         if @lender.update(lender_params)
           render json: {
-            message: 'Prestamista actualizado exitosamente',
+            message: "Prestamista actualizado exitosamente",
             lender: @lender
           }
         else
@@ -99,11 +99,11 @@ module Api
       def destroy
         if @lender.loans.exists?
           render json: {
-            error: 'No se puede eliminar el prestamista porque tiene préstamos asociados'
+            error: "No se puede eliminar el prestamista porque tiene préstamos asociados"
           }, status: :unprocessable_entity
         else
           @lender.destroy
-          render json: { message: 'Prestamista eliminado exitosamente' }
+          render json: { message: "Prestamista eliminado exitosamente" }
         end
       end
 

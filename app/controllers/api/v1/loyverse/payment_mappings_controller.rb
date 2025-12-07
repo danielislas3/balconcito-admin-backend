@@ -38,7 +38,7 @@ module Api
           if @mapping.update(mapping_params)
             render json: {
               success: true,
-              message: 'Mapeo actualizado exitosamente',
+              message: "Mapeo actualizado exitosamente",
               mapping: {
                 id: @mapping.id,
                 loyverse_payment_type: @mapping.loyverse_payment_type,

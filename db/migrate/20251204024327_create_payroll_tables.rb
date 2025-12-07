@@ -50,7 +50,7 @@ class CreatePayrollTables < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :payroll_weeks, [:payroll_employee_id, :week_id], unique: true
+    add_index :payroll_weeks, [ :payroll_employee_id, :week_id ], unique: true
     add_index :payroll_weeks, :start_date
     add_index :payroll_weeks, :week_id
 
@@ -77,7 +77,7 @@ class CreatePayrollTables < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :payroll_days, [:payroll_week_id, :day_key], unique: true
+    add_index :payroll_days, [ :payroll_week_id, :day_key ], unique: true
     add_index :payroll_days, :date
   end
 end

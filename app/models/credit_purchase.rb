@@ -54,7 +54,7 @@ class CreditPurchase < ApplicationRecord
       notes: notes
     )
 
-    new_balance = [remaining_balance - amount, 0].max
+    new_balance = [ remaining_balance - amount, 0 ].max
     new_paid_months = paid_months + 1
     is_fully_paid = new_balance.zero? || new_paid_months >= total_months
 

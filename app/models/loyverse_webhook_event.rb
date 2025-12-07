@@ -26,16 +26,16 @@ class LoyverseWebhookEvent < ApplicationRecord
   scope :recent, -> { order(created_at: :desc) }
 
   # Eventos disponibles en Loyverse
-  RECEIPT_CREATED = 'RECEIPT_CREATED'
-  RECEIPT_UPDATED = 'RECEIPT_UPDATED'
-  RECEIPT_DELETED = 'RECEIPT_DELETED'
-  ITEM_CREATED = 'ITEM_CREATED'
-  ITEM_UPDATED = 'ITEM_UPDATED'
-  ITEM_DELETED = 'ITEM_DELETED'
-  SHIFT_OPENED = 'SHIFT_OPENED'
-  SHIFT_CLOSED = 'SHIFT_CLOSED'
-  SHIFT_CREATED = 'shifts.create' # Nombre real del evento según API
-  INVENTORY_UPDATED = 'INVENTORY_UPDATED'
+  RECEIPT_CREATED = "RECEIPT_CREATED"
+  RECEIPT_UPDATED = "RECEIPT_UPDATED"
+  RECEIPT_DELETED = "RECEIPT_DELETED"
+  ITEM_CREATED = "ITEM_CREATED"
+  ITEM_UPDATED = "ITEM_UPDATED"
+  ITEM_DELETED = "ITEM_DELETED"
+  SHIFT_OPENED = "SHIFT_OPENED"
+  SHIFT_CLOSED = "SHIFT_CLOSED"
+  SHIFT_CREATED = "shifts.create" # Nombre real del evento según API
+  INVENTORY_UPDATED = "INVENTORY_UPDATED"
 
   SUPPORTED_EVENTS = [
     RECEIPT_CREATED,
@@ -65,19 +65,19 @@ class LoyverseWebhookEvent < ApplicationRecord
 
   # Extraer datos del payload
   def receipt_id
-    payload.dig('id') || payload.dig('resource_id')
+    payload.dig("id") || payload.dig("resource_id")
   end
 
   def shift_id
-    payload.dig('id') || payload.dig('resource_id')
+    payload.dig("id") || payload.dig("resource_id")
   end
 
   def resource_type
-    payload.dig('resource_type')
+    payload.dig("resource_type")
   end
 
   def resource_id
-    payload.dig('resource_id')
+    payload.dig("resource_id")
   end
 
   # Retry procesamiento

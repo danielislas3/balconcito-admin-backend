@@ -45,7 +45,7 @@ gem "rack-cors"
 gem "http", "~> 5.0"
 
 # Environment variables management
-gem "dotenv-rails", groups: [:development, :test]
+gem "dotenv-rails", groups: [ :development, :test ]
 
 # API Documentation with Swagger/OpenAPI
 gem "rswag-api"

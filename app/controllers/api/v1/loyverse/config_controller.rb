@@ -31,7 +31,7 @@ module Api
             unless validate_api_token(params[:api_token])
               return render json: {
                 success: false,
-                error: 'API token inválido o no puede conectar con Loyverse'
+                error: "API token inválido o no puede conectar con Loyverse"
               }, status: :unprocessable_entity
             end
           end
@@ -39,7 +39,7 @@ module Api
           if @config.update(config_params)
             render json: {
               success: true,
-              message: 'Configuración actualizada exitosamente',
+              message: "Configuración actualizada exitosamente",
               config: {
                 api_token_present: @config.api_token.present?,
                 sync_enabled: @config.sync_enabled,

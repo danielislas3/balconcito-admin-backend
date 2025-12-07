@@ -2,7 +2,7 @@ module Api
   module V1
     class PayrollWeeksController < ApplicationController
       before_action :set_payroll_employee
-      before_action :set_payroll_week, only: [:show, :update, :destroy]
+      before_action :set_payroll_week, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/payroll_employees/:employee_id/weeks
       def index
@@ -38,10 +38,10 @@ module Api
         if week.save
           render json: {
             week: week.to_frontend_json,
-            message: 'Semana creada exitosamente'
+            message: "Semana creada exitosamente"
           }, status: :created
         else
-          render_error(week.errors.full_messages.join(', '))
+          render_error(week.errors.full_messages.join(", "))
         end
       end
 
@@ -52,19 +52,19 @@ module Api
 
           render json: {
             week: @payroll_week.reload.to_frontend_json,
-            message: 'Semana actualizada exitosamente'
+            message: "Semana actualizada exitosamente"
           }
         else
-          render_error(@payroll_week.errors.full_messages.join(', '))
+          render_error(@payroll_week.errors.full_messages.join(", "))
         end
       end
 
       # DELETE /api/v1/payroll_employees/:employee_id/weeks/:id
       def destroy
         if @payroll_week.destroy
-          render json: { message: 'Semana eliminada exitosamente' }
+          render json: { message: "Semana eliminada exitosamente" }
         else
-          render_error('No se pudo eliminar la semana')
+          render_error("No se pudo eliminar la semana")
         end
       end
 

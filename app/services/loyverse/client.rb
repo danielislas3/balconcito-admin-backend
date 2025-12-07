@@ -1,18 +1,18 @@
 module Loyverse
   class Client
-    BASE_URL = ENV.fetch('LOYVERSE_API_URL', 'https://api.loyverse.com/v1.0')
+    BASE_URL = ENV.fetch("LOYVERSE_API_URL", "https://api.loyverse.com/v1.0")
     RATE_LIMIT = 60 # requests per minute
 
     attr_reader :api_token
 
     def initialize(api_token = nil)
       @api_token = api_token || LoyverseConfig.instance.api_token
-      raise ArgumentError, 'API token not configured' if @api_token.blank?
+      raise ArgumentError, "API token not configured" if @api_token.blank?
     end
 
     # GET /receipts
     def get_receipts(params = {})
-      get('/receipts', params)
+      get("/receipts", params)
     end
 
     # GET /receipts/:id
@@ -22,7 +22,7 @@ module Loyverse
 
     # GET /shifts
     def get_shifts(params = {})
-      get('/shifts', params)
+      get("/shifts", params)
     end
 
     # GET /shifts/:id
@@ -32,32 +32,32 @@ module Loyverse
 
     # GET /payment_types
     def get_payment_types
-      get('/payment_types')
+      get("/payment_types")
     end
 
     # GET /stores
     def get_stores
-      get('/stores')
+      get("/stores")
     end
 
     # GET /employees
     def get_employees
-      get('/employees')
+      get("/employees")
     end
 
     # GET /items
     def get_items(params = {})
-      get('/items', params)
+      get("/items", params)
     end
 
     # POST /webhooks
     def create_webhook(url, events)
-      post('/webhooks', { url: url, events: events })
+      post("/webhooks", { url: url, events: events })
     end
 
     # GET /webhooks
     def get_webhooks
-      get('/webhooks')
+      get("/webhooks")
     end
 
     # DELETE /webhooks/:id
@@ -80,17 +80,17 @@ module Loyverse
     end
 
     def request(method, endpoint, params_or_body = {})
-      require 'net/http'
-      require 'uri'
-      require 'json'
+      require "net/http"
+      require "uri"
+      require "json"
 
       # Construir URL
       url = if method == :get && params_or_body.any?
               query = URI.encode_www_form(params_or_body)
               "#{BASE_URL}#{endpoint}?#{query}"
-            else
+      else
               "#{BASE_URL}#{endpoint}"
-            end
+      end
 
       uri = URI(url)
 
@@ -104,19 +104,19 @@ module Loyverse
 
       # Crear request
       request = case method
-                when :get
+      when :get
                   Net::HTTP::Get.new(uri)
-                when :post
+      when :post
                   req = Net::HTTP::Post.new(uri)
                   req.body = params_or_body.to_json
-                  req['Content-Type'] = 'application/json'
+                  req["Content-Type"] = "application/json"
                   req
-                when :delete
+      when :delete
                   Net::HTTP::Delete.new(uri)
-                end
+      end
 
       # Agregar autenticación
-      request['Authorization'] = "Bearer #{api_token}"
+      request["Authorization"] = "Bearer #{api_token}"
 
       # Ejecutar request
       response = http.request(request)
@@ -132,11 +132,11 @@ module Loyverse
       when 200, 201
         JSON.parse(response.body)
       when 401
-        raise 'Invalid API token'
+        raise "Invalid API token"
       when 429
-        raise 'Rate limit exceeded (60 requests/minute)'
+        raise "Rate limit exceeded (60 requests/minute)"
       when 404
-        raise 'Resource not found'
+        raise "Resource not found"
       else
         raise "API error: #{response.code} - #{response.body}"
       end

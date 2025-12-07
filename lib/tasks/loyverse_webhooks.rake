@@ -1,7 +1,7 @@
 namespace :loyverse do
   namespace :webhooks do
     desc "Testear procesamiento de webhooks localmente"
-    task :test_processing, [:receipt_id] => :environment do |t, args|
+    task :test_processing, [ :receipt_id ] => :environment do |t, args|
       receipt_id = args[:receipt_id]
 
       unless receipt_id
@@ -19,11 +19,11 @@ namespace :loyverse do
         payload: {
           event_id: "test_#{Time.now.to_i}",
           event_type: LoyverseWebhookEvent::RECEIPT_CREATED,
-          resource_type: 'receipt',
+          resource_type: "receipt",
           resource_id: receipt_id,
           id: receipt_id
         },
-        signature: 'test'
+        signature: "test"
       )
 
       puts "   Evento creado: #{event.id}"
@@ -35,13 +35,13 @@ namespace :loyverse do
         receipt_data = client.get_receipt(receipt_id)
 
         # Create LoyverseReceipt
-        loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['receipt_number']) do |r|
-          r.receipt_number = receipt_data['receipt_number']
-          r.receipt_type = receipt_data['receipt_type']
-          r.total_money = receipt_data['total_money']
-          r.total_tax = receipt_data['total_tax']
+        loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data["receipt_number"]) do |r|
+          r.receipt_number = receipt_data["receipt_number"]
+          r.receipt_type = receipt_data["receipt_type"]
+          r.total_money = receipt_data["total_money"]
+          r.total_tax = receipt_data["total_tax"]
           r.receipt_data = receipt_data
-          r.loyverse_created_at = receipt_data['created_at']
+          r.loyverse_created_at = receipt_data["created_at"]
           r.synced_at = Time.current
         end
 
@@ -65,7 +65,7 @@ namespace :loyverse do
     end
 
     desc "Simular webhook POST desde Loyverse"
-    task :simulate, [:receipt_id] => :environment do |t, args|
+    task :simulate, [ :receipt_id ] => :environment do |t, args|
       receipt_id = args[:receipt_id]
 
       unless receipt_id
@@ -78,8 +78,8 @@ namespace :loyverse do
 
       payload = {
         event_id: "test_#{Time.now.to_i}",
-        event_type: 'RECEIPT_CREATED',
-        resource_type: 'receipt',
+        event_type: "RECEIPT_CREATED",
+        resource_type: "receipt",
         resource_id: receipt_id,
         id: receipt_id
       }
@@ -178,11 +178,11 @@ namespace :loyverse do
       events.each do |event|
         status = if event.processed?
                    "✅"
-                 elsif event.error_message.present?
+        elsif event.error_message.present?
                    "❌"
-                 else
+        else
                    "⏳"
-                 end
+        end
 
         puts "#{status} [#{event.created_at.strftime('%Y-%m-%d %H:%M:%S')}] #{event.event_type}"
         puts "   ID: #{event.id} | Resource: #{event.resource_id}"
@@ -205,7 +205,7 @@ namespace :loyverse do
       threshold = LoyverseWebhookEvent.order(created_at: :desc).limit(1000).last&.created_at
 
       if threshold
-        deleted = LoyverseWebhookEvent.where('created_at < ?', threshold).delete_all
+        deleted = LoyverseWebhookEvent.where("created_at < ?", threshold).delete_all
         puts "🗑️  Eliminados #{deleted} eventos antiguos"
         puts "   Manteniendo eventos desde: #{threshold}"
       else

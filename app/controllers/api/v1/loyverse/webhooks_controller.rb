@@ -3,8 +3,8 @@ module Api
     module Loyverse
       class WebhooksController < ApplicationController
         # Webhooks vienen de Loyverse, no tienen JWT
-        skip_before_action :authenticate_user!, only: [:create]
-        skip_before_action :verify_authenticity_token, only: [:create]
+        skip_before_action :authenticate_user!, only: [ :create ]
+        skip_before_action :verify_authenticity_token, only: [ :create ]
 
         # POST /api/v1/loyverse/webhooks
         def create
@@ -14,10 +14,10 @@ module Api
 
           # Guardar evento
           event = LoyverseWebhookEvent.create!(
-            event_id: payload_json['event_id'],
-            event_type: payload_json['event_type'],
+            event_id: payload_json["event_id"],
+            event_type: payload_json["event_type"],
             payload: payload_json,
-            signature: request.headers['X-Loyverse-Webhook-Signature']
+            signature: request.headers["X-Loyverse-Webhook-Signature"]
           )
 
           # Procesar asíncronamente
@@ -42,7 +42,7 @@ module Api
           event.retry_processing!
           process_webhook(event)
 
-          render json: { message: 'Webhook reintentado', event: event }
+          render json: { message: "Webhook reintentado", event: event }
         end
 
         private
@@ -73,13 +73,13 @@ module Api
 
           # Create/Update LoyverseReceipt (solo guardar, NO crear TurnClosure)
           # Los TurnClosures se crean desde SHIFTS, no desde receipts individuales
-          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data['receipt_number']) do |r|
-            r.receipt_number = receipt_data['receipt_number']
-            r.receipt_type = receipt_data['receipt_type']
-            r.total_money = receipt_data['total_money']
-            r.total_tax = receipt_data['total_tax']
+          loyverse_receipt = LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_data["receipt_number"]) do |r|
+            r.receipt_number = receipt_data["receipt_number"]
+            r.receipt_type = receipt_data["receipt_type"]
+            r.total_money = receipt_data["total_money"]
+            r.total_tax = receipt_data["total_tax"]
             r.receipt_data = receipt_data
-            r.loyverse_created_at = receipt_data['created_at']
+            r.loyverse_created_at = receipt_data["created_at"]
             r.synced_at = Time.current
           end
 

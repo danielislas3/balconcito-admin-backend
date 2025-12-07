@@ -40,7 +40,7 @@ module TurnClosures
 
     # Valida solo los totales sin detalles
     def quick_validate
-      return { valid: false, reason: 'No shift found' } unless @loyverse_shift
+      return { valid: false, reason: "No shift found" } unless @loyverse_shift
 
       total_diff = (@turn_closure.total_income - @loyverse_shift.gross_sales).abs
 
@@ -59,7 +59,7 @@ module TurnClosures
 
       # Buscar shift cerrado en la misma fecha
       LoyverseShift.where(
-        'DATE(closed_at) = ?',
+        "DATE(closed_at) = ?",
         @turn_closure.closure_date
       ).order(closed_at: :desc).first
     end
@@ -73,19 +73,19 @@ module TurnClosures
       if diff > TOLERANCE_AMOUNT && diff > (expected * TOLERANCE_PERCENTAGE / 100)
         if reported < expected
           @errors << {
-            type: 'shortage',
-            field: 'total_income',
+            type: "shortage",
+            field: "total_income",
             message: "Total reportado ($#{reported}) es MENOR que ventas reales ($#{expected})",
             difference: expected - reported,
-            severity: 'critical'
+            severity: "critical"
           }
         else
           @warnings << {
-            type: 'surplus',
-            field: 'total_income',
+            type: "surplus",
+            field: "total_income",
             message: "Total reportado ($#{reported}) es MAYOR que ventas reales ($#{expected})",
             difference: reported - expected,
-            severity: 'warning'
+            severity: "warning"
           }
         end
       end
@@ -101,21 +101,21 @@ module TurnClosures
       if diff > TOLERANCE_AMOUNT
         if reported_cash < expected_cash
           @errors << {
-            type: 'cash_shortage',
-            field: 'cash_collected',
+            type: "cash_shortage",
+            field: "cash_collected",
             message: "Efectivo reportado ($#{reported_cash}) es MENOR que ventas en efectivo ($#{expected_cash})",
             difference: expected_cash - reported_cash,
-            severity: 'critical',
-            recommendation: 'Verificar faltante de efectivo en caja'
+            severity: "critical",
+            recommendation: "Verificar faltante de efectivo en caja"
           }
         else
           @warnings << {
-            type: 'cash_surplus',
-            field: 'cash_collected',
+            type: "cash_surplus",
+            field: "cash_collected",
             message: "Efectivo reportado ($#{reported_cash}) es MAYOR que ventas en efectivo ($#{expected_cash})",
             difference: reported_cash - expected_cash,
-            severity: 'warning',
-            recommendation: 'Verificar posible error de captura o ventas no registradas'
+            severity: "warning",
+            recommendation: "Verificar posible error de captura o ventas no registradas"
           }
         end
       end
@@ -125,14 +125,14 @@ module TurnClosures
         loyverse_diff = @loyverse_shift.cash_difference
 
         if loyverse_diff.abs > TOLERANCE_AMOUNT
-          status = loyverse_diff.positive? ? 'sobrante' : 'faltante'
+          status = loyverse_diff.positive? ? "sobrante" : "faltante"
           @warnings << {
-            type: 'loyverse_cash_mismatch',
-            field: 'cash_collected',
+            type: "loyverse_cash_mismatch",
+            field: "cash_collected",
             message: "Loyverse reporta #{status} de $#{loyverse_diff.abs} en el cuadre de efectivo",
             difference: loyverse_diff,
-            severity: 'warning',
-            recommendation: 'Revisar cuadre de efectivo en Loyverse POS'
+            severity: "warning",
+            recommendation: "Revisar cuadre de efectivo en Loyverse POS"
           }
         end
       end
@@ -147,12 +147,12 @@ module TurnClosures
 
       if diff > TOLERANCE_AMOUNT
         @warnings << {
-          type: 'card_discrepancy',
-          field: 'card_income_gross',
+          type: "card_discrepancy",
+          field: "card_income_gross",
           message: "Tarjetas reportadas ($#{reported_card}) difiere de ventas con tarjeta ($#{expected_card})",
           difference: diff,
-          severity: 'warning',
-          recommendation: 'Verificar transacciones con tarjeta en terminal'
+          severity: "warning",
+          recommendation: "Verificar transacciones con tarjeta en terminal"
         }
       end
     end
@@ -166,12 +166,12 @@ module TurnClosures
 
       if diff > TOLERANCE_AMOUNT
         @warnings << {
-          type: 'transfer_discrepancy',
-          field: 'transfer_income_gross',
+          type: "transfer_discrepancy",
+          field: "transfer_income_gross",
           message: "Transferencias reportadas ($#{reported_transfer}) difiere de ventas por transferencia ($#{expected_transfer})",
           difference: diff,
-          severity: 'warning',
-          recommendation: 'Verificar transacciones por QR/transferencia en Mercado Pago'
+          severity: "warning",
+          recommendation: "Verificar transacciones por QR/transferencia en Mercado Pago"
         }
       end
     end
@@ -187,12 +187,12 @@ module TurnClosures
 
       if diff > 0.01 # Tolerancia de 1 centavo por redondeo
         @errors << {
-          type: 'internal_mismatch',
-          field: 'total_income',
+          type: "internal_mismatch",
+          field: "total_income",
           message: "Total reportado ($#{reported_total}) no coincide con suma de métodos de pago ($#{sum_of_payments})",
           difference: diff,
-          severity: 'critical',
-          recommendation: 'Error de captura: revisar los montos ingresados'
+          severity: "critical",
+          recommendation: "Error de captura: revisar los montos ingresados"
         }
       end
     end
@@ -204,22 +204,22 @@ module TurnClosures
          @turn_closure.card_income_gross.zero? &&
          @turn_closure.transfer_income_gross.zero?
         @errors << {
-          type: 'suspicious_zero',
-          field: 'all_payments',
-          message: 'Todos los métodos de pago son $0 - posible error de captura',
-          severity: 'critical',
-          recommendation: 'Ingresar los montos correctos del cierre'
+          type: "suspicious_zero",
+          field: "all_payments",
+          message: "Todos los métodos de pago son $0 - posible error de captura",
+          severity: "critical",
+          recommendation: "Ingresar los montos correctos del cierre"
         }
       end
 
       # Patrón 2: Efectivo es 0 pero hay ventas
       if @turn_closure.cash_collected.zero? && @loyverse_shift.cash_payments > TOLERANCE_AMOUNT
         @warnings << {
-          type: 'suspicious_no_cash',
-          field: 'cash_collected',
+          type: "suspicious_no_cash",
+          field: "cash_collected",
           message: "Reportas $0 en efectivo pero Loyverse registra $#{@loyverse_shift.cash_payments}",
-          severity: 'warning',
-          recommendation: 'Verificar si hubo ventas en efectivo'
+          severity: "warning",
+          recommendation: "Verificar si hubo ventas en efectivo"
         }
       end
 
@@ -231,13 +231,13 @@ module TurnClosures
 
       if percentage_diff > 10
         @errors << {
-          type: 'suspicious_large_difference',
-          field: 'total_income',
+          type: "suspicious_large_difference",
+          field: "total_income",
           message: "Diferencia de #{percentage_diff.round(1)}% es muy alta - revisar datos",
           difference: total_diff,
           percentage: percentage_diff.round(2),
-          severity: 'critical',
-          recommendation: 'Verificar que los montos ingresados sean correctos'
+          severity: "critical",
+          recommendation: "Verificar que los montos ingresados sean correctos"
         }
       end
     end
@@ -309,12 +309,12 @@ module TurnClosures
       {
         valid: false,
         has_warnings: true,
-        errors: [{
-          type: 'no_shift_found',
-          message: 'No se encontró shift de Loyverse para esta fecha',
-          severity: 'warning',
-          recommendation: 'Verificar que el turno esté cerrado en Loyverse o crear manualmente'
-        }],
+        errors: [ {
+          type: "no_shift_found",
+          message: "No se encontró shift de Loyverse para esta fecha",
+          severity: "warning",
+          recommendation: "Verificar que el turno esté cerrado en Loyverse o crear manualmente"
+        } ],
         warnings: [],
         discrepancies: {},
         shift_data: nil,

@@ -31,7 +31,7 @@ module Loyverse
       {
         closure_number: generate_closure_number,
         closure_date: loyverse_receipt.loyverse_created_at&.to_date || Date.today,
-        closed_by: 'Loyverse',
+        closed_by: "Loyverse",
 
         # Ingresos por tipo de pago
         cash_collected: calculate_cash_income,
@@ -56,33 +56,33 @@ module Loyverse
 
     def calculate_cash_income
       loyverse_receipt.payments
-        .select { |p| p['type'] == 'CASH' }
-        .sum { |p| p['money_amount'].to_f }
+        .select { |p| p["type"] == "CASH" }
+        .sum { |p| p["money_amount"].to_f }
     end
 
     def calculate_card_income
       loyverse_receipt.payments
-        .select { |p| ['CARD', 'NONINTEGRATEDCARD'].include?(p['type']) }
-        .sum { |p| p['money_amount'].to_f }
+        .select { |p| [ "CARD", "NONINTEGRATEDCARD" ].include?(p["type"]) }
+        .sum { |p| p["money_amount"].to_f }
     end
 
     def calculate_transfer_income
       # OTHER generalmente son transferencias/QR en Loyverse
       loyverse_receipt.payments
-        .select { |p| ['OTHER', 'CUSTOM'].include?(p['type']) }
-        .sum { |p| p['money_amount'].to_f }
+        .select { |p| [ "OTHER", "CUSTOM" ].include?(p["type"]) }
+        .sum { |p| p["money_amount"].to_f }
     end
 
     def generate_closure_number
       # Formato: LOY-YYYYMMDD-XXX
-      date_str = loyverse_receipt.loyverse_created_at.strftime('%Y%m%d')
+      date_str = loyverse_receipt.loyverse_created_at.strftime("%Y%m%d")
       sequence = TurnClosure.where("closure_number LIKE ?", "LOY-#{date_str}-%").count + 1
       "LOY-#{date_str}-#{sequence.to_s.rjust(3, '0')}"
     end
 
     def default_user
       # Buscar usuario de sistema o el primero disponible
-      User.find_by(email: 'sistema@balconcito.com') || User.first
+      User.find_by(email: "sistema@balconcito.com") || User.first
     end
   end
 end

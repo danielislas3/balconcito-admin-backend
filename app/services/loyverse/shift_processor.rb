@@ -62,30 +62,30 @@ module Loyverse
       @loyverse_shift = LoyverseShift.find_or_initialize_by(loyverse_id: shift_id)
 
       @loyverse_shift.assign_attributes(
-        store_id: shift_data['store_id'],
-        pos_device_id: shift_data['pos_device_id'],
-        opened_at: shift_data['opened_at'],
-        closed_at: shift_data['closed_at'],
-        opened_by_employee: shift_data['opened_by_employee'],
-        closed_by_employee: shift_data['closed_by_employee'],
+        store_id: shift_data["store_id"],
+        pos_device_id: shift_data["pos_device_id"],
+        opened_at: shift_data["opened_at"],
+        closed_at: shift_data["closed_at"],
+        opened_by_employee: shift_data["opened_by_employee"],
+        closed_by_employee: shift_data["closed_by_employee"],
 
         # Cash management
-        starting_cash: shift_data['starting_cash'],
-        cash_payments: shift_data['cash_payments'],
-        cash_refunds: shift_data['cash_refunds'],
-        paid_in: shift_data['paid_in'],
-        paid_out: shift_data['paid_out'],
-        expected_cash: shift_data['expected_cash'],
-        actual_cash: shift_data['actual_cash'],
+        starting_cash: shift_data["starting_cash"],
+        cash_payments: shift_data["cash_payments"],
+        cash_refunds: shift_data["cash_refunds"],
+        paid_in: shift_data["paid_in"],
+        paid_out: shift_data["paid_out"],
+        expected_cash: shift_data["expected_cash"],
+        actual_cash: shift_data["actual_cash"],
 
         # Sales totals
-        gross_sales: shift_data['gross_sales'],
-        refunds: shift_data['refunds'],
-        discounts: shift_data['discounts'],
+        gross_sales: shift_data["gross_sales"],
+        refunds: shift_data["refunds"],
+        discounts: shift_data["discounts"],
 
         # Extras
-        tip: shift_data['tip'] || 0,
-        surcharge: shift_data['surcharge'] || 0,
+        tip: shift_data["tip"] || 0,
+        surcharge: shift_data["surcharge"] || 0,
 
         # Full JSON
         shift_data: shift_data
@@ -108,23 +108,23 @@ module Loyverse
         store_id: @loyverse_shift.store_id
       )
 
-      receipts_list = receipts_data['receipts'] || []
+      receipts_list = receipts_data["receipts"] || []
 
       Rails.logger.info("  📊 Encontrados #{receipts_list.count} receipts")
 
       # Crear o actualizar cada receipt y asociarlo con el shift
       receipts_list.each do |receipt_data|
         loyverse_receipt = LoyverseReceipt.find_or_initialize_by(
-          loyverse_id: receipt_data['receipt_id']
+          loyverse_id: receipt_data["receipt_id"]
         )
 
         loyverse_receipt.assign_attributes(
-          receipt_number: receipt_data['receipt_number'],
-          receipt_type: receipt_data['receipt_type'],
-          total_money: receipt_data['total_money'],
-          total_tax: receipt_data['total_tax'],
+          receipt_number: receipt_data["receipt_number"],
+          receipt_type: receipt_data["receipt_type"],
+          total_money: receipt_data["total_money"],
+          total_tax: receipt_data["total_tax"],
           receipt_data: receipt_data,
-          loyverse_created_at: receipt_data['created_at'],
+          loyverse_created_at: receipt_data["created_at"],
           synced_at: Time.current,
           loyverse_shift: @loyverse_shift
         )
@@ -183,8 +183,8 @@ module Loyverse
 
     # Genera número único de cierre
     def generate_closure_number
-      date_prefix = @loyverse_shift.closed_at.strftime('%Y%m%d')
-      sequence = TurnClosure.where('closure_number LIKE ?', "#{date_prefix}%").count + 1
+      date_prefix = @loyverse_shift.closed_at.strftime("%Y%m%d")
+      sequence = TurnClosure.where("closure_number LIKE ?", "#{date_prefix}%").count + 1
       "#{date_prefix}-#{sequence.to_s.rjust(3, '0')}"
     end
 
@@ -213,14 +213,14 @@ module Loyverse
     # Actualiza saldos de cuentas según totales
     def update_account_balances(totals)
       # Efectivo → Bóveda (cuenta tipo vault)
-      vault_account = Account.find_by(account_type: 'vault')
+      vault_account = Account.find_by(account_type: "vault")
       if vault_account && totals[:cash] > 0
         vault_account.increment!(:balance, totals[:cash])
         Rails.logger.info("  💰 Bóveda actualizada: +$#{totals[:cash]}")
       end
 
       # Tarjetas + Transferencias → Mercado Pago (cuenta tipo bank)
-      bank_account = Account.find_by(account_type: 'bank', name: 'Mercado Pago')
+      bank_account = Account.find_by(account_type: "bank", name: "Mercado Pago")
       digital_income = totals[:card] + totals[:custom]
 
       if bank_account && digital_income > 0

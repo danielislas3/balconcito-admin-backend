@@ -16,19 +16,19 @@ class TurnClosure < ApplicationRecord
 
   # Accessors for validation data
   def validation_errors
-    validation_data['errors'] || []
+    validation_data["errors"] || []
   end
 
   def validation_errors=(value)
-    validation_data['errors'] = value
+    validation_data["errors"] = value
   end
 
   def validation_warnings
-    validation_data['warnings'] || []
+    validation_data["warnings"] || []
   end
 
   def validation_warnings=(value)
-    validation_data['warnings'] = value
+    validation_data["warnings"] = value
   end
 
   # Validations
@@ -102,16 +102,16 @@ class TurnClosure < ApplicationRecord
 
   # Status de validación
   def validation_status
-    return 'not_validated' unless validated?
-    return 'error' if has_validation_errors?
-    return 'warning' if has_validation_warnings?
-    'valid'
+    return "not_validated" unless validated?
+    return "error" if has_validation_errors?
+    return "warning" if has_validation_warnings?
+    "valid"
   end
 
   # Obtener discrepancias
   def discrepancies
     return {} unless validation_data.present?
-    validation_data['discrepancies'] || {}
+    validation_data["discrepancies"] || {}
   end
 
   private
@@ -135,7 +135,7 @@ class TurnClosure < ApplicationRecord
     result = validator.validate
 
     # Si hay errores críticos, bloquear creación
-    if result[:errors].any? { |e| e[:severity] == 'critical' }
+    if result[:errors].any? { |e| e[:severity] == "critical" }
       result[:errors].each do |error|
         errors.add(:base, error[:message])
       end
@@ -154,18 +154,18 @@ class TurnClosure < ApplicationRecord
   def should_validate_loyverse?
     # Solo validar si es creación manual (no desde webhook)
     # y si está habilitado el strict_validation
-    ENV['LOYVERSE_STRICT_VALIDATION'] == 'true' && !from_loyverse?
+    ENV["LOYVERSE_STRICT_VALIDATION"] == "true" && !from_loyverse?
   end
 
   def update_account_balances
     # Actualizar Bóveda (efectivo)
-    vault = Account.find_by(account_type: 'vault')
+    vault = Account.find_by(account_type: "vault")
     if vault
       vault.increment!(:balance, cash_collected)
     end
 
     # Actualizar Mercado Pago (tarjetas + transferencias)
-    mercadopago = Account.find_by(account_type: 'bank', name: 'Mercado Pago')
+    mercadopago = Account.find_by(account_type: "bank", name: "Mercado Pago")
     if mercadopago
       digital_income = card_income_gross + transfer_income_gross
       mercadopago.increment!(:balance, digital_income)

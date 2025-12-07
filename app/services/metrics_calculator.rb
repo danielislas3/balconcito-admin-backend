@@ -52,7 +52,7 @@ class MetricsCalculator
 
   def payroll_total
     Expense.by_date_range(@start_date, @end_date)
-           .where(category: 'nomina')
+           .where(category: "nomina")
            .sum(:amount)
   end
 
@@ -67,8 +67,8 @@ class MetricsCalculator
     grouped.map do |category, category_expenses|
       amount = category_expenses.sum(&:amount)
       {
-        category: category || 'sin_categoria',
-        cost_type: category_expenses.first&.cost_type || 'sin_tipo',
+        category: category || "sin_categoria",
+        cost_type: category_expenses.first&.cost_type || "sin_tipo",
         amount: amount.round(2),
         percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
         count: category_expenses.count
@@ -82,7 +82,7 @@ class MetricsCalculator
     total = total_expenses
 
     # Agrupar por payment_method en Ruby
-    grouped = expenses.group_by { |e| e.payment_method&.name || 'Sin método de pago' }
+    grouped = expenses.group_by { |e| e.payment_method&.name || "Sin método de pago" }
 
     grouped.map do |payment_method_name, method_expenses|
       amount = method_expenses.sum(&:amount)
@@ -214,10 +214,10 @@ class MetricsCalculator
   # Status del flujo de efectivo
   def cash_flow_status
     net_flow = net_daily_cash_flow
-    return 'critico' if net_flow.negative?
-    return 'estable' if net_flow < 1000
-    return 'saludable' if net_flow < 5000
-    'excelente'
+    return "critico" if net_flow.negative?
+    return "estable" if net_flow < 1000
+    return "saludable" if net_flow < 5000
+    "excelente"
   end
 
   # ==================== HELPERS ====================
@@ -229,28 +229,28 @@ class MetricsCalculator
   # Status del COGS (bueno, aceptable, alto)
   def cogs_status
     percentage = cogs_percentage
-    return 'excelente' if percentage < 25
-    return 'bueno' if percentage < 30
-    return 'aceptable' if percentage < 35
-    'alto'
+    return "excelente" if percentage < 25
+    return "bueno" if percentage < 30
+    return "aceptable" if percentage < 35
+    "alto"
   end
 
   # Status del Cash Runway
   def cash_runway_status
     days = cash_runway_days
-    return 'critico' if days < 15
-    return 'precaucion' if days < 30
-    return 'saludable' if days < 60
-    'excelente'
+    return "critico" if days < 15
+    return "precaucion" if days < 30
+    return "saludable" if days < 60
+    "excelente"
   end
 
   # Status del Punto de Equilibrio
   def break_even_status
     margin = safety_margin
-    return 'perdiendo' if margin.negative?
-    return 'equilibrio' if margin < 1000
-    return 'rentable' if margin < 10000
-    'muy_rentable'
+    return "perdiendo" if margin.negative?
+    return "equilibrio" if margin < 1000
+    return "rentable" if margin < 10000
+    "muy_rentable"
   end
 
   # ==================== MÉTODO PRINCIPAL ====================

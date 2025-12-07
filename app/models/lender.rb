@@ -7,9 +7,9 @@ class Lender < ApplicationRecord
 
   # Scopes
   scope :active, -> { where(is_active: true) }
-  scope :investors, -> { where(relationship: 'inversionista') }
-  scope :family, -> { where(relationship: 'familiar') }
-  scope :friends, -> { where(relationship: 'amigo') }
+  scope :investors, -> { where(relationship: "inversionista") }
+  scope :family, -> { where(relationship: "familiar") }
+  scope :friends, -> { where(relationship: "amigo") }
 
   # Instance methods
   def total_lent
@@ -33,6 +33,6 @@ class Lender < ApplicationRecord
   end
 
   def contact_info
-    [contact_email, contact_phone].compact.join(' / ')
+    [ contact_email, contact_phone ].compact.join(" / ")
   end
 end

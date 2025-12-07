@@ -1,6 +1,6 @@
 namespace :loyverse do
   desc "Sincronizar receipts de Loyverse para una fecha específica"
-  task :sync_receipts, [:start_date, :end_date] => :environment do |t, args|
+  task :sync_receipts, [ :start_date, :end_date ] => :environment do |t, args|
     start_date = args[:start_date]&.to_date || Date.today
     end_date = args[:end_date]&.to_date || start_date
 
@@ -40,8 +40,8 @@ namespace :loyverse do
   end
 
   desc "Configurar token de API de Loyverse"
-  task :configure, [:api_token] => :environment do |t, args|
-    token = args[:api_token] || ENV['LOYVERSE_API_TOKEN']
+  task :configure, [ :api_token ] => :environment do |t, args|
+    token = args[:api_token] || ENV["LOYVERSE_API_TOKEN"]
 
     if token.blank?
       puts "❌ Error: Debes proporcionar un token de API"
@@ -69,13 +69,13 @@ namespace :loyverse do
 
       puts "✅ Conexión exitosa!"
       puts "\nTiendas encontradas:"
-      stores['stores'].each do |store|
+      stores["stores"].each do |store|
         puts "   - #{store['name']} (#{store['id']})"
       end
 
       payment_types = client.get_payment_types
       puts "\nPayment types encontrados:"
-      payment_types['payment_types'].each do |pt|
+      payment_types["payment_types"].each do |pt|
         puts "   - #{pt['name']} (#{pt['type']})"
       end
     rescue => e
@@ -85,7 +85,7 @@ namespace :loyverse do
   end
 
   desc "Crear webhook en Loyverse"
-  task :create_webhook, [:url] => :environment do |t, args|
+  task :create_webhook, [ :url ] => :environment do |t, args|
     url = args[:url] || "#{ENV['APP_URL']}/api/v1/loyverse/webhooks"
 
     if url.blank?
@@ -124,10 +124,10 @@ namespace :loyverse do
       client = Loyverse::Client.new
       webhooks = client.get_webhooks
 
-      if webhooks['webhooks'].empty?
+      if webhooks["webhooks"].empty?
         puts "   No hay webhooks configurados"
       else
-        webhooks['webhooks'].each do |webhook|
+        webhooks["webhooks"].each do |webhook|
           puts "\n   ID: #{webhook['id']}"
           puts "   URL: #{webhook['url']}"
           puts "   Eventos: #{webhook['events'].join(', ')}"
@@ -141,7 +141,7 @@ namespace :loyverse do
   end
 
   desc "Sincronizar shifts (turnos de caja) de Loyverse"
-  task :sync_shifts, [:start_date, :end_date] => :environment do |t, args|
+  task :sync_shifts, [ :start_date, :end_date ] => :environment do |t, args|
     start_date = args[:start_date]&.to_date || 1.week.ago.to_date
     end_date = args[:end_date]&.to_date || Date.today
 
@@ -164,7 +164,7 @@ namespace :loyverse do
   end
 
   desc "Sincronizar solo receipts (sin crear TurnClosures)"
-  task :sync_receipts_only, [:start_date, :end_date] => :environment do |t, args|
+  task :sync_receipts_only, [ :start_date, :end_date ] => :environment do |t, args|
     start_date = args[:start_date]&.to_date || Date.today
     end_date = args[:end_date]&.to_date || start_date
 
@@ -187,7 +187,7 @@ namespace :loyverse do
 
   desc "Sincronización completa (payment types + shifts de últimos 3 meses)"
   task full_sync: :environment do
-    Rake::Task['loyverse:sync_payment_types'].invoke
+    Rake::Task["loyverse:sync_payment_types"].invoke
     puts "\n" + ("=" * 60) + "\n\n"
 
     start_date = 3.months.ago.to_date
@@ -199,6 +199,6 @@ namespace :loyverse do
     puts "    Cada shift = 1 turno del mesero = 1 TurnClosure"
     puts ""
 
-    Rake::Task['loyverse:sync_shifts'].invoke(start_date, end_date)
+    Rake::Task["loyverse:sync_shifts"].invoke(start_date, end_date)
   end
 end

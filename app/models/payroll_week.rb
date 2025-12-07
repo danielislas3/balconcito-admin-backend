@@ -5,7 +5,7 @@ class PayrollWeek < ApplicationRecord
 
   # Validations
   validates :week_id, presence: true, uniqueness: { scope: :payroll_employee_id },
-            format: { with: /\A\d{4}-W\d{2}\z/, message: 'debe tener formato YYYY-WXX' }
+            format: { with: /\A\d{4}-W\d{2}\z/, message: "debe tener formato YYYY-WXX" }
   validates :start_date, :end_date, presence: true
   validates :weekly_tips, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100000 }
 
@@ -20,8 +20,8 @@ class PayrollWeek < ApplicationRecord
 
   # Scopes
   scope :by_date, -> { order(start_date: :desc) }
-  scope :for_period, ->(start_date, end_date) { where('start_date >= ? AND end_date <= ?', start_date, end_date) }
-  scope :current_week, -> { where('start_date <= ? AND end_date >= ?', Date.current, Date.current) }
+  scope :for_period, ->(start_date, end_date) { where("start_date >= ? AND end_date <= ?", start_date, end_date) }
+  scope :current_week, -> { where("start_date <= ? AND end_date >= ?", Date.current, Date.current) }
 
   # Callbacks
   after_initialize :build_days, if: :new_record?
@@ -72,7 +72,7 @@ class PayrollWeek < ApplicationRecord
     return if end_date.blank? || start_date.blank?
 
     if end_date < start_date
-      errors.add(:end_date, 'debe ser posterior a la fecha de inicio')
+      errors.add(:end_date, "debe ser posterior a la fecha de inicio")
     end
   end
 
@@ -81,7 +81,7 @@ class PayrollWeek < ApplicationRecord
 
     days_diff = (end_date - start_date).to_i
     if days_diff != 6
-      errors.add(:end_date, 'debe estar exactamente 6 días después de start_date (semana de 7 días)')
+      errors.add(:end_date, "debe estar exactamente 6 días después de start_date (semana de 7 días)")
     end
   end
 

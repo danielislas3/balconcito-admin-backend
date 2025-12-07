@@ -53,10 +53,10 @@ class PayrollCalculator
     total_extra = worked_hours - regular_hours
 
     # Tier 1: Primeras N horas extras (ej: 2 horas al 150%)
-    tier1_hours = [total_extra, settings[:overtimeTier1Hours]].min
+    tier1_hours = [ total_extra, settings[:overtimeTier1Hours] ].min
 
     # Tier 2: Resto de horas extras (al 200%)
-    tier2_hours = [total_extra - tier1_hours, 0].max
+    tier2_hours = [ total_extra - tier1_hours, 0 ].max
 
     {
       regular: regular_hours,

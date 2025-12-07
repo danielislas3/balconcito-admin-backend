@@ -25,9 +25,9 @@ class LoyverseReceipt < ApplicationRecord
 
   scope :synced, -> { where.not(synced_at: nil) }
   scope :unsynced, -> { where(synced_at: nil) }
-  scope :sales, -> { where(receipt_type: 'SALE') }
-  scope :refunds, -> { where(receipt_type: 'REFUND') }
-  scope :by_date, ->(date) { where('DATE(loyverse_created_at) = ?', date) }
+  scope :sales, -> { where(receipt_type: "SALE") }
+  scope :refunds, -> { where(receipt_type: "REFUND") }
+  scope :by_date, ->(date) { where("DATE(loyverse_created_at) = ?", date) }
   scope :date_range, ->(start_date, end_date) {
     where(loyverse_created_at: start_date.beginning_of_day..end_date.end_of_day)
   }
@@ -39,42 +39,42 @@ class LoyverseReceipt < ApplicationRecord
 
   # Extraer información del JSON
   def payments
-    receipt_data.dig('payments') || []
+    receipt_data.dig("payments") || []
   end
 
   def line_items
-    receipt_data.dig('line_items') || []
+    receipt_data.dig("line_items") || []
   end
 
   def employee_id
-    receipt_data.dig('employee_id')
+    receipt_data.dig("employee_id")
   end
 
   def store_id
-    receipt_data.dig('store_id')
+    receipt_data.dig("store_id")
   end
 
   def pos_device_id
-    receipt_data.dig('pos_device_id')
+    receipt_data.dig("pos_device_id")
   end
 
   # Total por tipo de pago
   def total_by_payment_type(type)
     payments
-      .select { |p| p['type'] == type }
-      .sum { |p| p['money_amount'].to_f }
+      .select { |p| p["type"] == type }
+      .sum { |p| p["money_amount"].to_f }
   end
 
   def cash_total
-    total_by_payment_type('CASH')
+    total_by_payment_type("CASH")
   end
 
   def card_total
-    total_by_payment_type('CARD')
+    total_by_payment_type("CARD")
   end
 
   def custom_payment_total
-    total_by_payment_type('CUSTOM')
+    total_by_payment_type("CUSTOM")
   end
 
   # ¿Ya fue convertido a TurnClosure?

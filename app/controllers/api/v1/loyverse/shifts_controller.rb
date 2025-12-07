@@ -2,7 +2,7 @@ module Api
   module V1
     module Loyverse
       class ShiftsController < ApplicationController
-        before_action :set_shift, only: [:show]
+        before_action :set_shift, only: [ :show ]
 
         # GET /api/v1/loyverse/shifts
         def index
@@ -12,10 +12,10 @@ module Api
                                  .per(params[:per_page] || 20)
 
           # Filtros opcionales
-          @shifts = @shifts.without_turn_closure if params[:unconverted] == 'true'
-          @shifts = @shifts.with_turn_closure if params[:converted] == 'true'
-          @shifts = @shifts.where('closed_at >= ?', params[:start_date]) if params[:start_date].present?
-          @shifts = @shifts.where('closed_at <= ?', params[:end_date]) if params[:end_date].present?
+          @shifts = @shifts.without_turn_closure if params[:unconverted] == "true"
+          @shifts = @shifts.with_turn_closure if params[:converted] == "true"
+          @shifts = @shifts.where("closed_at >= ?", params[:start_date]) if params[:start_date].present?
+          @shifts = @shifts.where("closed_at <= ?", params[:end_date]) if params[:end_date].present?
 
           render json: {
             shifts: @shifts.map { |s| shift_json(s) },

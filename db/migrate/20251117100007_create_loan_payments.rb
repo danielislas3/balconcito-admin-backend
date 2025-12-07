@@ -11,6 +11,6 @@ class CreateLoanPayments < ActiveRecord::Migration[8.1]
     end
 
     add_index :loan_payments, :payment_date
-    add_index :loan_payments, [:loan_id, :payment_number], unique: true, name: 'index_loan_payments_unique'
+    add_index :loan_payments, [ :loan_id, :payment_number ], unique: true, name: 'index_loan_payments_unique'
   end
 end

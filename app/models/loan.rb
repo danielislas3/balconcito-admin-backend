@@ -19,7 +19,7 @@ class Loan < ApplicationRecord
   scope :paid, -> { where(is_paid: true) }
   scope :by_lender, ->(lender_id) { where(lender_id: lender_id) }
   scope :by_date_range, ->(start_date, end_date) { where(loan_date: start_date..end_date) }
-  scope :with_interest, -> { where('interest_rate > ?', 0) }
+  scope :with_interest, -> { where("interest_rate > ?", 0) }
   scope :interest_free, -> { where(interest_rate: 0) }
 
   # Instance methods
@@ -61,7 +61,7 @@ class Loan < ApplicationRecord
   end
 
   def payments_remaining
-    [term_months - payments_made_count, 0].max
+    [ term_months - payments_made_count, 0 ].max
   end
 
   def mark_as_paid!
@@ -78,7 +78,7 @@ class Loan < ApplicationRecord
       notes: notes
     )
 
-    new_balance = [remaining_balance - amount, 0].max
+    new_balance = [ remaining_balance - amount, 0 ].max
     is_now_paid = new_balance.zero?
 
     update!(

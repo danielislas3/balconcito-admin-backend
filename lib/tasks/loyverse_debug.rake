@@ -7,8 +7,8 @@ namespace :loyverse do
       client = Loyverse::Client.new
       response = client.get_receipts(limit: 1)
 
-      if response['receipts']&.any?
-        receipt = response['receipts'].first
+      if response["receipts"]&.any?
+        receipt = response["receipts"].first
         puts "\n📋 Estructura del receipt:"
         puts JSON.pretty_generate(receipt)
 

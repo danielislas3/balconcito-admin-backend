@@ -1,7 +1,7 @@
 module Api
   module V1
     class LoansController < ApplicationController
-      before_action :set_loan, only: [:show, :update, :destroy, :record_payment, :mark_as_paid]
+      before_action :set_loan, only: [ :show, :update, :destroy, :record_payment, :mark_as_paid ]
 
       # GET /api/v1/loans
       def index
@@ -9,10 +9,10 @@ module Api
 
         # Filtros
         @loans = @loans.where(lender_id: params[:lender_id]) if params[:lender_id].present?
-        @loans = @loans.active if params[:status] == 'active'
-        @loans = @loans.paid if params[:status] == 'paid'
-        @loans = @loans.with_interest if params[:with_interest] == 'true'
-        @loans = @loans.interest_free if params[:interest_free] == 'true'
+        @loans = @loans.active if params[:status] == "active"
+        @loans = @loans.paid if params[:status] == "paid"
+        @loans = @loans.with_interest if params[:with_interest] == "true"
+        @loans = @loans.interest_free if params[:interest_free] == "true"
 
         render json: @loans.map { |loan|
           {
@@ -93,7 +93,7 @@ module Api
 
         if @loan.save
           render json: {
-            message: 'Préstamo creado exitosamente',
+            message: "Préstamo creado exitosamente",
             loan: @loan
           }, status: :created
         else
@@ -105,7 +105,7 @@ module Api
       def update
         if @loan.update(loan_params)
           render json: {
-            message: 'Préstamo actualizado exitosamente',
+            message: "Préstamo actualizado exitosamente",
             loan: @loan
           }
         else
@@ -117,11 +117,11 @@ module Api
       def destroy
         if @loan.loan_payments.exists?
           render json: {
-            error: 'No se puede eliminar el préstamo porque tiene pagos registrados'
+            error: "No se puede eliminar el préstamo porque tiene pagos registrados"
           }, status: :unprocessable_entity
         else
           @loan.destroy
-          render json: { message: 'Préstamo eliminado exitosamente' }
+          render json: { message: "Préstamo eliminado exitosamente" }
         end
       end
 
@@ -135,7 +135,7 @@ module Api
 
         if payment
           render json: {
-            message: 'Pago registrado exitosamente',
+            message: "Pago registrado exitosamente",
             payment: payment,
             updated_loan: {
               remaining_balance: @loan.remaining_balance,
@@ -145,7 +145,7 @@ module Api
             }
           }
         else
-          render json: { error: 'No se pudo registrar el pago' }, status: :unprocessable_entity
+          render json: { error: "No se pudo registrar el pago" }, status: :unprocessable_entity
         end
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
@@ -155,7 +155,7 @@ module Api
       def mark_as_paid
         @loan.mark_as_paid!
         render json: {
-          message: 'Préstamo marcado como pagado exitosamente',
+          message: "Préstamo marcado como pagado exitosamente",
           loan: @loan
         }
       rescue => e

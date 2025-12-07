@@ -1,7 +1,7 @@
 module Api
   module V1
     class ReimbursementsController < ApplicationController
-      before_action :set_reimbursement, only: [:show]
+      before_action :set_reimbursement, only: [ :show ]
 
       # GET /api/v1/reimbursements
       def index
@@ -49,7 +49,7 @@ module Api
               account_type: @reimbursement.from_account.account_type
             },
             expenses: @reimbursement.expenses.as_json(
-              only: [:id, :expense_date, :amount, :description, :category, :payment_source, :provider]
+              only: [ :id, :expense_date, :amount, :description, :category, :payment_source, :provider ]
             ),
             notes: @reimbursement.notes,
             created_at: @reimbursement.created_at
@@ -66,7 +66,7 @@ module Api
           expenses = Expense.where(id: params[:expense_ids], requires_reimbursement: true, reimbursed: false)
 
           if expenses.empty?
-            render_error('No se encontraron gastos válidos para reembolsar')
+            render_error("No se encontraron gastos válidos para reembolsar")
             return
           end
 
@@ -101,14 +101,14 @@ module Api
                 account_type: reimbursement.from_account.account_type
               },
               expenses: reimbursement.expenses.as_json(
-                only: [:id, :expense_date, :amount, :description, :category]
+                only: [ :id, :expense_date, :amount, :description, :category ]
               ),
               notes: reimbursement.notes
             },
-            message: 'Reembolso procesado exitosamente'
+            message: "Reembolso procesado exitosamente"
           }, status: :created
         else
-          render_error(reimbursement.errors.full_messages.join(', '))
+          render_error(reimbursement.errors.full_messages.join(", "))
         end
       end
 

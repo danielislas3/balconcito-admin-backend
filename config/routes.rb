@@ -6,12 +6,12 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       # Authentication
-      post 'auth/login', to: 'auth#login'
-      delete 'auth/logout', to: 'auth#logout'
-      get 'auth/me', to: 'auth#me'
+      post "auth/login", to: "auth#login"
+      delete "auth/logout", to: "auth#logout"
+      get "auth/me", to: "auth#me"
 
       # Resources
-      resources :accounts, only: [:index, :show, :update]
+      resources :accounts, only: [ :index, :show, :update ]
 
       resources :turn_closures do
         member do
@@ -30,7 +30,7 @@ Rails.application.routes.draw do
 
       resources :payment_methods
 
-      resources :reimbursements, only: [:index, :create, :show]
+      resources :reimbursements, only: [ :index, :create, :show ]
 
       # Payroll
       resources :payroll_employees do
@@ -39,7 +39,7 @@ Rails.application.routes.draw do
           get :export
         end
 
-        resources :payroll_weeks, path: 'weeks' do
+        resources :payroll_weeks, path: "weeks" do
           member do
             patch :update_schedule
           end
@@ -82,53 +82,53 @@ Rails.application.routes.draw do
 
       # Dashboard
       namespace :dashboard do
-        get :summary, to: 'summary#index'
-        get :profitability, to: 'profitability#index'
-        get :break_even, to: 'break_even#index'
-        get :cash_flow, to: 'cash_flow#index'
-        get :expense_breakdown, to: 'expense_breakdown#index'
+        get :summary, to: "summary#index"
+        get :profitability, to: "profitability#index"
+        get :break_even, to: "break_even#index"
+        get :cash_flow, to: "cash_flow#index"
+        get :expense_breakdown, to: "expense_breakdown#index"
         get :summary
         get :profitability
         get :break_even
         get :cash_flow
         get :expense_breakdown
-        get :debt, to: 'debt#index'
+        get :debt, to: "debt#index"
       end
 
       # Loyverse Integration
       namespace :loyverse do
         # Webhooks
-        resources :webhooks, only: [:create, :index] do
+        resources :webhooks, only: [ :create, :index ] do
           member do
             post :retry
           end
         end
 
         # Receipts
-        resources :receipts, only: [:index, :show] do
+        resources :receipts, only: [ :index, :show ] do
           collection do
             post :sync
           end
         end
 
         # Shifts
-        resources :shifts, only: [:index, :show]
+        resources :shifts, only: [ :index, :show ]
 
         # Configuration
-        get 'config', to: 'config#show'
-        patch 'config', to: 'config#update'
+        get "config", to: "config#show"
+        patch "config", to: "config#update"
 
         # Payment Mappings
-        post 'payment_mappings/sync', to: 'payment_mappings#sync'
-        resources :payment_mappings, only: [:index, :update]
+        post "payment_mappings/sync", to: "payment_mappings#sync"
+        resources :payment_mappings, only: [ :index, :update ]
       end
 
       # Credit Cards & Debt
       resources :credit_cards do
-        resources :credit_purchases, only: [:index, :create], shallow: true
+        resources :credit_purchases, only: [ :index, :create ], shallow: true
       end
 
-      resources :credit_purchases, only: [:show, :update, :destroy] do
+      resources :credit_purchases, only: [ :show, :update, :destroy ] do
         member do
           post :record_payment
         end
@@ -136,10 +136,10 @@ Rails.application.routes.draw do
 
       # Loans & Lenders
       resources :lenders do
-        resources :loans, only: [:index, :create], shallow: true
+        resources :loans, only: [ :index, :create ], shallow: true
       end
 
-      resources :loans, only: [:show, :update, :destroy] do
+      resources :loans, only: [ :show, :update, :destroy ] do
         member do
           post :record_payment
         end
@@ -150,6 +150,6 @@ Rails.application.routes.draw do
   # Swagger/OpenAPI Documentation
   # UI accesible en: http://localhost:3000/api-docs
   # API spec en: http://localhost:3000/api-docs/v1/swagger.yaml
-  mount Rswag::Api::Engine => '/api-docs'
-  mount Rswag::Ui::Engine => '/api-docs'
+  mount Rswag::Api::Engine => "/api-docs"
+  mount Rswag::Ui::Engine => "/api-docs"
 end

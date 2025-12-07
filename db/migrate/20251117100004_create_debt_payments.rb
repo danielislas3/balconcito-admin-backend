@@ -11,6 +11,6 @@ class CreateDebtPayments < ActiveRecord::Migration[8.1]
     end
 
     add_index :debt_payments, :payment_date
-    add_index :debt_payments, [:credit_purchase_id, :payment_number], unique: true, name: 'index_debt_payments_unique'
+    add_index :debt_payments, [ :credit_purchase_id, :payment_number ], unique: true, name: 'index_debt_payments_unique'
   end
 end

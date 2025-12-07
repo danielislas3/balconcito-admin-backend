@@ -21,7 +21,7 @@ module Loyverse
 
       all_shifts.each do |shift_data|
         begin
-          shift_id = shift_data['id']
+          shift_id = shift_data["id"]
 
           # Usar ShiftProcessor para procesar cada shift
           result = Loyverse::ShiftProcessor.new(shift_id).process
@@ -34,7 +34,7 @@ module Loyverse
             errors << { shift: shift_id, error: result[:error] }
           end
         rescue => e
-          errors << { shift: shift_data['id'], error: e.message }
+          errors << { shift: shift_data["id"], error: e.message }
           Rails.logger.error("❌ Error procesando shift #{shift_data['id']}: #{e.message}")
         end
       end
@@ -76,7 +76,7 @@ module Loyverse
             Rails.logger.info("✅ TurnClosure creado: #{turn_closure.closure_number}")
           end
         rescue => e
-          errors << { receipt: receipt_data['receipt_number'], error: e.message }
+          errors << { receipt: receipt_data["receipt_number"], error: e.message }
           Rails.logger.error("❌ Error procesando receipt #{receipt_data['receipt_number']}: #{e.message}")
         end
       end
@@ -98,7 +98,7 @@ module Loyverse
       Rails.logger.info("🔄 Sincronizando payment types de Loyverse...")
 
       response = client.get_payment_types
-      payment_types = response['payment_types'] || []
+      payment_types = response["payment_types"] || []
 
       payment_types.each do |pt|
         mapping = LoyversePaymentMapping.create_from_loyverse_data(pt)
@@ -125,10 +125,10 @@ module Loyverse
         params = build_shifts_params(cursor)
         response = client.get_shifts(params)
 
-        shifts = response['shifts'] || []
+        shifts = response["shifts"] || []
         all_shifts.concat(shifts)
 
-        cursor = response['cursor']
+        cursor = response["cursor"]
         break if cursor.blank? || shifts.empty?
 
         # Rate limiting: esperar 1 segundo cada 50 requests
@@ -163,10 +163,10 @@ module Loyverse
         params = build_params(cursor)
         response = client.get_receipts(params)
 
-        receipts = response['receipts'] || []
+        receipts = response["receipts"] || []
         all_receipts.concat(receipts)
 
-        cursor = response['cursor']
+        cursor = response["cursor"]
         break if cursor.blank? || receipts.empty?
 
         # Rate limiting: esperar 1 segundo cada 50 requests
@@ -190,7 +190,7 @@ module Loyverse
 
     def create_or_update_receipt(receipt_data)
       # Loyverse usa receipt_number como identificador único
-      receipt_number = receipt_data['receipt_number']
+      receipt_number = receipt_data["receipt_number"]
 
       if receipt_number.blank?
         raise "Receipt sin receipt_number: #{receipt_data.inspect}"
@@ -199,11 +199,11 @@ module Loyverse
       # Usar receipt_number como loyverse_id ya que Loyverse no devuelve 'id' en GET /receipts
       LoyverseReceipt.find_or_create_by!(loyverse_id: receipt_number) do |receipt|
         receipt.receipt_number = receipt_number
-        receipt.receipt_type = receipt_data['receipt_type']
-        receipt.total_money = receipt_data['total_money']
-        receipt.total_tax = receipt_data['total_tax']
+        receipt.receipt_type = receipt_data["receipt_type"]
+        receipt.total_money = receipt_data["total_money"]
+        receipt.total_tax = receipt_data["total_tax"]
         receipt.receipt_data = receipt_data
-        receipt.loyverse_created_at = receipt_data['created_at']
+        receipt.loyverse_created_at = receipt_data["created_at"]
         receipt.synced_at = Time.current
       end
     end

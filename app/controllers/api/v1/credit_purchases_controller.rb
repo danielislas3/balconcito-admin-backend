@@ -1,7 +1,7 @@
 module Api
   module V1
     class CreditPurchasesController < ApplicationController
-      before_action :set_credit_purchase, only: [:show, :update, :destroy, :record_payment, :mark_as_paid]
+      before_action :set_credit_purchase, only: [ :show, :update, :destroy, :record_payment, :mark_as_paid ]
 
       # GET /api/v1/credit_purchases
       def index
@@ -10,8 +10,8 @@ module Api
         # Filtros
         @purchases = @purchases.where(credit_card_id: params[:credit_card_id]) if params[:credit_card_id].present?
         @purchases = @purchases.where(user_id: params[:user_id]) if params[:user_id].present?
-        @purchases = @purchases.active if params[:status] == 'active'
-        @purchases = @purchases.fully_paid if params[:status] == 'paid'
+        @purchases = @purchases.active if params[:status] == "active"
+        @purchases = @purchases.fully_paid if params[:status] == "paid"
 
         render json: @purchases.map { |purchase|
           {
@@ -90,7 +90,7 @@ module Api
 
         if @credit_purchase.save
           render json: {
-            message: 'Compra a MSI registrada exitosamente',
+            message: "Compra a MSI registrada exitosamente",
             credit_purchase: @credit_purchase
           }, status: :created
         else
@@ -102,7 +102,7 @@ module Api
       def update
         if @credit_purchase.update(credit_purchase_params)
           render json: {
-            message: 'Compra a MSI actualizada exitosamente',
+            message: "Compra a MSI actualizada exitosamente",
             credit_purchase: @credit_purchase
           }
         else
@@ -114,11 +114,11 @@ module Api
       def destroy
         if @credit_purchase.debt_payments.exists?
           render json: {
-            error: 'No se puede eliminar la compra porque tiene pagos registrados'
+            error: "No se puede eliminar la compra porque tiene pagos registrados"
           }, status: :unprocessable_entity
         else
           @credit_purchase.destroy
-          render json: { message: 'Compra a MSI eliminada exitosamente' }
+          render json: { message: "Compra a MSI eliminada exitosamente" }
         end
       end
 
@@ -132,7 +132,7 @@ module Api
 
         if payment
           render json: {
-            message: 'Pago registrado exitosamente',
+            message: "Pago registrado exitosamente",
             payment: payment,
             updated_purchase: {
               remaining_balance: @credit_purchase.remaining_balance,
@@ -142,7 +142,7 @@ module Api
             }
           }
         else
-          render json: { error: 'No se pudo registrar el pago' }, status: :unprocessable_entity
+          render json: { error: "No se pudo registrar el pago" }, status: :unprocessable_entity
         end
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
@@ -152,7 +152,7 @@ module Api
       def mark_as_paid
         @credit_purchase.mark_as_paid!
         render json: {
-          message: 'Compra marcada como pagada exitosamente',
+          message: "Compra marcada como pagada exitosamente",
           credit_purchase: @credit_purchase
         }
       rescue => e

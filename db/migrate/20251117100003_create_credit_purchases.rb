@@ -18,6 +18,6 @@ class CreateCreditPurchases < ActiveRecord::Migration[8.1]
 
     add_index :credit_purchases, :purchase_date
     add_index :credit_purchases, :fully_paid
-    add_index :credit_purchases, [:user_id, :purchase_date]
+    add_index :credit_purchases, [ :user_id, :purchase_date ]
   end
 end

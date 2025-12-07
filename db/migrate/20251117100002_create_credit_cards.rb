@@ -13,7 +13,7 @@ class CreateCreditCards < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    add_index :credit_cards, [:user_id, :name], unique: true
+    add_index :credit_cards, [ :user_id, :name ], unique: true
     add_index :credit_cards, :is_active
   end
 end

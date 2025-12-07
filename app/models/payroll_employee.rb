@@ -25,7 +25,7 @@ class PayrollEmployee < ApplicationRecord
   validate :break_hours_must_be_less_than_shift
 
   # Scopes
-  scope :active, -> { where(user_id: User.where.not(role: 'inactive')) }
+  scope :active, -> { where(user_id: User.where.not(role: "inactive")) }
   scope :by_name, -> { order(:name) }
 
   # Callbacks
@@ -71,7 +71,7 @@ class PayrollEmployee < ApplicationRecord
     return unless overtime_tier1_rate && overtime_tier2_rate
 
     if overtime_tier2_rate < overtime_tier1_rate
-      errors.add(:overtime_tier2_rate, 'debe ser mayor o igual que overtime_tier1_rate')
+      errors.add(:overtime_tier2_rate, "debe ser mayor o igual que overtime_tier1_rate")
     end
   end
 
@@ -79,7 +79,7 @@ class PayrollEmployee < ApplicationRecord
     return unless break_hours && hours_per_shift
 
     if break_hours >= hours_per_shift
-      errors.add(:break_hours, 'debe ser menor que hours_per_shift')
+      errors.add(:break_hours, "debe ser menor que hours_per_shift")
     end
   end
 end

@@ -1,7 +1,7 @@
 module Api
   module V1
     class CreditCardsController < ApplicationController
-      before_action :set_credit_card, only: [:show, :update, :destroy]
+      before_action :set_credit_card, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/credit_cards
       def index
@@ -9,7 +9,7 @@ module Api
 
         # Filtros
         @credit_cards = @credit_cards.where(user_id: params[:user_id]) if params[:user_id].present?
-        @credit_cards = @credit_cards.active if params[:active] == 'true'
+        @credit_cards = @credit_cards.active if params[:active] == "true"
 
         render json: @credit_cards.map { |card|
           {
@@ -86,7 +86,7 @@ module Api
 
         if @credit_card.save
           render json: {
-            message: 'Tarjeta de crédito creada exitosamente',
+            message: "Tarjeta de crédito creada exitosamente",
             credit_card: @credit_card
           }, status: :created
         else
@@ -98,7 +98,7 @@ module Api
       def update
         if @credit_card.update(credit_card_params)
           render json: {
-            message: 'Tarjeta de crédito actualizada exitosamente',
+            message: "Tarjeta de crédito actualizada exitosamente",
             credit_card: @credit_card
           }
         else
@@ -110,11 +110,11 @@ module Api
       def destroy
         if @credit_card.credit_purchases.exists?
           render json: {
-            error: 'No se puede eliminar la tarjeta porque tiene compras asociadas'
+            error: "No se puede eliminar la tarjeta porque tiene compras asociadas"
           }, status: :unprocessable_entity
         else
           @credit_card.destroy
-          render json: { message: 'Tarjeta de crédito eliminada exitosamente' }
+          render json: { message: "Tarjeta de crédito eliminada exitosamente" }
         end
       end
 

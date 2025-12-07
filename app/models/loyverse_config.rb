@@ -30,7 +30,7 @@ class LoyverseConfig < ApplicationRecord
 
   def api_token
     # Prioridad: ENV > Base de datos
-    ENV['LOYVERSE_API_TOKEN'].presence || api_token_encrypted
+    ENV["LOYVERSE_API_TOKEN"].presence || api_token_encrypted
   end
 
   # Configurar webhook secret

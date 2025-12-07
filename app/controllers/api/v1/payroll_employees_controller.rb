@@ -1,7 +1,7 @@
 module Api
   module V1
     class PayrollEmployeesController < ApplicationController
-      before_action :set_payroll_employee, only: [:show, :update, :destroy]
+      before_action :set_payroll_employee, only: [ :show, :update, :destroy ]
 
       # GET /api/v1/payroll_employees
       def index
@@ -28,10 +28,10 @@ module Api
         if employee.save
           render json: {
             employee: employee.to_frontend_json,
-            message: 'Empleado creado exitosamente'
+            message: "Empleado creado exitosamente"
           }, status: :created
         else
-          render_error(employee.errors.full_messages.join(', '))
+          render_error(employee.errors.full_messages.join(", "))
         end
       end
 
@@ -40,19 +40,19 @@ module Api
         if @payroll_employee.update(payroll_employee_params)
           render json: {
             employee: @payroll_employee.to_frontend_json,
-            message: 'Empleado actualizado exitosamente'
+            message: "Empleado actualizado exitosamente"
           }
         else
-          render_error(@payroll_employee.errors.full_messages.join(', '))
+          render_error(@payroll_employee.errors.full_messages.join(", "))
         end
       end
 
       # DELETE /api/v1/payroll_employees/:id
       def destroy
         if @payroll_employee.destroy
-          render json: { message: 'Empleado eliminado exitosamente' }
+          render json: { message: "Empleado eliminado exitosamente" }
         else
-          render_error('No se pudo eliminar el empleado')
+          render_error("No se pudo eliminar el empleado")
         end
       end
 
@@ -63,25 +63,25 @@ module Api
         errors = []
 
         ActiveRecord::Base.transaction do
-          data['employees']&.each do |emp_data|
-            employee = PayrollEmployee.find_or_initialize_by(employee_id: emp_data['id'])
+          data["employees"]&.each do |emp_data|
+            employee = PayrollEmployee.find_or_initialize_by(employee_id: emp_data["id"])
             employee.assign_attributes(
-              name: emp_data['name'],
-              base_hourly_rate: emp_data.dig('settings', 'baseHourlyRate') || 0,
-              currency: emp_data.dig('settings', 'currency') || 'MXN',
-              uses_overtime: emp_data.dig('settings', 'usesOvertime') != false,
-              uses_tips: emp_data.dig('settings', 'usesTips') || false,
-              overtime_tier1_rate: emp_data.dig('settings', 'overtimeTier1Rate') || 1.5,
-              overtime_tier2_rate: emp_data.dig('settings', 'overtimeTier2Rate') || 2.0,
-              overtime_tier1_hours: emp_data.dig('settings', 'overtimeTier1Hours') || 2,
-              hours_per_shift: emp_data.dig('settings', 'hoursPerShift') || 8,
-              break_hours: emp_data.dig('settings', 'breakHours') || 1,
-              min_hours_for_break: emp_data.dig('settings', 'minHoursForBreak') || 5
+              name: emp_data["name"],
+              base_hourly_rate: emp_data.dig("settings", "baseHourlyRate") || 0,
+              currency: emp_data.dig("settings", "currency") || "MXN",
+              uses_overtime: emp_data.dig("settings", "usesOvertime") != false,
+              uses_tips: emp_data.dig("settings", "usesTips") || false,
+              overtime_tier1_rate: emp_data.dig("settings", "overtimeTier1Rate") || 1.5,
+              overtime_tier2_rate: emp_data.dig("settings", "overtimeTier2Rate") || 2.0,
+              overtime_tier1_hours: emp_data.dig("settings", "overtimeTier1Hours") || 2,
+              hours_per_shift: emp_data.dig("settings", "hoursPerShift") || 8,
+              break_hours: emp_data.dig("settings", "breakHours") || 1,
+              min_hours_for_break: emp_data.dig("settings", "minHoursForBreak") || 5
             )
 
             if employee.save
               # Importar semanas
-              emp_data['weeks']&.each do |week_data|
+              emp_data["weeks"]&.each do |week_data|
                 import_week(employee, week_data)
               end
               imported_count += 1
@@ -107,7 +107,7 @@ module Api
         data = {
           employees: employees.map(&:to_frontend_json),
           exportedAt: Time.current.iso8601,
-          version: '1.0'
+          version: "1.0"
         }
 
         render json: data
@@ -129,16 +129,16 @@ module Api
       end
 
       def import_week(employee, week_data)
-        week = employee.payroll_weeks.find_or_initialize_by(week_id: week_data['id'])
+        week = employee.payroll_weeks.find_or_initialize_by(week_id: week_data["id"])
         week.assign_attributes(
-          start_date: Date.parse(week_data['startDate']),
-          end_date: Date.parse(week_data['startDate']) + 6.days,
-          weekly_tips: week_data['weeklyTips'] || 0
+          start_date: Date.parse(week_data["startDate"]),
+          end_date: Date.parse(week_data["startDate"]) + 6.days,
+          weekly_tips: week_data["weeklyTips"] || 0
         )
 
         if week.save
           # Importar días
-          week_data['schedule']&.each do |day_key, day_data|
+          week_data["schedule"]&.each do |day_key, day_data|
             import_day(week, day_key, day_data)
           end
           week.recalculate_and_save!
@@ -148,11 +148,11 @@ module Api
       def import_day(week, day_key, day_data)
         day = week.payroll_days.find_or_initialize_by(day_key: day_key)
         day.update_schedule(
-          entryHour: day_data['entryHour'],
-          entryMinute: day_data['entryMinute'],
-          exitHour: day_data['exitHour'],
-          exitMinute: day_data['exitMinute'],
-          isWorking: day_data['isWorking'] || false
+          entryHour: day_data["entryHour"],
+          entryMinute: day_data["entryMinute"],
+          exitHour: day_data["exitHour"],
+          exitMinute: day_data["exitMinute"],
+          isWorking: day_data["isWorking"] || false
         )
       end
     end

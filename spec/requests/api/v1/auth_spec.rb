@@ -13,10 +13,10 @@ RSpec.describe "Api::V1::Auth", type: :request do
 
         expect(response).to have_http_status(:ok)
         json = JSON.parse(response.body)
-        
+
         expect(json['token']).to be_present
         expect(json['token']).to be_a(String)
-        
+
         expect(json['user']).to be_present
         expect(json['user']['id']).to eq(user.id)
         expect(json['user']['email']).to eq(user.email)

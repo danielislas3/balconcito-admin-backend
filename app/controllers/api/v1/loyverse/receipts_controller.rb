@@ -2,7 +2,7 @@ module Api
   module V1
     module Loyverse
       class ReceiptsController < ApplicationController
-        before_action :set_receipt, only: [:show]
+        before_action :set_receipt, only: [ :show ]
 
         # GET /api/v1/loyverse/receipts
         def index
@@ -14,9 +14,9 @@ module Api
           # Filtros opcionales
           @receipts = @receipts.by_date(params[:date]) if params[:date].present?
           @receipts = @receipts.date_range(params[:start_date], params[:end_date]) if params[:start_date].present?
-          @receipts = @receipts.sales if params[:type] == 'sale'
-          @receipts = @receipts.refunds if params[:type] == 'refund'
-          @receipts = @receipts.where(turn_closure_id: nil) if params[:unconverted] == 'true'
+          @receipts = @receipts.sales if params[:type] == "sale"
+          @receipts = @receipts.refunds if params[:type] == "refund"
+          @receipts = @receipts.where(turn_closure_id: nil) if params[:unconverted] == "true"
 
           render json: {
             receipts: @receipts.map { |r| receipt_json(r) },

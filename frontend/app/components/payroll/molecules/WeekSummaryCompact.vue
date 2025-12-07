@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PayrollWeek } from '~/types/payroll'
-import { usePayrollStore } from '~/stores/payroll'
+import { calculateWeekTotals } from '~/utils/payrollCalculations'
+import { formatCurrency as formatCurrencyUtil, formatWeekDisplay } from '~/utils/payrollFormatters'
+import { WEEK_DAYS } from '~/utils/payrollConstants'
 
 export interface WeekSummaryCompactProps {
   week: PayrollWeek
@@ -9,20 +11,13 @@ export interface WeekSummaryCompactProps {
 }
 
 const props = defineProps<WeekSummaryCompactProps>()
-const payrollStore = usePayrollStore()
-const dayjs = useDayjs()
-
-const formatWeekDisplay = (dateStr: string) => {
-  return dayjs(dateStr).format('DD/MM/YYYY')
-}
 
 const formatCurrency = (amount: number) => {
-  const symbol = props.currency === 'USD' ? '$' : props.currency === 'EUR' ? '€' : '$'
-  return `${symbol}${amount.toFixed(2)}`
+  return formatCurrencyUtil(amount, (props.currency || 'MXN') as any)
 }
 
 // Calcular totales de la semana
-const weekTotals = payrollStore.calculateWeekTotals(props.week)
+const weekTotals = calculateWeekTotals(props.week)
 </script>
 
 <template>
@@ -40,7 +35,7 @@ const weekTotals = payrollStore.calculateWeekTotals(props.week)
     <!-- Tabla compacta de días -->
     <div class="space-y-1">
       <div
-        v-for="day in payrollStore.days"
+        v-for="day in WEEK_DAYS"
         :key="day.key"
         v-show="week.schedule[day.key].hoursWorked > 0"
         class="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">

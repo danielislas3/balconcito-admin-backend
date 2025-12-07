@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PayrollEmployee, PayrollWeek, WeekSchedule } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
+import { calculateEmployeeStats } from '~/utils/payrollCalculations'
+import { WEEK_DAYS } from '~/utils/payrollConstants'
 
 definePageMeta({
   layout: 'default',
@@ -12,6 +14,7 @@ const router = useRouter()
 const payrollStore = usePayrollStore()
 const toast = useToast()
 const dayjs = useDayjs()
+const { exportEmployeeData: exportEmployeeDataUtil } = usePayrollExport()
 
 // Get employee from route params
 const employeeId = route.params.id as string
@@ -43,7 +46,7 @@ const sortedWeeks = computed(() => {
 const employeeStats = computed(() => {
   if (!employee.value) return null
 
-  const stats = payrollStore.calculateEmployeeStats(employee.value)
+  const stats = calculateEmployeeStats(employee.value)
   const weeks = employee.value.weeks
 
   // Calculate additional metrics for HR
@@ -57,7 +60,7 @@ const employeeStats = computed(() => {
     let shiftsThisWeek = 0
     let hasOvertime = false
 
-    payrollStore.days.forEach(day => {
+    WEEK_DAYS.forEach(day => {
       const dayData = week.schedule[day.key as keyof WeekSchedule]
       if (dayData.hoursWorked > 0) {
         totalDaysWorked++
@@ -93,7 +96,7 @@ const employeeStats = computed(() => {
 
 const exportEmployeeData = () => {
   if (employee.value) {
-    payrollStore.exportEmployeeData(employee.value)
+    exportEmployeeDataUtil(employee.value)
   }
 }
 </script>

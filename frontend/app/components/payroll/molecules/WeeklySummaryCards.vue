@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { usePayrollStore } from '~/stores/payroll'
+import { formatCurrency } from '~/utils/payrollFormatters'
 
 export interface WeeklySummaryCardsProps {
   totalHours: number
@@ -9,7 +9,6 @@ export interface WeeklySummaryCardsProps {
 }
 
 const props = defineProps<WeeklySummaryCardsProps>()
-const payrollStore = usePayrollStore()
 </script>
 
 <template>
@@ -88,7 +87,7 @@ const payrollStore = usePayrollStore()
           </div>
         </div>
         <div class="text-3xl font-bold text-violet-900 dark:text-violet-100 mb-1 tabular-nums">
-          {{ payrollStore.formatCurrency(totalPay) }}
+          {{ formatCurrency(totalPay, 'MXN') }}
         </div>
         <div class="text-sm font-medium text-violet-600 dark:text-violet-400 uppercase tracking-wider">Pago
           Total</div>

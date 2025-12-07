@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
+import { formatCurrency } from '~/utils/payrollFormatters'
 
 const emit = defineEmits<{
   'add-employee': []
@@ -15,6 +16,12 @@ const {
   currentWeek,
   weekTotals
 } = storeToRefs(payrollStore)
+
+// Helper to format currency using employee's settings
+const formatEmployeeCurrency = (amount: number) => {
+  const currency = currentEmployee.value?.settings.currency || 'MXN'
+  return formatCurrency(amount, currency as any)
+}
 </script>
 
 <template>
@@ -68,13 +75,13 @@ const {
             <div class="flex justify-between items-center p-2 bg-white/50 dark:bg-gray-800/50 rounded">
               <span class="text-sm text-gray-600 dark:text-gray-400">Pago Base</span>
               <span class="text-lg font-bold text-gray-900 dark:text-gray-100">
-                {{ payrollStore.formatCurrency(weekTotals.totalBasePay) }}
+                {{ formatEmployeeCurrency(weekTotals.totalBasePay) }}
               </span>
             </div>
             <div class="flex justify-between items-center p-3 bg-white/80 dark:bg-gray-800/80 rounded-lg border-2 border-amber-300 dark:border-amber-700">
               <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Total Final</span>
               <span class="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                {{ payrollStore.formatCurrency(weekTotals.totalBasePay + (currentWeek.weeklyTips || 0)) }}
+                {{ formatEmployeeCurrency(weekTotals.totalBasePay + (currentWeek.weeklyTips || 0)) }}
               </span>
             </div>
           </div>

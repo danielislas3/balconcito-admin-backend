@@ -2,7 +2,7 @@
 
 Esta guía documenta la arquitectura de comunicación con el backend y proporciona templates para crear nuevos módulos siguiendo las mejores prácticas.
 
-## 📐 Arquitectura en Capas
+## Arquitectura en Capas
 
 El proyecto sigue una arquitectura de 3 capas para la comunicación con el backend:
 
@@ -34,31 +34,31 @@ El proyecto sigue una arquitectura de 3 capas para la comunicación con el backe
 ### **Responsabilidades de cada capa:**
 
 1. **`useApi`** (HTTP Client Base)
-   - ✅ Manejo de autenticación (Bearer token)
-   - ✅ Manejo de errores HTTP (400, 401, 403, 404, 500, etc.)
-   - ✅ Timeout de 10 segundos
-   - ✅ Logging en desarrollo
-   - ✅ Soporte para diferentes content-types (JSON, Blob, PDF, etc.)
-   - ❌ **NO conoce endpoints específicos**
-   - ❌ **NO conoce tipos de datos del dominio**
+   - Manejo de autenticación (Bearer token)
+   - Manejo de errores HTTP (400, 401, 403, 404, 500, etc.)
+   - Timeout de 10 segundos
+   - Logging en desarrollo
+   - Soporte para diferentes content-types (JSON, Blob, PDF, etc.)
+   - **NO conoce endpoints específicos**
+   - **NO conoce tipos de datos del dominio**
 
 2. **`useModuleApi`** (Repository)
-   - ✅ Centraliza todos los endpoints del módulo
-   - ✅ Transforma datos backend ↔ frontend
-   - ✅ Tipos específicos del dominio (PayrollEmployee, DashboardStats, etc.)
-   - ✅ Documentación de cada endpoint
-   - ❌ **NO maneja estado de la aplicación**
-   - ❌ **NO contiene lógica de negocio**
+   - Centraliza todos los endpoints del módulo
+   - Transforma datos backend ↔ frontend
+   - Tipos específicos del dominio (PayrollEmployee, DashboardStats, etc.)
+   - Documentación de cada endpoint
+   - **NO maneja estado de la aplicación**
+   - **NO contiene lógica de negocio**
 
 3. **Pinia Store** (State Management)
-   - ✅ Manejo de estado reactivo
-   - ✅ Lógica de negocio (cálculos, validaciones, transformaciones)
-   - ✅ Getters computados
-   - ✅ Usa el composable del módulo (`usePayrollApi`, etc.)
-   - ❌ **NO conoce endpoints HTTP**
-   - ❌ **NO hace peticiones HTTP directamente**
+   - Manejo de estado reactivo
+   - Lógica de negocio (cálculos, validaciones, transformaciones)
+   - Getters computados
+   - Usa el composable del módulo (`usePayrollApi`, etc.)
+   - **NO conoce endpoints HTTP**
+   - **NO hace peticiones HTTP directamente**
 
-## 🚀 Crear un nuevo módulo
+## Crear un nuevo módulo
 
 Sigue estos pasos para crear un nuevo módulo (ej: Dashboard):
 
@@ -194,9 +194,9 @@ onMounted(async () => {
 </template>
 ```
 
-## 🎯 Mejores prácticas
+## Mejores prácticas
 
-### **✅ DO (Hacer)**
+### **DO (Hacer)**
 
 1. **Usar contexto en las peticiones:**
    ```typescript
@@ -235,38 +235,38 @@ onMounted(async () => {
    }
    ```
 
-### **❌ DON'T (No hacer)**
+### **DON'T (No hacer)**
 
 1. **NO usar $fetch directamente en el store:**
    ```typescript
-   // ❌ MAL
+   // MAL
    const data = await $fetch('/api/employees')
 
-   // ✅ BIEN
+   // BIEN
    const api = usePayrollApi()
    const data = await api.fetchEmployees()
    ```
 
 2. **NO hardcodear endpoints en múltiples lugares:**
    ```typescript
-   // ❌ MAL - endpoint duplicado
+   // MAL - endpoint duplicado
    await api.get('/payroll_employees')  // en el store
    await api.get('/payroll_employees')  // en otro store
 
-   // ✅ BIEN - centralizado en usePayrollApi
+   // BIEN - centralizado en usePayrollApi
    const payrollApi = usePayrollApi()
    await payrollApi.fetchEmployees()
    ```
 
 3. **NO poner lógica de negocio en el composable de API:**
    ```typescript
-   // ❌ MAL - cálculo en el API client
+   // MAL - cálculo en el API client
    const fetchEmployeeStats = async () => {
      const employees = await api.get('/employees')
-     return employees.reduce((sum, e) => sum + e.salary, 0)  // ❌
+     return employees.reduce((sum, e) => sum + e.salary, 0)
    }
 
-   // ✅ BIEN - cálculo en el store/getter
+   // BIEN - cálculo en el store/getter
    getters: {
      totalSalaries: (state) => state.employees.reduce((sum, e) => sum + e.salary, 0)
    }
@@ -274,14 +274,14 @@ onMounted(async () => {
 
 4. **NO ignorar errores silenciosamente:**
    ```typescript
-   // ❌ MAL
+   // MAL
    try {
      await api.fetchData()
    } catch (error) {
      // silencio...
    }
 
-   // ✅ BIEN
+   // BIEN
    try {
      await api.fetchData()
    } catch (error: any) {
@@ -290,7 +290,7 @@ onMounted(async () => {
    }
    ```
 
-## 🔧 Manejo de errores
+## Manejo de errores
 
 El sistema de manejo de errores está centralizado en `utils/errorHandler.ts`:
 
@@ -311,7 +311,7 @@ try {
 }
 ```
 
-## 📝 Ejemplo completo: Módulo de Payroll
+## Ejemplo completo: Módulo de Payroll
 
 Puedes ver el módulo de Payroll como referencia:
 
@@ -319,7 +319,7 @@ Puedes ver el módulo de Payroll como referencia:
 - **API Client:** `app/composables/usePayrollApi.ts`
 - **Store:** `app/stores/payroll.ts`
 
-## 🤔 ¿Preguntas?
+## Preguntas frecuentes
 
 - ¿Cuándo crear un nuevo módulo? → Cuando tengas un grupo coherente de endpoints relacionados
 - ¿Puedo tener múltiples stores usando el mismo API client? → Sí, es perfectamente válido
@@ -327,4 +327,4 @@ Puedes ver el módulo de Payroll como referencia:
 
 ---
 
-**Última actualización:** Enero 2025
+**Última actualización:** Diciembre 2025

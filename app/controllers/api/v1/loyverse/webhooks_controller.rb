@@ -4,7 +4,7 @@ module Api
       class WebhooksController < ApplicationController
         # Webhooks vienen de Loyverse, no tienen JWT
         skip_before_action :authenticate_user!, only: [ :create ]
-        #skip_before_action :verify_authenticity_token, only: [ :create ]
+        # skip_before_action :verify_authenticity_token, only: [ :create ]
 
         # POST /api/v1/loyverse/webhooks
         def create

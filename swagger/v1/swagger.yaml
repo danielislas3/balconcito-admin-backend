@@ -1,0 +1,1341 @@
+openapi: 3.0.1
+info:
+  title: Balconcito Admin API
+  version: v1
+  description: |
+    API REST para gestion financiera del bar Balconcito.
+
+    Caracteristicas principales:
+    - Autenticacion con JWT
+    - Gestion de cierres de caja con validacion automatica
+    - Dashboard con metricas financieras en tiempo real
+    - Integracion con Loyverse POS
+    - Gestion de deudas (MSI, prestamos, capital de socios)
+    - Reportes y analytics
+
+    Validacion de datos:
+    Todos los cierres de caja manuales se validan contra datos reales de Loyverse para detectar faltantes de efectivo, errores de captura e intentos de fraude.
+
+    Documentacion completa disponible en el repositorio.
+  contact:
+    name: Balconcito Team
+    email: admin@balconcito.com
+
+servers:
+  - url: http://localhost:3000
+    description: Local
+  - url: https://backend-green-leaf-3728.fly.dev
+    description: Production
+
+tags:
+  - name: Authentication
+    description: Autenticación y gestión de sesiones
+  - name: Turn Closures
+    description: Cierres de caja con validación automática
+  - name: Dashboard
+    description: Métricas financieras y KPIs
+  - name: Expenses
+    description: Gestión de gastos y compras
+  - name: Accounts
+    description: Cuentas bancarias y efectivo
+  - name: Loyverse
+    description: Integración con Loyverse POS
+  - name: Debt Management
+    description: Gestión de deudas (MSI, préstamos, capital)
+  - name: Payroll - Employees
+    description: Gestión de empleados del sistema de nómina
+  - name: Payroll - Weeks
+    description: Gestión de semanas laborales y horarios con cálculo automático de pagos
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Token JWT obtenido del endpoint /auth/login
+
+        **Ejemplo:**
+        ```
+        Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+        ```
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Unauthorized"
+        message:
+          type: string
+          example: "Invalid credentials"
+
+    ValidationError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: string
+          example: ["Email can't be blank", "Password is too short"]
+
+    TurnClosure:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        closure_number:
+          type: string
+          example: "20251117-001"
+        closure_date:
+          type: string
+          format: date
+          example: "2025-11-17"
+        cash_collected:
+          type: number
+          format: float
+          example: 1500.00
+        card_income_gross:
+          type: number
+          format: float
+          example: 2300.50
+        transfer_income_gross:
+          type: number
+          format: float
+          example: 450.00
+        total_income:
+          type: number
+          format: float
+          example: 4250.50
+        from_loyverse:
+          type: boolean
+          example: true
+          description: "true si fue creado automáticamente desde Loyverse"
+        validated:
+          type: boolean
+          example: true
+        validation_status:
+          type: string
+          enum: [not_validated, valid, warning, error]
+          example: "valid"
+        has_errors:
+          type: boolean
+          example: false
+        has_warnings:
+          type: boolean
+          example: false
+        validated_at:
+          type: string
+          format: date-time
+          example: "2025-11-17T22:30:00Z"
+        created_at:
+          type: string
+          format: date-time
+
+    ValidationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        can_create:
+          type: boolean
+          description: "false si hay errores críticos que bloquean la creación"
+        validation:
+          type: object
+          properties:
+            valid:
+              type: boolean
+            has_warnings:
+              type: boolean
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: "cash_shortage"
+                  field:
+                    type: string
+                    example: "cash_collected"
+                  message:
+                    type: string
+                    example: "Efectivo reportado ($1200) es MENOR que ventas en efectivo ($1500)"
+                  difference:
+                    type: number
+                    example: 300
+                  severity:
+                    type: string
+                    enum: [critical, warning]
+                  recommendation:
+                    type: string
+                    example: "Verificar faltante de efectivo en caja"
+            warnings:
+              type: array
+              items:
+                type: object
+            discrepancies:
+              type: object
+              properties:
+                cash:
+                  type: object
+                  properties:
+                    expected:
+                      type: number
+                      example: 1500
+                    reported:
+                      type: number
+                      example: 1200
+                    difference:
+                      type: number
+                      example: -300
+                card:
+                  type: object
+                transfer:
+                  type: object
+                total:
+                  type: object
+                  properties:
+                    expected:
+                      type: number
+                    reported:
+                      type: number
+                    difference:
+                      type: number
+                    percentage:
+                      type: number
+                      example: -7.06
+            shift_data:
+              type: object
+              description: "Datos del shift de Loyverse"
+        recommendation:
+          type: string
+          example: "HAY ERRORES CRÍTICOS. Verifica los montos antes de continuar."
+
+    # Payroll Schemas
+    PayrollEmployeeFull:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "juan-perez-1701234567"
+        name:
+          type: string
+          example: "Juan Pérez"
+        settings:
+          type: object
+          properties:
+            baseHourlyRate:
+              type: number
+              example: 85.50
+            currency:
+              type: string
+              example: "MXN"
+            usesOvertime:
+              type: boolean
+              example: true
+            usesTips:
+              type: boolean
+              example: false
+            overtimeTier1Rate:
+              type: number
+              example: 1.5
+            overtimeTier2Rate:
+              type: number
+              example: 2.0
+            overtimeTier1Hours:
+              type: integer
+              example: 2
+            hoursPerShift:
+              type: integer
+              example: 8
+            breakHours:
+              type: integer
+              example: 1
+            minHoursForBreak:
+              type: integer
+              example: 5
+        weeks:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayrollWeek'
+
+    PayrollWeek:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "2025-W49"
+        startDate:
+          type: string
+          format: date
+          example: "2025-12-02"
+        weeklyTips:
+          type: number
+          example: 450.00
+        schedule:
+          type: object
+          description: "Horarios de cada día de la semana"
+          additionalProperties:
+            $ref: '#/components/schemas/DayScheduleFull'
+
+    DayScheduleFull:
+      type: object
+      description: "Horario completo con cálculos"
+      properties:
+        entryHour:
+          type: string
+          example: "17"
+          nullable: true
+        entryMinute:
+          type: string
+          example: "00"
+          nullable: true
+        exitHour:
+          type: string
+          example: "02"
+          nullable: true
+        exitMinute:
+          type: string
+          example: "00"
+          nullable: true
+        hoursWorked:
+          type: number
+          example: 8.0
+          description: "Horas trabajadas (después de descontar descanso)"
+        regularHours:
+          type: number
+          example: 8.0
+          description: "Horas regulares (sin overtime)"
+        overtimeHours:
+          type: number
+          example: 0.0
+          description: "Horas extras tier 1 (primeras 2h al 150%)"
+        extraHours:
+          type: number
+          example: 0.0
+          description: "Horas extras tier 2 (después de 2h al 200%)"
+        dailyPay:
+          type: number
+          example: 684.00
+          description: "Pago total del día"
+        isWorking:
+          type: boolean
+          example: true
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Iniciar sesión
+      description: Autentica un usuario y retorna un token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@balconcito.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged in successfully"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                      name:
+                        type: string
+                      role:
+                        type: string
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: "Token JWT para autenticación"
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/auth/logout:
+    delete:
+      tags:
+        - Authentication
+      summary: Cerrar sesión
+      description: Invalida el token JWT actual
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout exitoso
+        '401':
+          description: No autenticado
+
+  /api/v1/turn_closures:
+    get:
+      tags:
+        - Turn Closures
+      summary: Listar cierres de caja
+      description: |
+        Retorna lista de cierres de caja con paginación y filtros.
+
+        **Filtros disponibles:**
+        - `start_date` y `end_date` - Rango de fechas
+        - `with_errors=true` - Solo cierres con errores
+        - `with_warnings=true` - Solo cierres con warnings
+        - `validated=true/false` - Validados o no validados
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2025-11-01"
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2025-11-17"
+        - name: with_errors
+          in: query
+          schema:
+            type: boolean
+        - name: with_warnings
+          in: query
+          schema:
+            type: boolean
+        - name: validated
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: Lista de cierres
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  turn_closures:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TurnClosure'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      total_pages:
+                        type: integer
+                      total_count:
+                        type: integer
+
+    post:
+      tags:
+        - Turn Closures
+      summary: Crear cierre de caja
+      description: |
+        Crea un cierre de caja con validación automática contra Loyverse.
+
+        **Validaciones:**
+        - Suma de métodos de pago debe coincidir con total_income
+        - Se compara contra datos reales de Loyverse
+        - Se detectan faltantes de efectivo
+        - Se bloquea si hay errores críticos
+
+        **Parámetros opcionales:**
+        - `skip_validation=true` - Saltar validación (usar con precaución)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: skip_validation
+          in: query
+          schema:
+            type: boolean
+          description: "Saltar validación contra Loyverse"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - turn_closure
+              properties:
+                turn_closure:
+                  type: object
+                  required:
+                    - closure_number
+                    - closure_date
+                    - cash_collected
+                    - card_income_gross
+                    - transfer_income_gross
+                    - total_income
+                  properties:
+                    closure_number:
+                      type: string
+                      example: "20251117-001"
+                    closure_date:
+                      type: string
+                      format: date
+                      example: "2025-11-17"
+                    cash_collected:
+                      type: number
+                      example: 1500.00
+                    card_income_gross:
+                      type: number
+                      example: 2300.50
+                    transfer_income_gross:
+                      type: number
+                      example: 450.00
+                    total_income:
+                      type: number
+                      example: 4250.50
+                      description: "Debe coincidir con suma de métodos de pago"
+                    notes:
+                      type: string
+                      example: "Cierre del viernes"
+      responses:
+        '201':
+          description: Cierre creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  turn_closure:
+                    $ref: '#/components/schemas/TurnClosure'
+                  validation:
+                    $ref: '#/components/schemas/ValidationResult'
+        '422':
+          description: Error de validación (errores críticos detectados)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Efectivo reportado ($1200) es MENOR que ventas en efectivo ($1500)"]
+
+  /api/v1/turn_closures/preview_validation:
+    post:
+      tags:
+        - Turn Closures
+      summary: Preview de validación
+      description: |
+        Valida datos SIN crear el cierre de caja.
+
+        **Úsalo ANTES de crear** para:
+        - Verificar que los datos son correctos
+        - Detectar discrepancias temprano
+        - Mostrar alertas al usuario
+
+        Retorna `can_create: false` si hay errores críticos.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - turn_closure
+              properties:
+                turn_closure:
+                  type: object
+                  required:
+                    - closure_date
+                    - cash_collected
+                    - card_income_gross
+                    - transfer_income_gross
+                    - total_income
+                  properties:
+                    closure_date:
+                      type: string
+                      format: date
+                    cash_collected:
+                      type: number
+                    card_income_gross:
+                      type: number
+                    transfer_income_gross:
+                      type: number
+                    total_income:
+                      type: number
+      responses:
+        '200':
+          description: Resultado de validación
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+              examples:
+                con_errores:
+                  summary: Con errores críticos
+                  value:
+                    success: true
+                    can_create: false
+                    validation:
+                      valid: false
+                      errors:
+                        - type: "cash_shortage"
+                          message: "Efectivo reportado ($1200) es MENOR que ventas en efectivo ($1500)"
+                          difference: 300
+                          severity: "critical"
+                      discrepancies:
+                        cash:
+                          expected: 1500
+                          reported: 1200
+                          difference: -300
+                    recommendation: "HAY ERRORES CRÍTICOS. Verifica los montos antes de continuar."
+                sin_errores:
+                  summary: Datos correctos
+                  value:
+                    success: true
+                    can_create: true
+                    validation:
+                      valid: true
+                      errors: []
+                      warnings: []
+                    recommendation: "Datos correctos. Puedes crear el cierre de caja."
+
+  /api/v1/turn_closures/{id}:
+    get:
+      tags:
+        - Turn Closures
+      summary: Ver cierre de caja
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalles del cierre
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  turn_closure:
+                    $ref: '#/components/schemas/TurnClosure'
+
+    delete:
+      tags:
+        - Turn Closures
+      summary: Eliminar cierre de caja
+      description: |
+        Elimina un cierre de caja creado manualmente.
+
+        **Protección:** No se pueden eliminar cierres creados automáticamente desde Loyverse.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cierre eliminado
+        '403':
+          description: No se puede eliminar (es de Loyverse)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "No se puede eliminar un cierre creado automáticamente desde Loyverse"
+
+  /api/v1/turn_closures/{id}/validate_with_loyverse:
+    post:
+      tags:
+        - Turn Closures
+      summary: Validar cierre existente
+      description: Valida un cierre que ya existe contra datos de Loyverse
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Resultado de validación
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  validation:
+                    $ref: '#/components/schemas/ValidationResult'
+
+  /api/v1/dashboard/summary:
+    get:
+      tags:
+        - Dashboard
+      summary: Resumen general
+      description: KPIs principales del negocio
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Resumen de métricas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_revenue:
+                    type: number
+                  total_expenses:
+                    type: number
+                  net_profit:
+                    type: number
+                  profit_margin:
+                    type: number
+                  daily_average_revenue:
+                    type: number
+
+  /api/v1/dashboard/debt:
+    get:
+      tags:
+        - Dashboard
+      summary: Resumen de deudas
+      description: |
+        Muestra todas las deudas del negocio:
+        - MSI de tarjetas de crédito
+        - Préstamos de inversionistas
+        - Capital de socios
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Resumen de deudas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_msi_debt:
+                        type: number
+                      total_loans_debt:
+                        type: number
+                      total_capital_debt:
+                        type: number
+                      total_all_debt:
+                        type: number
+                  credit_cards:
+                    type: array
+                    items:
+                      type: object
+                  loans:
+                    type: array
+                    items:
+                      type: object
+                  monthly_commitments:
+                    type: object
+
+  /api/v1/loyverse/shifts:
+    get:
+      tags:
+        - Loyverse
+      summary: Listar shifts de Loyverse
+      description: Turnos cerrados sincronizados desde Loyverse POS
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: unconverted
+          in: query
+          schema:
+            type: boolean
+          description: "true = solo shifts sin TurnClosure asociado"
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lista de shifts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shifts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        loyverse_id:
+                          type: string
+                        closed_at:
+                          type: string
+                          format: date-time
+                        gross_sales:
+                          type: number
+                        cash_payments:
+                          type: number
+                        payment_totals:
+                          type: object
+                          description: "Totales calculados desde receipts"
+                          properties:
+                            cash:
+                              type: number
+                            card:
+                              type: number
+                            custom:
+                              type: number
+                        cash_balanced:
+                          type: boolean
+                        cash_difference:
+                          type: number
+                        receipts_count:
+                          type: integer
+
+  /api/v1/loyverse/config:
+    get:
+      tags:
+        - Loyverse
+      summary: Ver configuración de Loyverse
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Configuración actual
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    type: object
+                    properties:
+                      api_token_present:
+                        type: boolean
+                      api_token_preview:
+                        type: string
+                        example: "lyv_****...***abc"
+                      sync_enabled:
+                        type: boolean
+                      configured:
+                        type: boolean
+                      last_sync_at:
+                        type: string
+                        format: date-time
+
+    patch:
+      tags:
+        - Loyverse
+      summary: Actualizar configuración
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                api_token:
+                  type: string
+                  example: "lyv_abc123..."
+                sync_enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Configuración actualizada
+        '422':
+          description: Token inválido
+
+  # ============================================
+  # PAYROLL ENDPOINTS
+  # ============================================
+  /api/v1/payroll_employees:
+    get:
+      summary: Listar empleados de nómina
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de empleados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollEmployeeFull'
+                  count:
+                    type: integer
+
+    post:
+      summary: Crear empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payroll_employee
+              properties:
+                payroll_employee:
+                  type: object
+                  required:
+                    - name
+                    - base_hourly_rate
+                  properties:
+                    name:
+                      type: string
+                      example: "Juan Pérez"
+                    base_hourly_rate:
+                      type: number
+                      example: 85.50
+                    currency:
+                      type: string
+                      default: "MXN"
+      responses:
+        '201':
+          description: Empleado creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employee:
+                    $ref: '#/components/schemas/PayrollEmployeeFull'
+                  message:
+                    type: string
+
+  /api/v1/payroll_employees/{id}:
+    get:
+      summary: Obtener empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detalles del empleado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employee:
+                    $ref: '#/components/schemas/PayrollEmployeeFull'
+
+    patch:
+      summary: Actualizar empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_employee:
+                  type: object
+      responses:
+        '200':
+          description: Empleado actualizado
+
+    delete:
+      summary: Eliminar empleado
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Empleado eliminado
+
+  /api/v1/payroll_employees/import:
+    post:
+      summary: Importar datos del sistema
+      description: Importa empleados completos con semanas y horarios (migración desde localStorage)
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: string
+                  description: "JSON stringificado con estructura de empleados"
+      responses:
+        '200':
+          description: Datos importados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  count:
+                    type: integer
+
+  /api/v1/payroll_employees/export:
+    get:
+      summary: Exportar todos los datos
+      description: Exporta todos los empleados con semanas y horarios (backup completo)
+      tags:
+        - Payroll - Employees
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Datos exportados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  employees:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollEmployeeFull'
+                  exportedAt:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+
+  /api/v1/payroll_employees/{employee_id}/weeks:
+    get:
+      summary: Listar semanas
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de semanas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  weeks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PayrollWeek'
+                  count:
+                    type: integer
+
+    post:
+      summary: Crear semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_week:
+                  type: object
+                  required:
+                    - start_date
+                  properties:
+                    start_date:
+                      type: string
+                      format: date
+                      example: "2025-12-02"
+                    weekly_tips:
+                      type: number
+                      default: 0
+      responses:
+        '201':
+          description: Semana creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    $ref: '#/components/schemas/PayrollWeek'
+                  message:
+                    type: string
+
+  /api/v1/payroll_employees/{employee_id}/weeks/{id}:
+    get:
+      summary: Obtener semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "week_id (ej: 2025-W49)"
+      responses:
+        '200':
+          description: Detalles de la semana
+
+    patch:
+      summary: Actualizar semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payroll_week:
+                  type: object
+                  properties:
+                    weekly_tips:
+                      type: number
+      responses:
+        '200':
+          description: Semana actualizada
+
+    delete:
+      summary: Eliminar semana
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Semana eliminada
+
+  /api/v1/payroll_employees/{employee_id}/weeks/{id}/update_schedule:
+    patch:
+      summary: Actualizar horarios
+      description: |
+        Actualiza horarios de trabajo para cada día de la semana.
+        Recalcula automáticamente: horas trabajadas, horas extras, y pagos.
+
+        **Lógica de descanso:** Si se trabajan ≥5 horas, se descuenta 1h de descanso obligatorio.
+      tags:
+        - Payroll - Weeks
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: employee_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - schedule
+              properties:
+                schedule:
+                  type: object
+                  description: "Horarios por día (monday, tuesday, etc.)"
+                  additionalProperties:
+                    type: object
+                    properties:
+                      entryHour:
+                        type: string
+                        example: "17"
+                      entryMinute:
+                        type: string
+                        example: "00"
+                      exitHour:
+                        type: string
+                        example: "02"
+                      exitMinute:
+                        type: string
+                        example: "00"
+                      isWorking:
+                        type: boolean
+                        example: true
+      responses:
+        '200':
+          description: Horario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  week:
+                    $ref: '#/components/schemas/PayrollWeek'
+                  message:
+                    type: string
+                    example: "Horario actualizado para 5 días"

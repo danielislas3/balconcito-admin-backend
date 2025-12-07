@@ -52,8 +52,65 @@ class MetricsCalculator
 
   def payroll_total
     Expense.by_date_range(@start_date, @end_date)
-           .where(category: 'nomina')
+           .where(category: "nomina")
            .sum(:amount)
+  end
+
+  # Gastos agrupados por categoría (formato array para frontend)
+  def expenses_by_category
+    expenses = Expense.by_date_range(@start_date, @end_date)
+    total = total_expenses
+
+    # Agrupar por categoría en Ruby (cost_type es un método, no columna)
+    grouped = expenses.group_by(&:category)
+
+    grouped.map do |category, category_expenses|
+      amount = category_expenses.sum(&:amount)
+      {
+        category: category || "sin_categoria",
+        cost_type: category_expenses.first&.cost_type || "sin_tipo",
+        amount: amount.round(2),
+        percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
+        count: category_expenses.count
+      }
+    end.sort_by { |item| -item[:amount] } # Ordenar por monto descendente
+  end
+
+  # Gastos agrupados por fuente de pago (formato array para frontend)
+  def expenses_by_payment_source
+    expenses = Expense.by_date_range(@start_date, @end_date).includes(:payment_method)
+    total = total_expenses
+
+    # Agrupar por payment_method en Ruby
+    grouped = expenses.group_by { |e| e.payment_method&.name || "Sin método de pago" }
+
+    grouped.map do |payment_method_name, method_expenses|
+      amount = method_expenses.sum(&:amount)
+      {
+        payment_source: payment_method_name,
+        amount: amount.round(2),
+        percentage: total.zero? ? 0 : ((amount / total) * 100).round(2),
+        count: method_expenses.count
+      }
+    end.sort_by { |item| -item[:amount] } # Ordenar por monto descendente
+  end
+
+  # Top N gastos más altos del período
+  def top_expenses(limit = 10)
+    Expense.by_date_range(@start_date, @end_date)
+           .order(amount: :desc)
+           .limit(limit)
+           .map do |expense|
+      {
+        id: expense.id,
+        description: expense.description,
+        amount: expense.amount,
+        category: expense.category,
+        cost_type: expense.cost_type,
+        payment_source: expense.payment_source,
+        date: expense.expense_date
+      }
+    end
   end
 
   # ==================== MÉTRICAS DE RENTABILIDAD ====================
@@ -84,6 +141,23 @@ class MetricsCalculator
   # Margen de Contribución % = 100 - COGS%
   def contribution_margin_percentage
     (100 - cogs_percentage).round(2)
+  end
+
+  # Margen de Contribución en valor absoluto = Ingresos - COGS
+  def contribution_margin
+    (total_income - cogs_total).round(2)
+  end
+
+  # Porcentaje de Costos Fijos sobre Ingresos
+  def fixed_costs_percentage
+    return 0 if total_income.zero?
+    ((fixed_costs_total / total_income) * 100).round(2)
+  end
+
+  # Porcentaje de Costos Variables sobre Ingresos
+  def variable_costs_percentage
+    return 0 if total_income.zero?
+    ((variable_costs_total / total_income) * 100).round(2)
   end
 
   # ==================== MÉTRICAS DE PUNTO DE EQUILIBRIO ====================
@@ -120,10 +194,30 @@ class MetricsCalculator
     (total_expenses / days_in_period).round(2)
   end
 
+  # Promedio de ingresos diarios en el período
+  def average_daily_income
+    return 0 if days_in_period.zero?
+    (total_income / days_in_period).round(2)
+  end
+
+  # Flujo de efectivo neto diario = Ingresos diarios - Gastos diarios
+  def net_daily_cash_flow
+    (average_daily_income - average_daily_expenses).round(2)
+  end
+
   # Cash Runway = Efectivo Total / Promedio Gastos Diarios
   def cash_runway_days
     return 0 if average_daily_expenses.zero?
     (total_cash_available / average_daily_expenses).round(0)
+  end
+
+  # Status del flujo de efectivo
+  def cash_flow_status
+    net_flow = net_daily_cash_flow
+    return "critico" if net_flow.negative?
+    return "estable" if net_flow < 1000
+    return "saludable" if net_flow < 5000
+    "excelente"
   end
 
   # ==================== HELPERS ====================
@@ -135,28 +229,28 @@ class MetricsCalculator
   # Status del COGS (bueno, aceptable, alto)
   def cogs_status
     percentage = cogs_percentage
-    return 'excelente' if percentage < 25
-    return 'bueno' if percentage < 30
-    return 'aceptable' if percentage < 35
-    'alto'
+    return "excelente" if percentage < 25
+    return "bueno" if percentage < 30
+    return "aceptable" if percentage < 35
+    "alto"
   end
 
   # Status del Cash Runway
   def cash_runway_status
     days = cash_runway_days
-    return 'critico' if days < 15
-    return 'precaucion' if days < 30
-    return 'saludable' if days < 60
-    'excelente'
+    return "critico" if days < 15
+    return "precaucion" if days < 30
+    return "saludable" if days < 60
+    "excelente"
   end
 
   # Status del Punto de Equilibrio
   def break_even_status
     margin = safety_margin
-    return 'perdiendo' if margin.negative?
-    return 'equilibrio' if margin < 1000
-    return 'rentable' if margin < 10000
-    'muy_rentable'
+    return "perdiendo" if margin.negative?
+    return "equilibrio" if margin < 1000
+    return "rentable" if margin < 10000
+    "muy_rentable"
   end
 
   # ==================== MÉTODO PRINCIPAL ====================

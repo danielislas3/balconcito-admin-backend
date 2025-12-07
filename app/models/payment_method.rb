@@ -4,12 +4,12 @@ class PaymentMethod < ApplicationRecord
 
   # Enums
   enum :payment_type, {
-    business_cash: 'efectivo_negocio',
-    business_transfer: 'transferencia_negocio',
-    business_card: 'tarjeta_negocio',
-    personal_card: 'tarjeta_personal',
-    personal_cash: 'efectivo_personal',
-    other: 'otro'
+    business_cash: "efectivo_negocio",
+    business_transfer: "transferencia_negocio",
+    business_card: "tarjeta_negocio",
+    personal_card: "tarjeta_personal",
+    personal_cash: "efectivo_personal",
+    other: "otro"
   }, validate: true
 
   # Validations

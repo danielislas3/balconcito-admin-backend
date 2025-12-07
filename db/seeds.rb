@@ -1,10 +1,20 @@
 # Limpiar datos existentes (solo en desarrollo/test)
 if Rails.env.development? || Rails.env.test?
   puts "🗑️  Limpiando datos existentes..."
+  PayrollDay.destroy_all
+  PayrollWeek.destroy_all
+  PayrollEmployee.destroy_all
+  LoanPayment.destroy_all
+  Loan.destroy_all
+  Lender.destroy_all
+  DebtPayment.destroy_all
+  CreditPurchase.destroy_all
+  CreditCard.destroy_all
   ReimbursementExpense.destroy_all
   Reimbursement.destroy_all
   Expense.destroy_all
   TurnClosure.destroy_all
+  LoyversePaymentMapping.destroy_all
   PaymentMethod.destroy_all
   Account.destroy_all
   User.destroy_all
@@ -126,8 +136,44 @@ raul_cash = PaymentMethod.create!(
 
 puts "  ✅ #{PaymentMethod.count} métodos de pago creados"
 
+# Crear prestamistas y préstamos
+puts "🏦 Creando prestamistas y préstamos..."
+
+inversionista = Lender.create!(
+  name: 'Inversionista Principal',
+  contact_email: 'inversionista@ejemplo.com',
+  contact_phone: '555-9876',
+  relationship: 'inversionista',
+  is_active: true,
+  notes: 'Inversionista que apoyó con capital inicial'
+)
+
+# Préstamo de $30,000 sin intereses a 12 meses
+prestamo_30k = Loan.create!(
+  lender: inversionista,
+  principal_amount: 30000.00,
+  interest_rate: 0.0,
+  term_months: 12,
+  loan_date: Date.new(2025, 6, 1),
+  remaining_balance: 30000.00,
+  is_paid: false,
+  notes: 'Préstamo sin intereses para inversión inicial del negocio'
+)
+
+puts "  ✅ #{Lender.count} prestamistas creados"
+puts "  ✅ #{Loan.count} préstamos registrados"
+
+# Cargar datos de nómina
+puts "\n📋 Cargando datos de nómina..."
+load Rails.root.join('db', 'seeds', 'payroll_seed.rb')
+
 puts "\n✅ Seeds completados!"
 puts "   - #{User.count} usuarios: #{User.pluck(:name).join(', ')}"
 puts "   - #{Account.count} cuentas: #{Account.pluck(:name).join(', ')}"
 puts "   - #{PaymentMethod.count} métodos de pago: #{PaymentMethod.pluck(:name).join(', ')}"
-puts "   - Balance total: $#{Account.total_balance}"
+puts "   - #{Lender.count} prestamistas"
+puts "   - #{Loan.count} préstamos activos: $#{Loan.active.sum(:remaining_balance)}"
+puts "   - Balance total cuentas: $#{Account.sum(:current_balance)}"
+puts "   - #{PayrollEmployee.count} empleados de nómina"
+puts "   - #{PayrollWeek.count} semanas de nómina registradas"
+puts "   - #{PayrollDay.where(is_working: true).count} días trabajados"

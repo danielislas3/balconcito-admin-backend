@@ -20,7 +20,7 @@ RSpec.describe User, type: :model do
     it 'validates role inclusion' do
       user = build(:user)
       expect(user).to be_valid
-      expect(['admin', 'manager', 'employee']).to include(user.role)
+      expect([ 'admin', 'manager', 'employee' ]).to include(user.role)
     end
 
     it 'is valid with admin role' do

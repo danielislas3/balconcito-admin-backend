@@ -18,6 +18,6 @@ class CreateExpenses < ActiveRecord::Migration[8.1]
     add_index :expenses, :expense_date
     add_index :expenses, :category
     add_index :expenses, :payment_source
-    add_index :expenses, [:requires_reimbursement, :reimbursed]
+    add_index :expenses, [ :requires_reimbursement, :reimbursed ]
   end
 end

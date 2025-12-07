@@ -7,26 +7,35 @@ class Expense < ApplicationRecord
   # Enums
   enum :category, {
     # COGS (Cost of Goods Sold) - Costo de lo que vendes
-    beer: 'cerveza',
-    draft_beer: 'cerveza_barril',
-    wines_liquors: 'vinos_licores',
-    sodas_juices: 'refrescos_jugos',
-    food: 'alimentos',
-    disposables: 'desechables',
-    ice: 'hielo',
-    dry_supplies: 'insumos_secos',
+    beer: "cerveza",
+    draft_beer: "cerveza_barril",
+    wines_liquors: "vinos_licores",
+    sodas_juices: "refrescos_jugos",
+    food: "alimentos",
+    disposables: "desechables",
+    ice: "hielo",
+    dry_supplies: "insumos_secos",
 
     # Costos Fijos
-    rent: 'renta',
-    payroll: 'nomina',
-    utilities: 'servicios', # luz, agua, gas
-    financial: 'gastos_financieros', # comisiones Mercado Pago
-    debt_payment: 'pago_deuda',
+    rent: "renta",
+    payroll: "nomina",
+    utilities: "servicios", # luz, agua, gas
+    financial: "gastos_financieros", # comisiones Mercado Pago
+    debt_payment: "pago_deuda",
 
     # Costos Variables
-    maintenance: 'mantenimiento',
-    staff_expenses: 'gastos_staff',
-    miscellaneous: 'gastos_varios'
+    maintenance: "mantenimiento",
+    staff_expenses: "gastos_staff",
+    miscellaneous: "gastos_varios",
+
+    # CAPEX (Capital Expenditures) - Inversión inicial
+    equipment: "equipo",
+    construction_materials: "materiales",
+    initial_inventory: "insumos",
+    marketing: "marketing",
+    office: "oficina",
+    transportation: "transporte",
+    others: "otros"
   }, validate: true
 
   # Validations
@@ -46,17 +55,20 @@ class Expense < ApplicationRecord
     case category.to_sym
     when :beer, :draft_beer, :wines_liquors, :sodas_juices, :food,
          :disposables, :ice, :dry_supplies
-      'cogs' # Cost of Goods Sold
+      "cogs" # Cost of Goods Sold
     when :rent, :payroll, :utilities, :financial, :debt_payment
-      'fixed' # Costos Fijos
+      "fixed" # Costos Fijos
     when :maintenance, :staff_expenses, :miscellaneous
-      'variable' # Costos Variables
+      "variable" # Costos Variables
+    when :equipment, :construction_materials, :initial_inventory, :marketing,
+         :office, :transportation, :others
+      "capex" # Capital Expenditures (Inversión inicial)
     end
   end
 
   # Instance methods
   def payment_source_name
-    payment_method&.name || 'No especificado'
+    payment_method&.name || "No especificado"
   end
 
   def paid_by_user
@@ -76,16 +88,16 @@ class Expense < ApplicationRecord
     return unless payment_method&.business_owned? # Solo procesar si es método del negocio
 
     account = case payment_method.payment_type.to_sym
-              when :business_cash then
+    when :business_cash then
                 # Determinar si es caja chica o bóveda según el nombre del payment_method
-                if payment_method.name.downcase.include?('caja')
-                  Account.find_by(account_type: 'petty_cash')
+                if payment_method.name.downcase.include?("caja")
+                  Account.find_by(account_type: "petty_cash")
                 else
-                  Account.find_by(account_type: 'physical_cash')
+                  Account.find_by(account_type: "physical_cash")
                 end
-              when :business_transfer then Account.find_by(name: 'Mercado Pago')
-              when :business_card then nil # TODO: Implementar tarjeta de crédito del negocio
-              end
+    when :business_transfer then Account.find_by(name: "Mercado Pago")
+    when :business_card then nil # TODO: Implementar tarjeta de crédito del negocio
+    end
 
     account&.decrement!(:current_balance, amount)
   end

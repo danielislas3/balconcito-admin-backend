@@ -5,7 +5,7 @@ module Api
       def index
         accounts = Account.all
         render json: {
-          accounts: accounts.as_json(only: [:id, :name, :account_type, :current_balance, :description]),
+          accounts: accounts.as_json(only: [ :id, :name, :account_type, :current_balance, :description ]),
           total_balance: accounts.sum(:current_balance)
         }
       end
@@ -14,7 +14,7 @@ module Api
       def show
         account = Account.find(params[:id])
         render json: {
-          account: account.as_json(only: [:id, :name, :account_type, :current_balance, :description])
+          account: account.as_json(only: [ :id, :name, :account_type, :current_balance, :description ])
         }
       end
 
@@ -24,11 +24,11 @@ module Api
 
         if account.update(account_params)
           render json: {
-            account: account.as_json(only: [:id, :name, :account_type, :current_balance, :description]),
-            message: 'Cuenta actualizada exitosamente'
+            account: account.as_json(only: [ :id, :name, :account_type, :current_balance, :description ]),
+            message: "Cuenta actualizada exitosamente"
           }
         else
-          render_error(account.errors.full_messages.join(', '))
+          render_error(account.errors.full_messages.join(", "))
         end
       end
 

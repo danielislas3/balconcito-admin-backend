@@ -9,7 +9,7 @@ module Api
 
         # Filtros
         @payment_methods = @payment_methods.where(user_id: params[:user_id]) if params[:user_id].present?
-        @payment_methods = @payment_methods.active if params[:active] == 'true'
+        @payment_methods = @payment_methods.active if params[:active] == "true"
         @payment_methods = @payment_methods.where(payment_type: params[:payment_type]) if params[:payment_type].present?
         @payment_methods = @payment_methods.where(requires_reimbursement: params[:requires_reimbursement]) if params[:requires_reimbursement].present?
 
@@ -64,7 +64,7 @@ module Api
       # DELETE /api/v1/payment_methods/:id
       def destroy
         if @payment_method.expenses.any?
-          render json: { error: 'No se puede eliminar un método de pago con gastos asociados' }, status: :unprocessable_entity
+          render json: { error: "No se puede eliminar un método de pago con gastos asociados" }, status: :unprocessable_entity
         else
           @payment_method.destroy
           head :no_content

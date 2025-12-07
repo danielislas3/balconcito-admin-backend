@@ -1,0 +1,14 @@
+openapi: 3.0.1
+info:
+  title: Test API
+  version: '1.0'
+  description: Simple test
+servers:
+  - url: http://localhost:3000
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Login test
+      responses:
+        '200':
+          description: Success

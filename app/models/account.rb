@@ -1,12 +1,12 @@
 class Account < ApplicationRecord
   # Associations
-  has_many :reimbursements, foreign_key: 'from_account_id', dependent: :restrict_with_error
+  has_many :reimbursements, foreign_key: "from_account_id", dependent: :restrict_with_error
 
   # Enums
   enum :account_type, {
-    digital: 'digital',           # Mercado Pago
-    physical_cash: 'physical_cash', # Bóveda
-    petty_cash: 'petty_cash'        # Caja Chica
+    digital: "digital",           # Mercado Pago
+    physical_cash: "physical_cash", # Bóveda
+    petty_cash: "petty_cash"        # Caja Chica
   }, validate: true
 
   # Validations

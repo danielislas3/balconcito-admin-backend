@@ -73,3 +73,5 @@ group :development, :test do
   gem "rswag-specs"
   gem "shoulda-matchers"
 end
+
+gem "dockerfile-rails", ">= 1.7", group: :development

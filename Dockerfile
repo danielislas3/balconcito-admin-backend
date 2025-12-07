@@ -44,9 +44,4 @@ COPY --chown=rails:rails --from=build /rails /rails
 
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
-# Default PORT: si no se define, Rails/Puma tomarán 3000 (útil para dev)
-ENV PORT=3000 RAILS_ENV=production
-
-# No es necesario EXPOSE para Fly
-# CMD: usar Puma (respeta config/puma.rb y ENV['PORT'])
 CMD ["bash", "-lc", "bundle exec puma -C config/puma.rb"]

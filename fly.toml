@@ -36,6 +36,3 @@ console_command = '/rails/bin/rails console'
 
 [[vm]]
   size = 'shared-cpu-1x'
-
-[processes]
-app = "./bin/thrust ./bin/rails server"

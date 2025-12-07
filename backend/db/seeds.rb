@@ -1,6 +1,9 @@
 # Limpiar datos existentes (solo en desarrollo/test)
 if Rails.env.development? || Rails.env.test?
   puts "🗑️  Limpiando datos existentes..."
+  PayrollDay.destroy_all
+  PayrollWeek.destroy_all
+  PayrollEmployee.destroy_all
   LoanPayment.destroy_all
   Loan.destroy_all
   Lender.destroy_all
@@ -11,6 +14,7 @@ if Rails.env.development? || Rails.env.test?
   Reimbursement.destroy_all
   Expense.destroy_all
   TurnClosure.destroy_all
+  LoyversePaymentMapping.destroy_all
   PaymentMethod.destroy_all
   Account.destroy_all
   User.destroy_all
@@ -159,6 +163,10 @@ prestamo_30k = Loan.create!(
 puts "  ✅ #{Lender.count} prestamistas creados"
 puts "  ✅ #{Loan.count} préstamos registrados"
 
+# Cargar datos de nómina
+puts "\n📋 Cargando datos de nómina..."
+load Rails.root.join('db', 'seeds', 'payroll_seed.rb')
+
 puts "\n✅ Seeds completados!"
 puts "   - #{User.count} usuarios: #{User.pluck(:name).join(', ')}"
 puts "   - #{Account.count} cuentas: #{Account.pluck(:name).join(', ')}"
@@ -166,3 +174,6 @@ puts "   - #{PaymentMethod.count} métodos de pago: #{PaymentMethod.pluck(:name)
 puts "   - #{Lender.count} prestamistas"
 puts "   - #{Loan.count} préstamos activos: $#{Loan.active.sum(:remaining_balance)}"
 puts "   - Balance total cuentas: $#{Account.sum(:current_balance)}"
+puts "   - #{PayrollEmployee.count} empleados de nómina"
+puts "   - #{PayrollWeek.count} semanas de nómina registradas"
+puts "   - #{PayrollDay.where(is_working: true).count} días trabajados"

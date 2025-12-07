@@ -5,16 +5,24 @@ class PayrollEmployee < ApplicationRecord
   has_many :payroll_days, through: :payroll_weeks
 
   # Validations
-  validates :name, presence: true
-  validates :employee_id, presence: true, uniqueness: true
-  validates :base_hourly_rate, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :name, presence: true, length: { minimum: 2, maximum: 100 }
+  validates :employee_id, presence: true, uniqueness: { case_sensitive: false }
+  validates :base_hourly_rate, presence: true, numericality: { greater_than: 0, less_than_or_equal_to: 10000 }
   validates :currency, presence: true, inclusion: { in: %w[MXN USD EUR] }
-  validates :overtime_tier1_rate, numericality: { greater_than_or_equal_to: 1 }, allow_nil: true
-  validates :overtime_tier2_rate, numericality: { greater_than_or_equal_to: 1 }, allow_nil: true
-  validates :overtime_tier1_hours, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :hours_per_shift, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :break_hours, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
-  validates :min_hours_for_break, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+
+  # Validaciones de configuración de overtime
+  validates :overtime_tier1_rate, numericality: { greater_than_or_equal_to: 1, less_than_or_equal_to: 5 }
+  validates :overtime_tier2_rate, numericality: { greater_than_or_equal_to: 1, less_than_or_equal_to: 5 }
+  validates :overtime_tier1_hours, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 12 }
+
+  # Validaciones de configuración de horarios
+  validates :hours_per_shift, numericality: { greater_than: 0, less_than_or_equal_to: 24 }
+  validates :break_hours, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 4 }
+  validates :min_hours_for_break, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 12 }
+
+  # Validaciones lógicas custom
+  validate :tier2_rate_must_be_higher_than_tier1
+  validate :break_hours_must_be_less_than_shift
 
   # Scopes
   scope :active, -> { where(user_id: User.where.not(role: 'inactive')) }
@@ -57,5 +65,21 @@ class PayrollEmployee < ApplicationRecord
     base = name.parameterize
     timestamp = Time.current.to_i
     self.employee_id = "#{base}-#{timestamp}"
+  end
+
+  def tier2_rate_must_be_higher_than_tier1
+    return unless overtime_tier1_rate && overtime_tier2_rate
+
+    if overtime_tier2_rate < overtime_tier1_rate
+      errors.add(:overtime_tier2_rate, 'debe ser mayor o igual que overtime_tier1_rate')
+    end
+  end
+
+  def break_hours_must_be_less_than_shift
+    return unless break_hours && hours_per_shift
+
+    if break_hours >= hours_per_shift
+      errors.add(:break_hours, 'debe ser menor que hours_per_shift')
+    end
   end
 end

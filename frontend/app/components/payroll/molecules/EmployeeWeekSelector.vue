@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Employee } from '~/stores/payroll'
+import type { PayrollEmployee } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
 
@@ -7,7 +7,6 @@ const emit = defineEmits<{
   'add-employee': []
   'delete-employee': []
   'create-week': []
-  'save-week': []
 }>()
 
 const payrollStore = usePayrollStore()
@@ -33,11 +32,13 @@ const weekOptions = computed(() =>
   }))
 )
 
-const currencyOptions = [
-  { label: 'Pesos Mexicanos (MXN)', value: 'MXN', icon: 'i-lucide-dollar-sign' },
-  { label: 'Dólares (USD)', value: 'USD', icon: 'i-lucide-dollar-sign' },
-  { label: 'Euros (EUR)', value: 'EUR', icon: 'i-lucide-euro' }
-]
+// Computed para mostrar la tarifa formateada
+const formattedRate = computed(() => {
+  if (!currentEmployee.value || !currentEmployee.value.settings) return '--'
+  const rate = currentEmployee.value.settings.baseHourlyRate ?? 0
+  const symbol = payrollStore.currencySymbols[currentEmployee.value.settings.currency] || '$'
+  return `${symbol}${rate.toFixed(2)}/h`
+})
 </script>
 
 <template>
@@ -73,7 +74,6 @@ const currencyOptions = [
         <div class="flex gap-2">
           <select
             v-model="currentWeekId"
-            @change="payrollStore.onWeekChange"
             :disabled="!currentEmployee"
             class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -87,32 +87,20 @@ const currencyOptions = [
         </div>
       </UFormField>
 
-      <!-- Costo por Turno -->
-      <UFormField label="Costo por Turno">
-        <UInput v-if="currentEmployee" v-model.number="currentEmployee.settings.costPerTurn" type="number" step="0.01"
-          @input="payrollStore.onSettingsChange" icon="i-lucide-dollar-sign" />
-        <UInput v-else disabled type="number" placeholder="0.00" icon="i-lucide-dollar-sign" />
+      <!-- Tarifa por Hora (Read-only) -->
+      <UFormField label="Tarifa por Hora">
+        <div class="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <UIcon name="i-lucide-dollar-sign" class="size-4 text-gray-500" />
+          <span class="font-semibold">{{ formattedRate }}</span>
+        </div>
       </UFormField>
 
-      <!-- Moneda -->
+      <!-- Moneda (Read-only) -->
       <UFormField label="Moneda">
-        <select
-          v-if="currentEmployee"
-          v-model="currentEmployee.settings.currency"
-          @change="payrollStore.onSettingsChange"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm"
-        >
-          <option v-for="option in currencyOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-        <select
-          v-else
-          disabled
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm opacity-50 cursor-not-allowed"
-        >
-          <option>MXN</option>
-        </select>
+        <div class="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <UIcon name="i-lucide-banknote" class="size-4 text-gray-500" />
+          <span class="font-semibold">{{ currentEmployee?.settings.currency || 'MXN' }}</span>
+        </div>
       </UFormField>
     </div>
 
@@ -120,8 +108,10 @@ const currencyOptions = [
       <div class="flex gap-3">
         <UButton label="Eliminar Empleado" icon="i-lucide-trash-2" color="error" variant="outline"
           @click="emit('delete-employee')" :disabled="!currentEmployee || employees.length <= 1" />
-        <UButton label="Guardar Semana" icon="i-lucide-save" color="success" @click="emit('save-week')"
-          :disabled="!currentEmployee" />
+        <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+          <UIcon name="i-lucide-info" class="size-3 mr-1" />
+          Para editar configuración, ve a la pestaña de Configuración
+        </div>
       </div>
     </template>
   </UCard>

@@ -10,11 +10,12 @@ console_command = '/rails/bin/rails console'
 [build]
 
 [env]
-  PORT = "8080"
+  PORT = "80"
   RAILS_ENV = "production"
+  RAILS_MAX_THREADS = "5"
 
 [http_service]
-  internal_port = 8080
+  internal_port = 80
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -35,3 +36,6 @@ console_command = '/rails/bin/rails console'
 
 [[vm]]
   size = 'shared-cpu-1x'
+
+[processes]
+app = "./bin/thrust ./bin/rails server"

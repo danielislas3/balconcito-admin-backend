@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { usePayrollStore } from '~/stores/payroll'
+import { storeToRefs } from 'pinia'
+import { calculateMonthlyStats, calculateWeekTotals, getAvailableMonths } from '~/utils/payrollCalculations'
+import { formatCurrency as formatCurrencyUtil, formatWeekDisplay } from '~/utils/payrollFormatters'
 
 const payrollStore = usePayrollStore()
+const { currentEmployee } = storeToRefs(payrollStore)
 const dayjs = useDayjs()
 
 // Estado para selección de mes
@@ -9,22 +13,21 @@ const selectedYear = ref<number>(dayjs().year())
 const selectedMonth = ref<number>(dayjs().month())
 
 // Obtener meses disponibles
-const availableMonths = computed(() => payrollStore.getAvailableMonths())
+const availableMonths = computed(() => {
+  if (!currentEmployee.value) return []
+  return getAvailableMonths(currentEmployee.value)
+})
 
 // Calcular estadísticas del mes seleccionado
 const monthlyStats = computed(() => {
-  return payrollStore.calculateMonthlyStats(selectedYear.value, selectedMonth.value)
+  if (!currentEmployee.value) return null
+  return calculateMonthlyStats(currentEmployee.value, selectedYear.value, selectedMonth.value)
 })
 
 // Formato de moneda (siempre MXN)
 const formatCurrency = (amount: number | undefined) => {
   const value = amount ?? 0
-  return `$${value.toFixed(2)}`
-}
-
-// Formato de fecha
-const formatWeekDisplay = (dateStr: string) => {
-  return dayjs(dateStr).format('DD/MM/YYYY')
+  return formatCurrencyUtil(value, 'MXN')
 }
 
 // Nombre del mes actual
@@ -234,13 +237,13 @@ watchEffect(() => {
                     Semana del {{ formatWeekDisplay(week.startDate) }}
                   </div>
                   <div class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ (payrollStore.calculateWeekTotals(week).totalHours ?? 0).toFixed(1) }} horas trabajadas
+                    {{ (calculateWeekTotals(week).totalHours ?? 0).toFixed(1) }} horas trabajadas
                   </div>
                 </div>
               </div>
               <div class="text-right">
                 <div class="text-xl font-bold text-violet-600 dark:text-violet-400 tabular-nums">
-                  {{ formatCurrency(payrollStore.calculateWeekTotals(week).totalPay) }}
+                  {{ formatCurrency(calculateWeekTotals(week).totalPay) }}
                 </div>
                 <div v-if="week.weeklyTips > 0" class="text-sm text-gray-600 dark:text-gray-400">
                   Incluye {{ formatCurrency(week.weeklyTips) }} en propinas

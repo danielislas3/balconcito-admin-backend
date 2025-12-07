@@ -2,6 +2,8 @@
 import type { PayrollEmployee } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
+import { calculateEmployeeStats } from '~/utils/payrollCalculations'
+import { formatCurrency } from '~/utils/payrollFormatters'
 
 const emit = defineEmits<{
   'export-all': []
@@ -79,7 +81,7 @@ const { employees } = storeToRefs(payrollStore)
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Horas</span>
               </div>
               <span class="text-xl font-bold text-blue-600 dark:text-blue-400 tabular-nums">
-                {{ payrollStore.calculateEmployeeStats(employee).totalHours.toFixed(1) }}
+                {{ calculateEmployeeStats(employee).totalHours.toFixed(1) }}
               </span>
             </div>
 
@@ -93,7 +95,7 @@ const { employees } = storeToRefs(payrollStore)
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Total Turnos</span>
               </div>
               <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {{ payrollStore.calculateEmployeeStats(employee).totalShifts }}
+                {{ calculateEmployeeStats(employee).totalWeeks }}
               </span>
             </div>
 
@@ -107,7 +109,7 @@ const { employees } = storeToRefs(payrollStore)
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Promedio/Semana</span>
               </div>
               <span class="text-xl font-bold text-purple-600 dark:text-purple-400 tabular-nums">
-                {{ payrollStore.calculateEmployeeStats(employee).avgHoursPerWeek.toFixed(1) }}
+                {{ calculateEmployeeStats(employee).avgHoursPerWeek.toFixed(1) }}
               </span>
             </div>
 
@@ -123,9 +125,7 @@ const { employees } = storeToRefs(payrollStore)
                     Total</span>
                 </div>
                 <span class="text-2xl font-black text-violet-600 dark:text-violet-400 tabular-nums">
-                  {{ payrollStore.formatCurrency(payrollStore.calculateEmployeeStats(employee).totalPay,
-                    employee.settings.currency)
-                  }}
+                  {{ formatCurrency(calculateEmployeeStats(employee).totalPay, employee.settings.currency) }}
                 </span>
               </div>
             </div>

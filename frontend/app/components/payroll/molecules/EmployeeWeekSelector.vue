@@ -2,6 +2,8 @@
 import type { PayrollEmployee } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
 import { storeToRefs } from 'pinia'
+import { formatWeekDisplay } from '~/utils/payrollFormatters'
+import { CURRENCY_SYMBOLS } from '~/utils/payrollConstants'
 
 const emit = defineEmits<{
   'add-employee': []
@@ -27,7 +29,7 @@ const employeeOptions = computed(() =>
 
 const weekOptions = computed(() =>
   currentEmployeeWeeks.value.map(week => ({
-    label: `Semana del ${payrollStore.formatWeekDisplay(week.startDate)}`,
+    label: `Semana del ${formatWeekDisplay(week.startDate)}`,
     value: week.id
   }))
 )
@@ -36,7 +38,7 @@ const weekOptions = computed(() =>
 const formattedRate = computed(() => {
   if (!currentEmployee.value || !currentEmployee.value.settings) return '--'
   const rate = currentEmployee.value.settings.baseHourlyRate ?? 0
-  const symbol = payrollStore.currencySymbols[currentEmployee.value.settings.currency] || '$'
+  const symbol = CURRENCY_SYMBOLS[currentEmployee.value.settings.currency] || '$'
   return `${symbol}${rate.toFixed(2)}/h`
 })
 </script>
@@ -79,7 +81,7 @@ const formattedRate = computed(() => {
           >
             <option value="" disabled>Seleccionar semana...</option>
             <option v-for="week in currentEmployeeWeeks" :key="week.id" :value="week.id">
-              Semana del {{ payrollStore.formatWeekDisplay(week.startDate) }}
+              Semana del {{ formatWeekDisplay(week.startDate) }}
             </option>
           </select>
           <UButton icon="i-lucide-calendar-plus" color="success" @click="emit('create-week')"

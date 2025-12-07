@@ -2,6 +2,8 @@
 import { Time } from '@internationalized/date'
 import type { PayrollWeek, WeekSchedule } from '~/types/payroll'
 import { usePayrollStore } from '~/stores/payroll'
+import { formatWeekDisplay, formatCurrency } from '~/utils/payrollFormatters'
+import { WEEK_DAYS } from '~/utils/payrollConstants'
 
 export interface ScheduleTableProps {
   week: PayrollWeek
@@ -100,7 +102,7 @@ const showCopyDialog = ref(false)
 const sourceDayForCopy = ref<string>('')
 
 const formatDate = (dateStr: string) => {
-  return payrollStore.formatWeekDisplay(dateStr)
+  return formatWeekDisplay(dateStr)
 }
 
 // Calcular horas en el local (incluyendo descanso) para un día específico
@@ -153,7 +155,7 @@ const applyPreset = async (dayKey: string, preset: typeof schedulePresets[0], sh
 
 // Aplicar preset a todos los días
 const applyPresetToAll = async (preset: typeof schedulePresets[0]) => {
-  for (const day of payrollStore.days) {
+  for (const day of WEEK_DAYS) {
     await applyPreset(day.key, preset, false)
   }
 
@@ -318,7 +320,7 @@ const getDaySchedule = (dayKey: string): DaySchedule => {
 
     <!-- Day Cards - Compacto y Responsive -->
     <div class="space-y-2">
-      <div v-for="day in payrollStore.days" :key="day.key" :class="[
+      <div v-for="day in WEEK_DAYS" :key="day.key" :class="[
         'day-card p-2 rounded-lg border',
         hasDayData(day.key)
           ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
@@ -399,7 +401,7 @@ const getDaySchedule = (dayKey: string): DaySchedule => {
               class="px-3 py-2 bg-violet-50 dark:bg-violet-900/10 rounded-lg border border-violet-200 dark:border-violet-800">
               <div class="text-xs text-violet-600 dark:text-violet-400 font-semibold mb-0.5">Total</div>
               <div class="text-lg font-bold text-violet-600 dark:text-violet-400">
-                {{ payrollStore.formatCurrency(getDaySchedule(day.key).dailyPay) }}
+                {{ formatCurrency(getDaySchedule(day.key).dailyPay, 'MXN') }}
               </div>
             </div>
 
@@ -427,7 +429,7 @@ const getDaySchedule = (dayKey: string): DaySchedule => {
   <UModal v-model:open="showCopyDialog" title="Copiar Horario" description="Selecciona los días destino">
     <template #body>
       <div class="space-y-2">
-        <label v-for="day in payrollStore.days" :key="day.key" v-if="day.key !== sourceDayForCopy" :class="[
+        <label v-for="day in WEEK_DAYS" :key="day.key" v-if="day.key !== sourceDayForCopy" :class="[
           'flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all',
           selectedDays.has(day.key)
             ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 dark:border-emerald-500'

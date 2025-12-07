@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PayrollWeek, WeekSchedule } from '~/types/payroll'
-import { usePayrollStore } from '~/stores/payroll'
+import { calculateWeekTotals } from '~/utils/payrollCalculations'
+import { formatCurrency as formatCurrencyUtil, formatWeekDisplay, formatMonthDisplay } from '~/utils/payrollFormatters'
+import { WEEK_DAYS } from '~/utils/payrollConstants'
 
 export interface WeekDetailCardProps {
   week: PayrollWeek
@@ -8,22 +10,15 @@ export interface WeekDetailCardProps {
 }
 
 const props = defineProps<WeekDetailCardProps>()
-const payrollStore = usePayrollStore()
-const dayjs = useDayjs()
 
-const weekTotals = computed(() => payrollStore.calculateWeekTotals(props.week))
-
-const formatWeekDisplay = (dateStr: string) => {
-  return dayjs(dateStr).format('DD/MM/YYYY')
-}
+const weekTotals = computed(() => calculateWeekTotals(props.week))
 
 const formatMonth = (dateStr: string) => {
-  return dayjs(dateStr).format('MMMM YYYY')
+  return formatMonthDisplay(dateStr)
 }
 
 const formatCurrency = (amount: number = 0) => {
-  const symbol = props.currency === 'USD' ? '$' : props.currency === 'EUR' ? '€' : '$'
-  return `${symbol}${amount.toFixed(2)}`
+  return formatCurrencyUtil(amount, (props.currency || 'MXN') as any)
 }
 </script>
 
@@ -70,7 +65,7 @@ const formatCurrency = (amount: number = 0) => {
       </h4>
 
       <PayrollMoleculesDayScheduleRow
-        v-for="day in payrollStore.days"
+        v-for="day in WEEK_DAYS"
         :key="day.key"
         :day-key="day.key"
         :day-name="day.name"

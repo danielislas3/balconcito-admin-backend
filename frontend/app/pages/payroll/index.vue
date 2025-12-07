@@ -12,6 +12,7 @@ definePageMeta({
 const router = useRouter()
 const payrollStore = usePayrollStore()
 const toast = useToast()
+const { exportAllEmployees, exportEmployeeData } = usePayrollExport()
 
 // Store refs
 const {
@@ -129,12 +130,12 @@ const handleCreateWeek = async () => {
 
 // Funciones de exportación
 const handleExportAll = () => {
-  payrollStore.exportAllEmployees()
+  exportAllEmployees(employees.value)
   showSaveIndicator('Reporte general exportado')
 }
 
 const handleExportEmployee = (employee: PayrollEmployee) => {
-  payrollStore.exportEmployeeData(employee)
+  exportEmployeeData(employee)
   showSaveIndicator(`Datos de ${employee.name} exportados`)
 }
 

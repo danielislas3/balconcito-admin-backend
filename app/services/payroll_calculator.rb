@@ -53,12 +53,12 @@ class PayrollCalculator
   end
 
   # Calcula la distribución de horas: regular, tier1 overtime, tier2 overtime
-  def calculate_hour_distribution(worked_hours, force_overtime: false)
+  def calculate_hour_distribution(worked_hours, force_overtime: false, entry_hour: nil, entry_minute: nil, exit_hour: nil, exit_minute: nil)
     return { regular: worked_hours, overtime_tier1: 0, overtime_tier2: 0 } unless worked_hours > 0
 
-    # Si force_overtime está activo, TODAS las horas son overtime tier1
+    # Si force_overtime está activo, solo las horas DESPUÉS de 1 AM son overtime
     if force_overtime
-      return { regular: 0, overtime_tier1: worked_hours, overtime_tier2: 0 }
+      return calculate_force_overtime_distribution(entry_hour, entry_minute, exit_hour, exit_minute, worked_hours)
     end
 
     # Si no usa overtime o no excedió las horas del turno, todo es regular
@@ -80,6 +80,57 @@ class PayrollCalculator
       regular: regular_hours,
       overtime_tier1: tier1_hours,
       overtime_tier2: tier2_hours
+    }
+  end
+
+  # Distribución especial para force_overtime: horas antes de 1 AM = regular, después = overtime
+  def calculate_force_overtime_distribution(entry_hour, entry_minute, exit_hour, exit_minute, worked_hours)
+    return { regular: 0, overtime_tier1: 0, overtime_tier2: 0 } unless worked_hours > 0
+
+    # Convertir a tiempo decimal
+    entry_time = entry_hour.to_i + (entry_minute.to_i / 60.0)
+    exit_time = exit_hour.to_i + (exit_minute.to_i / 60.0)
+
+    # Manejar cruce de medianoche
+    exit_time += 24 if exit_time <= entry_time
+
+    # Umbral: 1:00 AM
+    threshold = 1.0
+
+    # Calcular horas en el lugar (sin descanso)
+    total_hours_in_place = exit_time - entry_time
+
+    # Calcular distribución según el umbral
+    if entry_time >= threshold
+      # Si empieza después de la 1 AM, todas son overtime
+      regular_hours = 0
+      overtime_hours = worked_hours
+    elsif exit_time <= threshold
+      # Si termina antes o a la 1 AM, todas son regular
+      regular_hours = worked_hours
+      overtime_hours = 0
+    else
+      # Cruza el umbral de 1 AM: calcular proporción
+      hours_before_threshold = threshold - entry_time
+      hours_after_threshold = exit_time - threshold
+
+      # Aplicar la misma proporción de descanso a ambos segmentos
+      if worked_hours < total_hours_in_place
+        # Hubo descanso, distribuir proporcionalmente
+        ratio = worked_hours / total_hours_in_place
+        regular_hours = hours_before_threshold * ratio
+        overtime_hours = hours_after_threshold * ratio
+      else
+        # No hubo descanso
+        regular_hours = hours_before_threshold
+        overtime_hours = hours_after_threshold
+      end
+    end
+
+    {
+      regular: regular_hours.round(2),
+      overtime_tier1: overtime_hours.round(2),
+      overtime_tier2: 0
     }
   end
 
@@ -106,7 +157,14 @@ class PayrollCalculator
     worked_hours = calculate_worked_hours(total_hours_in_place)
 
     # 3. Distribuir horas (regular, tier1, tier2)
-    distribution = calculate_hour_distribution(worked_hours, force_overtime: force_overtime)
+    distribution = calculate_hour_distribution(
+      worked_hours,
+      force_overtime: force_overtime,
+      entry_hour: entry_hour,
+      entry_minute: entry_minute,
+      exit_hour: exit_hour,
+      exit_minute: exit_minute
+    )
 
     # 4. Calcular pago
     daily_pay = calculate_daily_pay(distribution)

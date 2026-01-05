@@ -82,7 +82,7 @@ module Api
 
           # IMPORTANTE: Solo permitir campos de entrada (horarios), NO valores calculados
           # El backend calculará automáticamente: hoursWorked, regularHours, overtimeHours, extraHours, dailyPay
-          allowed_params = day_data.permit(:entryHour, :entryMinute, :exitHour, :exitMinute, :isWorking).to_h.symbolize_keys
+          allowed_params = day_data.permit(:entryHour, :entryMinute, :exitHour, :exitMinute, :isWorking, :forceOvertime).to_h.symbolize_keys
 
           if day.update_schedule(allowed_params)
             updated_days << day_key

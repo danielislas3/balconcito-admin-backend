@@ -53,8 +53,13 @@ class PayrollCalculator
   end
 
   # Calcula la distribución de horas: regular, tier1 overtime, tier2 overtime
-  def calculate_hour_distribution(worked_hours)
+  def calculate_hour_distribution(worked_hours, force_overtime: false)
     return { regular: worked_hours, overtime_tier1: 0, overtime_tier2: 0 } unless worked_hours > 0
+
+    # Si force_overtime está activo, TODAS las horas son overtime tier1
+    if force_overtime
+      return { regular: 0, overtime_tier1: worked_hours, overtime_tier2: 0 }
+    end
 
     # Si no usa overtime o no excedió las horas del turno, todo es regular
     unless settings[:usesOvertime] && worked_hours > settings[:hoursPerShift]
@@ -91,7 +96,7 @@ class PayrollCalculator
 
   # Calcula todos los valores de un día en una sola operación
   # Retorna un hash con todos los valores calculados
-  def calculate_day(entry_hour:, entry_minute:, exit_hour:, exit_minute:, is_working: true)
+  def calculate_day(entry_hour:, entry_minute:, exit_hour:, exit_minute:, is_working: true, force_overtime: false)
     return reset_day_values unless is_working
 
     # 1. Calcular horas en el lugar
@@ -101,7 +106,7 @@ class PayrollCalculator
     worked_hours = calculate_worked_hours(total_hours_in_place)
 
     # 3. Distribuir horas (regular, tier1, tier2)
-    distribution = calculate_hour_distribution(worked_hours)
+    distribution = calculate_hour_distribution(worked_hours, force_overtime: force_overtime)
 
     # 4. Calcular pago
     daily_pay = calculate_daily_pay(distribution)

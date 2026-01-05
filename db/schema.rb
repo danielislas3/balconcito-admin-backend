@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_10_065001) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_05_003710) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -261,6 +261,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_10_065001) do
     t.string "exit_hour"
     t.string "exit_minute"
     t.decimal "extra_hours", precision: 5, scale: 2, default: "0.0"
+    t.boolean "force_overtime", default: false, null: false, comment: "Si es true, todas las horas se pagan como overtime (útil para lunes de madrugada)"
     t.decimal "hours_worked", precision: 5, scale: 2, default: "0.0"
     t.boolean "is_working", default: false
     t.decimal "overtime_hours", precision: 5, scale: 2, default: "0.0"

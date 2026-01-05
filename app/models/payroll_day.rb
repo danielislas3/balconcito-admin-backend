@@ -23,7 +23,8 @@ class PayrollDay < ApplicationRecord
       overtimeHours: overtime_hours.to_f,
       extraHours: extra_hours.to_f,
       dailyPay: daily_pay.to_f,
-      isWorking: is_working
+      isWorking: is_working,
+      forceOvertime: force_overtime
     }
   end
 
@@ -40,7 +41,8 @@ class PayrollDay < ApplicationRecord
       entry_minute: entry_minute,
       exit_hour: exit_hour,
       exit_minute: exit_minute,
-      is_working: is_working
+      is_working: is_working,
+      force_overtime: force_overtime
     )
 
     # Asignar valores calculados
@@ -62,6 +64,7 @@ class PayrollDay < ApplicationRecord
     self.exit_hour = schedule_data[:exitHour]
     self.exit_minute = schedule_data[:exitMinute]
     self.is_working = schedule_data[:isWorking] || has_complete_schedule?
+    self.force_overtime = schedule_data[:forceOvertime] if schedule_data.key?(:forceOvertime)
     calculate_day_totals
     save
   end
@@ -73,7 +76,7 @@ class PayrollDay < ApplicationRecord
   end
 
   def schedule_changed?
-    entry_hour_changed? || entry_minute_changed? || exit_hour_changed? || exit_minute_changed? || is_working_changed?
+    entry_hour_changed? || entry_minute_changed? || exit_hour_changed? || exit_minute_changed? || is_working_changed? || force_overtime_changed?
   end
 
   def update_week_totals

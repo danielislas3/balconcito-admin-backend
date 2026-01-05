@@ -5,7 +5,7 @@ gem "rails", "~> 8.1.1"
 # Use sqlite3 as the database for Active Record (development/test)
 gem "sqlite3", ">= 2.1"
 # Use postgresql as the database for Active Record (production)
-gem "pg", "~> 1.1", group: :production
+gem "pg", "~> 1.6", group: :production
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]

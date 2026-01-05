@@ -116,7 +116,8 @@ module Api
       private
 
       def set_payroll_employee
-        @payroll_employee = PayrollEmployee.find_by!(employee_id: params[:id]) ||
+        # Try to find by employee_id first (custom ID), fallback to database ID
+        @payroll_employee = PayrollEmployee.find_by(employee_id: params[:id]) ||
                             PayrollEmployee.find(params[:id])
       end
 

@@ -110,17 +110,19 @@ module Api
       private
 
       def set_payroll_employee
-        @payroll_employee = PayrollEmployee.find_by!(employee_id: params[:employee_id]) ||
-                            PayrollEmployee.find(params[:employee_id])
+        # Try to find by employee_id first (custom ID), fallback to database ID
+        @payroll_employee = PayrollEmployee.find_by(employee_id: params[:payroll_employee_id]) ||
+                            PayrollEmployee.find(params[:payroll_employee_id])
       end
 
       def set_payroll_week
-        @payroll_week = @payroll_employee.payroll_weeks.find_by!(week_id: params[:id]) ||
+        # Try to find by week_id first (custom ID like "2025-W39"), fallback to database ID
+        @payroll_week = @payroll_employee.payroll_weeks.find_by(week_id: params[:id]) ||
                         @payroll_employee.payroll_weeks.find(params[:id])
       end
 
       def payroll_week_params
-        params.require(:payroll_week).permit(:week_id, :start_date, :end_date, :weekly_tips)
+        params.require(:payroll_week).permit(:week_id, :start_date, :end_date, :weekly_tips, :shift_rate)
       end
     end
   end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_04_024327) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_10_065001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -297,6 +297,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_04_024327) do
     t.datetime "created_at", null: false
     t.date "end_date", null: false
     t.bigint "payroll_employee_id", null: false
+    t.decimal "shift_rate"
     t.date "start_date", null: false
     t.decimal "total_base_pay", precision: 10, scale: 2, default: "0.0"
     t.decimal "total_extra_hours", precision: 10, scale: 2, default: "0.0"

@@ -45,6 +45,7 @@ class PayrollWeek < ApplicationRecord
       id: week_id,
       startDate: start_date.iso8601,
       weeklyTips: weekly_tips.to_f,
+      shiftRate: shift_rate&.to_f,
       schedule: schedule
     }
   end

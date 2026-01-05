@@ -6,11 +6,24 @@
 # - Horas regulares vs overtime
 # - Pago diario y semanal
 class PayrollCalculator
-  attr_reader :employee, :settings
+  attr_reader :employee, :settings, :custom_hourly_rate
 
-  def initialize(employee)
+  def initialize(employee, custom_shift_rate: nil)
     @employee = employee
     @settings = employee.settings
+
+    # Si se proporciona un shift_rate personalizado, calcular la tarifa horaria equivalente
+    if custom_shift_rate&.positive?
+      hours_per_shift = @settings[:hoursPerShift] || 8
+      @custom_hourly_rate = custom_shift_rate / hours_per_shift.to_f
+    else
+      @custom_hourly_rate = nil
+    end
+  end
+
+  # Obtener la tarifa horaria a usar (personalizada o del empleado)
+  def hourly_rate
+    @custom_hourly_rate || employee.base_hourly_rate
   end
 
   # Calcula las horas trabajadas considerando el descanso obligatorio
@@ -67,7 +80,7 @@ class PayrollCalculator
 
   # Calcula el pago diario basado en la distribución de horas
   def calculate_daily_pay(hour_distribution)
-    base_rate = employee.base_hourly_rate
+    base_rate = hourly_rate  # Usar la tarifa horaria (personalizada o del empleado)
 
     regular_pay = hour_distribution[:regular] * base_rate
     overtime_tier1_pay = hour_distribution[:overtime_tier1] * base_rate * settings[:overtimeTier1Rate]

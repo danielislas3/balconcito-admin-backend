@@ -29,7 +29,11 @@ class PayrollDay < ApplicationRecord
 
   def calculate_day_totals
     # Usar el servicio PayrollCalculator para todos los cálculos
-    calculator = PayrollCalculator.new(payroll_week.payroll_employee)
+    # Pasar shift_rate de la semana si existe
+    calculator = PayrollCalculator.new(
+      payroll_week.payroll_employee,
+      custom_shift_rate: payroll_week.shift_rate
+    )
 
     calculated_values = calculator.calculate_day(
       entry_hour: entry_hour,

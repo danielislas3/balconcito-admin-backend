@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_05_003710) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_05_025411) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -252,6 +252,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_003710) do
   end
 
   create_table "payroll_days", force: :cascade do |t|
+    t.decimal "break_hours", precision: 5, scale: 2, comment: "Horas de descanso personalizadas (si es null, usa el default de settings)"
     t.datetime "created_at", null: false
     t.decimal "daily_pay", precision: 10, scale: 2, default: "0.0"
     t.date "date", null: false

@@ -28,11 +28,13 @@ class PayrollCalculator
 
   # Calcula las horas trabajadas considerando el descanso obligatorio
   # Lógica: Si trabajaste >= min_hours_for_break horas, se resta break_hours
-  def calculate_worked_hours(total_hours_in_place)
+  # Si se proporciona custom_break_hours, lo usa en vez del default
+  def calculate_worked_hours(total_hours_in_place, custom_break_hours: nil)
     return 0 if total_hours_in_place <= 0
 
     if total_hours_in_place >= settings[:minHoursForBreak]
-      total_hours_in_place - settings[:breakHours]
+      break_to_apply = custom_break_hours || settings[:breakHours]
+      total_hours_in_place - break_to_apply
     else
       total_hours_in_place
     end
@@ -53,10 +55,11 @@ class PayrollCalculator
   end
 
   # Calcula la distribución de horas: regular, tier1 overtime, tier2 overtime
+  # Umbral global de 20 minutos: solo cuenta overtime si supera este mínimo
   def calculate_hour_distribution(worked_hours, force_overtime: false, entry_hour: nil, entry_minute: nil, exit_hour: nil, exit_minute: nil)
     return { regular: worked_hours, overtime_tier1: 0, overtime_tier2: 0 } unless worked_hours > 0
 
-    # Si force_overtime está activo, solo las horas DESPUÉS de 1 AM son overtime
+    # Si force_overtime está activo, usar lógica especial para lunes (después de 1 AM)
     if force_overtime
       return calculate_force_overtime_distribution(entry_hour, entry_minute, exit_hour, exit_minute, worked_hours)
     end
@@ -69,6 +72,13 @@ class PayrollCalculator
     # Calcular horas extras
     regular_hours = settings[:hoursPerShift]
     total_extra = worked_hours - regular_hours
+
+    # Umbral mínimo de 20 minutos: solo cuenta overtime si supera este tiempo
+    # Esto evita que empleados "hagan tiempo" 10-15 minutos para cobrar extra
+    if total_extra < (20.0 / 60.0)
+      # Menos de 20 min de overtime, no cuenta (se pierden o se pagan como regular)
+      return { regular: worked_hours, overtime_tier1: 0, overtime_tier2: 0 }
+    end
 
     # Tier 1: Primeras N horas extras (ej: 2 horas al 150%)
     tier1_hours = [ total_extra, settings[:overtimeTier1Hours] ].min
@@ -84,6 +94,7 @@ class PayrollCalculator
   end
 
   # Distribución especial para force_overtime: horas antes de 1 AM = regular, después = overtime
+  # Con umbral mínimo de 20 minutos: solo cuenta overtime si excede 1:20 AM
   def calculate_force_overtime_distribution(entry_hour, entry_minute, exit_hour, exit_minute, worked_hours)
     return { regular: 0, overtime_tier1: 0, overtime_tier2: 0 } unless worked_hours > 0
 
@@ -94,36 +105,54 @@ class PayrollCalculator
     # Manejar cruce de medianoche
     exit_time += 24 if exit_time <= entry_time
 
-    # Umbral: 1:00 AM
-    threshold = 1.0
+    # Umbral base: 1:00 AM
+    base_threshold = 1.0
+    # Umbral mínimo para overtime: 20 minutos = 0.333 horas
+    # Solo cuenta overtime si sale después de 1:20 AM
+    overtime_threshold = base_threshold + (20.0 / 60.0)  # 1.333 (1:20 AM)
 
     # Calcular horas en el lugar (sin descanso)
     total_hours_in_place = exit_time - entry_time
 
-    # Calcular distribución según el umbral
-    if entry_time >= threshold
-      # Si empieza después de la 1 AM, todas son overtime
-      regular_hours = 0
-      overtime_hours = worked_hours
-    elsif exit_time <= threshold
-      # Si termina antes o a la 1 AM, todas son regular
+    # Calcular distribución según los umbrales
+    if exit_time <= overtime_threshold
+      # Si sale antes de 1:20 AM, no hay overtime (todo regular o se pierde)
       regular_hours = worked_hours
       overtime_hours = 0
+    elsif entry_time >= base_threshold
+      # Si empieza después de la 1 AM, verificar si cumple umbral mínimo
+      time_after_threshold = exit_time - base_threshold
+      if time_after_threshold >= (20.0 / 60.0)
+        # Supera el umbral de 20 min, todas son overtime
+        regular_hours = 0
+        overtime_hours = worked_hours
+      else
+        # No supera umbral, todas regulares
+        regular_hours = worked_hours
+        overtime_hours = 0
+      end
     else
       # Cruza el umbral de 1 AM: calcular proporción
-      hours_before_threshold = threshold - entry_time
-      hours_after_threshold = exit_time - threshold
+      hours_before_threshold = base_threshold - entry_time
+      hours_after_threshold = exit_time - base_threshold
 
-      # Aplicar la misma proporción de descanso a ambos segmentos
-      if worked_hours < total_hours_in_place
-        # Hubo descanso, distribuir proporcionalmente
-        ratio = worked_hours / total_hours_in_place
-        regular_hours = hours_before_threshold * ratio
-        overtime_hours = hours_after_threshold * ratio
+      # Solo cuenta overtime si el tiempo después de 1 AM supera 20 minutos
+      if hours_after_threshold >= (20.0 / 60.0)
+        # Aplicar la misma proporción de descanso a ambos segmentos
+        if worked_hours < total_hours_in_place
+          # Hubo descanso, distribuir proporcionalmente
+          ratio = worked_hours / total_hours_in_place
+          regular_hours = hours_before_threshold * ratio
+          overtime_hours = hours_after_threshold * ratio
+        else
+          # No hubo descanso
+          regular_hours = hours_before_threshold
+          overtime_hours = hours_after_threshold
+        end
       else
-        # No hubo descanso
-        regular_hours = hours_before_threshold
-        overtime_hours = hours_after_threshold
+        # No supera el umbral de 20 min, todo es regular
+        regular_hours = worked_hours
+        overtime_hours = 0
       end
     end
 
@@ -147,14 +176,14 @@ class PayrollCalculator
 
   # Calcula todos los valores de un día en una sola operación
   # Retorna un hash con todos los valores calculados
-  def calculate_day(entry_hour:, entry_minute:, exit_hour:, exit_minute:, is_working: true, force_overtime: false)
+  def calculate_day(entry_hour:, entry_minute:, exit_hour:, exit_minute:, is_working: true, force_overtime: false, custom_break_hours: nil)
     return reset_day_values unless is_working
 
     # 1. Calcular horas en el lugar
     total_hours_in_place = calculate_hours_in_place(entry_hour, entry_minute, exit_hour, exit_minute)
 
-    # 2. Aplicar lógica de descanso
-    worked_hours = calculate_worked_hours(total_hours_in_place)
+    # 2. Aplicar lógica de descanso (personalizado o default)
+    worked_hours = calculate_worked_hours(total_hours_in_place, custom_break_hours: custom_break_hours)
 
     # 3. Distribuir horas (regular, tier1, tier2)
     distribution = calculate_hour_distribution(
